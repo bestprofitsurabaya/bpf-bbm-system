@@ -1,4 +1,3 @@
-cat << 'EOF' > README.md
 # BPF BBM System
 
 Sistem manajemen dan verifikasi klaim BBM untuk kendaraan operasional PT. Bestprofit. Aplikasi ini dirancang untuk mengatasi *trust issue* dalam pelaporan BBM dengan menyediakan alur verifikasi visual yang ketat, otomatisasi pembuatan kronologis, dan fitur pelaporan (*reporting*) profesional.
