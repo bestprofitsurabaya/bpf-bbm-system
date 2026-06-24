@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riwayat & Laporan BBM</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f4f6f9; margin: 0;}
+        .navbar { background-color: #343a40; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 15px;}
+        .navbar a { color: white; text-decoration: none; font-weight: bold; padding: 8px 15px; border-radius: 4px; transition: 0.3s; position: relative;}
+        .navbar a:hover { background-color: #495057; }
+        .navbar a.active { background-color: #007bff; }
+        .notif-badge { background-color: #dc3545; color: white; padding: 3px 7px; border-radius: 50%; font-size: 11px; position: absolute; top: -5px; right: -5px; box-shadow: 0 0 5px rgba(220,53,69,0.5);}
+        
+        .container { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #dee2e6; }
+        th { background-color: #f8f9fa; font-weight: bold; color: #495057; }
+        tr:hover { background-color: #f8f9fa; }
+        
+        .badge { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; color: white; }
+        .badge-reported { background-color: #28a745; }
+        .badge-unreported { background-color: #dc3545; }
+        
+        .btn-report { background-color: #17a2b8; color: white; padding: 8px 12px; border: none; border-radius: 4px; text-decoration: none; font-size: 13px; font-weight: bold;}
+        .btn-report:hover { background-color: #138496; }
+        .btn-downloaded { background-color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <a href="/admin">Klaim Pending 
+            {% if pending_count > 0 %}<span class="notif-badge">{{ pending_count }}</span>{% endif %}
+        </a>
+        <a href="/admin/riwayat" class="active">Riwayat & Report</a>
+    </div>
+
+    <div class="container">
+        <h2>Dashboard Riwayat Transaksi (Verified)</h2>
+        <p style="color: #6c757d;">Daftar seluruh transaksi yang telah disetujui. Unduh laporan dalam format PDF untuk arsip.</p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Tanggal Input</th>
+                    <th>Nopol</th>
+                    <th>Nominal</th>
+                    <th>Tipe SPBU</th>
+                    <th>Status Report</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tx in transactions %}
+                <tr>
+                    <td>#{{ tx.id }}</td>
+                    <td>{{ tx.created_at.strftime('%d-%m-%Y %H:%M') }}</td>
+                    <td><strong>{{ tx.nopol | upper }}</strong></td>
+                    <td>Rp {{ "{:,.0f}".format(tx.nominal) }}</td>
+                    <td>{{ tx.spbu_type | replace('_', ' ') | title }}</td>
+                    <td>
+                        {% if tx.is_reported %}
+                            <span class="badge badge-reported">Sudah Dibuat</span>
+                        {% else %}
+                            <span class="badge badge-unreported">Belum Report</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if tx.is_reported %}
+                            <a href="/admin/report/{{ tx.id }}" class="btn-report btn-downloaded">Unduh Ulang PDF</a>
+                        {% else %}
+                            <a href="/admin/report/{{ tx.id }}" class="btn-report">Generate Laporan</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align: center; color: #6c757d;">Belum ada transaksi yang diverifikasi.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

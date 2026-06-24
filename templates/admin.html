@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Verifikasi BBM</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f4f6f9; margin: 0;}
+        .navbar { background-color: #343a40; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 15px;}
+        .navbar a { color: white; text-decoration: none; font-weight: bold; padding: 8px 15px; border-radius: 4px; transition: 0.3s; position: relative;}
+        .navbar a:hover { background-color: #495057; }
+        .navbar a.active { background-color: #007bff; }
+        .notif-badge { background-color: #dc3545; color: white; padding: 3px 7px; border-radius: 50%; font-size: 11px; position: absolute; top: -5px; right: -5px; box-shadow: 0 0 5px rgba(220,53,69,0.5);}
+        .tx-card { background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e9ecef;}
+        .gallery { display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap; }
+        .gallery img { height: 150px; border-radius: 4px; border: 1px solid #ccc; object-fit: cover;}
+        .admin-action { background-color: #f8f9fa; padding: 15px; border: 1px dashed #adb5bd; border-radius: 4px; }
+        .btn-verify { background-color: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-top:10px;}
+        .badge-pending { background-color: #ffc107; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <a href="/admin" class="active">Klaim Pending 
+            {% if pending_count > 0 %}<span class="notif-badge">{{ pending_count }}</span>{% endif %}
+        </a>
+        <a href="/admin/riwayat">Riwayat & Report</a>
+    </div>
+
+    <h2>Verifikasi Klaim BBM (Finance)</h2>
+    
+    {% if not transactions %}
+        <div class="tx-card" style="text-align: center; color: #6c757d;">
+            <h3>Seluruh transaksi telah diverifikasi.</h3>
+        </div>
+    {% endif %}
+
+    {% for tx in transactions %}
+    <div class="tx-card">
+        <h3>{{ tx.nopol | upper }} <span class="badge-pending">PENDING</span></h3>
+        <p><strong>Nominal:</strong> Rp {{ "{:,.0f}".format(tx.nominal) }} | <strong>Tipe SPBU:</strong> {{ tx.spbu_type | replace('_', ' ') | title }}</p>
+        
+        <div class="gallery">
+            {% if tx.foto_odo_sebelum %}<a href="/uploads/{{ tx.foto_odo_sebelum }}" target="_blank"><img src="/uploads/{{ tx.foto_odo_sebelum }}" title="ODO Sebelum"></a>{% endif %}
+            {% if tx.foto_nota_odo_sesudah %}<a href="/uploads/{{ tx.foto_nota_odo_sesudah }}" target="_blank"><img src="/uploads/{{ tx.foto_nota_odo_sesudah }}" title="Nota & ODO Sesudah"></a>{% endif %}
+            {% if tx.foto_struk %}<a href="/uploads/{{ tx.foto_struk }}" target="_blank"><img src="/uploads/{{ tx.foto_struk }}" title="Struk BBM"></a>{% endif %}
+            {% if tx.foto_struk_dispenser %}<a href="/uploads/{{ tx.foto_struk_dispenser }}" target="_blank"><img src="/uploads/{{ tx.foto_struk_dispenser }}" title="Struk di Dispenser"></a>{% endif %}
+        </div>
+
+        <div class="admin-action">
+            <form action="/admin" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="tx_id" value="{{ tx.id }}">
+                <input type="hidden" name="nopol" value="{{ tx.nopol }}">
+                <input type="hidden" name="nominal" value="{{ tx.nominal }}">
+                
+                <div style="margin-bottom: 10px;">
+                    <label style="font-weight: bold;">Upload Screenshot MyPertamina (Opsional):</label><br>
+                    <input type="file" name="foto_mypertamina" accept="image/*">
+                </div>
+
+                <div style="margin-bottom: 10px; color: #dc3545;">
+                    <input type="checkbox" id="error_{{ tx.id }}" name="mypertamina_error">
+                    <label for="error_{{ tx.id }}"><strong>Atau:</strong> MyPertamina Error (Buat Kronologis Otomatis)</label>
+                </div>
+
+                <button type="submit" class="btn-verify">Approve & Verifikasi</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</body>
+</html>

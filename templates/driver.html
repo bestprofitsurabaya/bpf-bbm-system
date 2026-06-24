@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klaim BBM - Driver</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; background-color: #f4f4f9;}
+        .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px;}
+        input[type="text"], input[type="number"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        input[type="file"] { padding: 10px 0; }
+        button { background-color: #28a745; color: white; padding: 15px; border: none; width: 100%; border-radius: 4px; font-size: 16px; cursor: pointer; }
+        .hidden { display: none; }
+        .alert-box { background-color: #fff3cd; border-left: 5px solid #ffc107; padding: 10px; margin-bottom: 15px; font-size: 13px;}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Form Klaim BBM</h2>
+        <form action="/" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label>Nopol Kendaraan:</label>
+                <input type="text" name="nopol" required>
+            </div>
+            <div class="form-group">
+                <label>Nominal (Rp):</label>
+                <input type="number" name="nominal" required>
+            </div>
+            <div class="form-group">
+                <label>Jenis SPBU:</label>
+                <select name="spbu_type" id="spbu_type" required>
+                    <option value="rekanan">SPBU Rekanan (MyPertamina)</option>
+                    <option value="non_rekanan">SPBU Non-Rekanan (SPBU Lain)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>1. Foto ODO Sebelum Isi BBM:</label>
+                <input type="file" name="foto_odo_sebelum" accept="image/*" required>
+            </div>
+            <div class="form-group">
+                <label>2. Foto Struk / Nota di sebelah ODO (Sesudah Isi):</label>
+                <input type="file" name="foto_nota_odo_sesudah" accept="image/*" required>
+            </div>
+            <div class="form-group">
+                <label>3. Foto Struk Print BBM (Fisik):</label>
+                <input type="file" name="foto_struk" accept="image/*" required>
+            </div>
+            <div id="dispenser_div" class="form-group hidden alert-box">
+                <label style="color: #856404;">4. Khusus Non-Rekanan: Foto Struk di Sebelah Monitor Dispenser:</label>
+                <input type="file" name="foto_struk_dispenser" accept="image/*" id="input_dispenser">
+            </div>
+            <button type="submit">Kirim Bukti</button>
+        </form>
+    </div>
+    <script>
+        const spbuSelect = document.getElementById('spbu_type');
+        const dispenserDiv = document.getElementById('dispenser_div');
+        const inputDispenser = document.getElementById('input_dispenser');
+
+        spbuSelect.addEventListener('change', function() {
+            if (this.value === 'non_rekanan') {
+                dispenserDiv.classList.remove('hidden');
+                inputDispenser.setAttribute('required', 'required');
+            } else {
+                dispenserDiv.classList.add('hidden');
+                inputDispenser.removeAttribute('required');
+            }
+        });
+    </script>
+</body>
+</html>
