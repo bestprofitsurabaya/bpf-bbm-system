@@ -1,34 +1,38 @@
 version: '3.8'
-
 services:
   db:
     image: mariadb:10.11
-    container_name: bpf-bbm-db
-    restart: always
+    container_name: bbm_mariadb
     environment:
       MYSQL_ROOT_PASSWORD: password_db
       MYSQL_DATABASE: bpf_asset_system
-    volumes:
-      - bpf_db_data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      MYSQL_USER: bpf_user
+      MYSQL_PASSWORD: bpf_pass
     ports:
-      - "3306:3306"
+      - "3307:3306"
+    volumes:
+      - bbm_db_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 5
 
   web:
     build: .
-    container_name: bpf-bbm-web
-    restart: always
+    container_name: bbm_web
     ports:
-      - "5000:5000"
+      - "5001:5000"
     volumes:
       - ./uploads:/app/uploads
+      - ./static:/app/static
+    environment:
+      - FLASK_ENV=production
     depends_on:
-      - db
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      db:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
-  bpf_db_data:
+  bbm_db_data:

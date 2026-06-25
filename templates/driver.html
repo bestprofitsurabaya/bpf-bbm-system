@@ -2,71 +2,323 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Klaim BBM - Driver</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1a237e">
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; background-color: #f4f4f9;}
-        .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px;}
-        input[type="text"], input[type="number"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        input[type="file"] { padding: 10px 0; }
-        button { background-color: #28a745; color: white; padding: 15px; border: none; width: 100%; border-radius: 4px; font-size: 16px; cursor: pointer; }
-        .hidden { display: none; }
-        .alert-box { background-color: #fff3cd; border-left: 5px solid #ffc107; padding: 10px; margin-bottom: 15px; font-size: 13px;}
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        #pwa-install-banner { width:100%; max-width:750px; background:#1a237e; color:white; padding:12px 20px; border-radius:8px; margin-bottom:15px; display:none; justify-content:space-between; align-items:center; }
+        #pwa-install-banner.show { display:flex; }
+        #pwa-install-btn { background:#ffc107; color:#1a237e; border:none; padding:8px 16px; border-radius:4px; cursor:pointer; font-weight:bold; }
+        .container { max-width:750px; width:100%; background:#fff; border-radius:16px; box-shadow:0 8px 30px rgba(0,0,0,0.12); padding:30px; margin-bottom:20px; }
+        .header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:25px; padding-bottom:15px; border-bottom:2px solid #e9ecef; }
+        .header h1 { font-size:24px; color:#1a237e; }
+        .alert { padding:12px 16px; border-radius:8px; margin-bottom:20px; font-weight:500; }
+        .alert-success { background:#d4edda; color:#155724; border-left:4px solid #28a745; }
+        .alert-error { background:#f8d7da; color:#721c24; border-left:4px solid #dc3545; }
+        .alert-warning { background:#fff3cd; color:#856404; border-left:4px solid #ffc107; }
+        .form-group { margin-bottom:18px; }
+        .form-group label { display:block; font-weight:600; font-size:14px; color:#333; margin-bottom:5px; }
+        .form-group label .required { color:#dc3545; }
+        .form-control { width:100%; padding:10px 14px; border:2px solid #dee2e6; border-radius:8px; font-size:14px; background:#f8f9fa; }
+        .form-control:focus { border-color:#1a237e; outline:none; background:#fff; }
+        .form-control-file { display:none; }
+        .row { display:grid; grid-template-columns:1fr 1fr; gap:15px; }
+        .divider { border-top:2px dashed #dee2e6; margin:25px 0; }
+        .btn-submit { width:100%; padding:14px; background:#1a237e; color:white; border:none; border-radius:8px; font-size:16px; font-weight:600; cursor:pointer; }
+        .btn-submit:hover { background:#0d1a5e; }
+        .hidden { display:none !important; }
+        .note { font-size:12px; color:#6c757d; margin-top:4px; }
+        .gps-status { font-size:12px; font-weight:bold; padding:6px 12px; border-radius:6px; background:#f1f3f5; display:flex; align-items:center; gap:6px; }
+        .gps-status.active { background:#d4edda; color:#155724; }
+        .gps-status.inactive { background:#f8d7da; color:#721c24; }
+        .camera-btn { background:#28a745; color:white; border:none; padding:12px 20px; border-radius:6px; font-size:14px; font-weight:bold; cursor:pointer; width:100%; display:flex; align-items:center; justify-content:center; gap:8px; }
+        .camera-btn:hover { background:#1e7e34; }
+        .preview-img { max-width:100%; max-height:200px; border-radius:8px; border:2px solid #dee2e6; margin-top:10px; }
+        .auto-calc { background:#e9ecef; padding:8px 12px; border-radius:6px; font-size:13px; color:#495057; }
+        .install-guide { background:#e8f4fd; padding:12px 16px; border-radius:8px; margin-bottom:15px; font-size:13px; border-left:4px solid #17a2b8; }
+        .bbm-info { background:#fff3cd; padding:8px 12px; border-radius:6px; font-size:13px; color:#856404; margin-top:5px; }
+        @media (max-width:600px) { .row { grid-template-columns:1fr; } .container { padding:20px; } }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h2>Form Klaim BBM</h2>
-        <form action="/" method="POST" enctype="multipart/form-data">
-            <div class="form-group">
-                <label>Nopol Kendaraan:</label>
-                <input type="text" name="nopol" required>
+    <div id="pwa-install-banner">
+        <span>📱 Install aplikasi untuk akses lebih cepat!</span>
+        <button id="pwa-install-btn">Install</button>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>⛽ Klaim BBM</h1>
+            <div id="gps-indicator" class="gps-status inactive">
+                <span id="gps-text">Mendapatkan lokasi...</span>
             </div>
-            <div class="form-group">
-                <label>Nominal (Rp):</label>
-                <input type="number" name="nominal" required>
+        </div>
+        
+        <div class="install-guide">
+            💡 <strong>Tips:</strong> Klik menu browser (⋮ atau ⋯) lalu pilih 
+            <strong>"Install App"</strong> atau <strong>"Add to Home Screen"</strong>
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message|safe }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <form action="/driver" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="gps_lat" id="gps_lat">
+            <input type="hidden" name="gps_lon" id="gps_lon">
+            <input type="hidden" name="gps_address" id="gps_address">
+            
+            <div class="row">
+                <div class="form-group">
+                    <label>Nama Driver <span class="required">*</span></label>
+                    <input type="text" name="driver_name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>No. Polisi <span class="required">*</span></label>
+                    <input type="text" name="nopol" class="form-control" placeholder="Contoh: L 1234 ABC" required>
+                </div>
             </div>
+            
+            <div class="row">
+                <div class="form-group">
+                    <label>Tipe Kendaraan <span class="required">*</span></label>
+                    <select name="vehicle_type" class="form-control" required>
+                        <option value="AVANZA">🚗 Toyota Avanza</option>
+                        <option value="INNOVA">🚙 Toyota Innova</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Jenis BBM <span class="required">*</span></label>
+                    <select name="bbm_type" id="bbm_type" class="form-control" required onchange="updatePrice()">
+                        {% for bbm in bbm_types %}
+                        <option value="{{ bbm.name }}" data-price="{{ bbm.price_per_liter }}">
+                            {{ bbm.name }} - Rp {{ bbm.price_per_liter|int }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="form-group">
+                    <label>Nominal (Rp) <span class="required">*</span></label>
+                    <input type="number" name="nominal" id="nominal" class="form-control" required oninput="calculateLiter()">
+                    <div class="note">💰 Volume akan dihitung otomatis</div>
+                </div>
+                <div class="form-group">
+                    <label>Volume (Liter) <span class="required">*</span></label>
+                    <input type="number" name="liter" id="liter" class="form-control" step="0.01" required readonly style="background:#e9ecef;">
+                    <input type="hidden" name="price_per_liter" id="price_per_liter" value="10000">
+                    <div class="auto-calc" id="literDisplay">💡 Volume = 0.00 Liter</div>
+                </div>
+            </div>
+            
             <div class="form-group">
-                <label>Jenis SPBU:</label>
-                <select name="spbu_type" id="spbu_type" required>
-                    <option value="rekanan">SPBU Rekanan (MyPertamina)</option>
-                    <option value="non_rekanan">SPBU Non-Rekanan (SPBU Lain)</option>
+                <label>Odometer (KM) <span class="required">*</span></label>
+                <input type="number" name="odo_km" class="form-control" required>
+                <div class="note">📸 Pastikan foto ODO terlihat jelas</div>
+            </div>
+            
+            <div class="form-group">
+                <label>Jenis SPBU <span class="required">*</span></label>
+                <select name="spbu_type" id="spbu_type" class="form-control" required>
+                    <option value="rekanan">🏪 SPBU Rekanan (MyPertamina)</option>
+                    <option value="non_rekanan">⛽ SPBU Non-Rekanan</option>
                 </select>
             </div>
+            
+            <div class="divider"></div>
+            
             <div class="form-group">
-                <label>1. Foto ODO Sebelum Isi BBM:</label>
-                <input type="file" name="foto_odo_sebelum" accept="image/*" required>
+                <label>1. Foto ODO Sebelum Isi <span class="required">*</span></label>
+                <input type="file" name="foto_odo_sebelum" id="foto_odo_sebelum" class="form-control-file file-stamper" accept="image/*" capture="environment" required>
+                <button type="button" class="camera-btn" onclick="document.getElementById('foto_odo_sebelum').click()">📷 Buka Kamera</button>
+                <img id="preview_foto_odo_sebelum" class="preview-img hidden">
             </div>
+            
             <div class="form-group">
-                <label>2. Foto Struk / Nota di sebelah ODO (Sesudah Isi):</label>
-                <input type="file" name="foto_nota_odo_sesudah" accept="image/*" required>
+                <label>2. Foto ODO + Struk/Nota <span class="required">*</span></label>
+                <input type="file" name="foto_nota_odo_sesudah" id="foto_nota_odo_sesudah" class="form-control-file file-stamper" accept="image/*" capture="environment" required>
+                <button type="button" class="camera-btn" onclick="document.getElementById('foto_nota_odo_sesudah').click()">📷 Buka Kamera</button>
+                <img id="preview_foto_nota_odo_sesudah" class="preview-img hidden">
             </div>
+            
             <div class="form-group">
-                <label>3. Foto Struk Print BBM (Fisik):</label>
-                <input type="file" name="foto_struk" accept="image/*" required>
+                <label>3. Foto Struk Fisik <span class="required">*</span></label>
+                <input type="file" name="foto_struk" id="foto_struk" class="form-control-file file-stamper" accept="image/*" capture="environment" required>
+                <button type="button" class="camera-btn" onclick="document.getElementById('foto_struk').click()">📷 Buka Kamera</button>
+                <img id="preview_foto_struk" class="preview-img hidden">
             </div>
-            <div id="dispenser_div" class="form-group hidden alert-box">
-                <label style="color: #856404;">4. Khusus Non-Rekanan: Foto Struk di Sebelah Monitor Dispenser:</label>
-                <input type="file" name="foto_struk_dispenser" accept="image/*" id="input_dispenser">
+            
+            <div id="dispenser_div" class="form-group hidden">
+                <label>4. Foto Struk di Dispenser <span class="required">*</span></label>
+                <input type="file" name="foto_struk_dispenser" id="input_dispenser" class="form-control-file file-stamper" accept="image/*" capture="environment">
+                <button type="button" class="camera-btn" onclick="document.getElementById('input_dispenser').click()">📷 Buka Kamera</button>
+                <img id="preview_input_dispenser" class="preview-img hidden">
             </div>
-            <button type="submit">Kirim Bukti</button>
+            
+            <button type="submit" class="btn-submit">📤 Kirim Klaim</button>
         </form>
     </div>
+    
     <script>
-        const spbuSelect = document.getElementById('spbu_type');
-        const dispenserDiv = document.getElementById('dispenser_div');
-        const inputDispenser = document.getElementById('input_dispenser');
+        // PWA Installation
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('pwa-install-banner').classList.add('show');
+        });
+        document.getElementById('pwa-install-btn').addEventListener('click', async () => {
+            document.getElementById('pwa-install-banner').classList.remove('show');
+            if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; }
+        });
 
-        spbuSelect.addEventListener('change', function() {
-            if (this.value === 'non_rekanan') {
-                dispenserDiv.classList.remove('hidden');
-                inputDispenser.setAttribute('required', 'required');
+        // BBM Price Update
+        function updatePrice() {
+            const select = document.getElementById('bbm_type');
+            const price = select.options[select.selectedIndex].dataset.price;
+            document.getElementById('price_per_liter').value = price;
+            calculateLiter();
+        }
+
+        function calculateLiter() {
+            const nom = document.getElementById('nominal').value;
+            const price = document.getElementById('price_per_liter').value || 10000;
+            if (nom > 0 && price > 0) {
+                const liter = nom / price;
+                document.getElementById('liter').value = liter.toFixed(2);
+                document.getElementById('literDisplay').innerHTML = 
+                    `💡 Volume = ${liter.toFixed(2)} Liter (Rp ${parseInt(nom).toLocaleString()} / Rp ${parseInt(price).toLocaleString()})`;
             } else {
-                dispenserDiv.classList.add('hidden');
-                inputDispenser.removeAttribute('required');
+                document.getElementById('liter').value = '';
+                document.getElementById('literDisplay').innerHTML = '💡 Volume = 0.00 Liter';
             }
+        }
+
+        document.getElementById('spbu_type').addEventListener('change', function() {
+            const disp = document.getElementById('dispenser_div');
+            const inp = document.getElementById('input_dispenser');
+            if (this.value === 'non_rekanan') { 
+                disp.classList.remove('hidden'); 
+                inp.setAttribute('required', 'required'); 
+            } else { 
+                disp.classList.add('hidden'); 
+                inp.removeAttribute('required'); 
+            }
+        });
+
+        // GPS
+        let currentLat = null, currentLon = null;
+        const gpsText = document.getElementById('gps-text');
+        const gpsIndicator = document.getElementById('gps-indicator');
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                pos => {
+                    currentLat = pos.coords.latitude;
+                    currentLon = pos.coords.longitude;
+                    document.getElementById('gps_lat').value = currentLat;
+                    document.getElementById('gps_lon').value = currentLon;
+                    gpsText.textContent = `📍 ${currentLat.toFixed(6)}, ${currentLon.toFixed(6)}`;
+                    gpsIndicator.className = 'gps-status active';
+                    
+                    // Reverse geocode
+                    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${currentLat}&lon=${currentLon}&format=json&zoom=18&addressdetails=1`, {
+                        headers: { 'User-Agent': 'BPF-BBM-System' }
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data && data.address) {
+                            const addr = data.address;
+                            const parts = [];
+                            ['road', 'village', 'town', 'city', 'county', 'state', 'country'].forEach(k => {
+                                if (addr[k]) parts.push(addr[k]);
+                            });
+                            const address = parts.join(', ') || data.display_name;
+                            document.getElementById('gps_address').value = address;
+                            gpsText.textContent = `📍 ${address}`;
+                        }
+                    })
+                    .catch(() => {});
+                },
+                err => {
+                    gpsText.textContent = "⚠️ GPS tidak aktif";
+                    gpsIndicator.className = 'gps-status inactive';
+                },
+                { enableHighAccuracy: true, timeout: 15000 }
+            );
+        } else {
+            gpsText.textContent = "❌ GPS tidak didukung";
+            gpsIndicator.className = 'gps-status inactive';
+        }
+
+        // Watermark
+        document.querySelectorAll('.file-stamper').forEach(input => {
+            input.addEventListener('change', function(e) {
+                const file = this.files[0];
+                if (!file || !file.type.startsWith('image/')) return;
+                
+                const preview = document.getElementById('preview_' + this.id);
+                const reader = new FileReader();
+                
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        
+                        ctx.drawImage(img, 0, 0);
+                        
+                        const fontSize = Math.max(18, img.width * 0.025);
+                        const pad = fontSize * 0.5;
+                        const lineH = fontSize * 1.3;
+                        const bgHeight = Math.min(lineH * 4, img.height * 0.18);
+                        
+                        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+                        ctx.fillRect(0, img.height - bgHeight, img.width, bgHeight);
+                        
+                        ctx.fillStyle = "#FFD700";
+                        ctx.font = `bold ${fontSize}px Arial`;
+                        ctx.textBaseline = 'bottom';
+                        
+                        const timeStr = "🕐 " + new Date().toLocaleString('id-ID');
+                        const addr = document.getElementById('gps_address').value || '';
+                        const locStr = addr ? `📍 ${addr}` : `📍 ${currentLat || '?'}, ${currentLon || '?'}`;
+                        
+                        const yStart = img.height - pad;
+                        ctx.fillText(timeStr, pad, yStart);
+                        ctx.fillText(locStr, pad, yStart - lineH * 1.0);
+                        
+                        ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+                        ctx.font = `${fontSize * 0.7}px Arial`;
+                        ctx.textBaseline = 'top';
+                        ctx.fillText("BPF BBM System", pad, pad);
+                        
+                        preview.src = canvas.toDataURL('image/jpeg', 0.85);
+                        preview.classList.remove('hidden');
+                        
+                        canvas.toBlob((blob) => {
+                            const newFile = new File([blob], file.name, { type: 'image/jpeg' });
+                            const dataTransfer = new DataTransfer();
+                            dataTransfer.items.add(newFile);
+                            input.files = dataTransfer.files;
+                        }, 'image/jpeg', 0.85);
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
         });
     </script>
 </body>

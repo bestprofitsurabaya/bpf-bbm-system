@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - Performa Kendaraan</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1a237e">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; }
+        .navbar { background: #1a237e; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar h1 { font-size: 20px; }
+        .navbar .nav-links { display: flex; gap: 10px; flex-wrap: wrap; }
+        .navbar .nav-links a { color: rgba(255,255,255,0.8); text-decoration: none; padding: 6px 14px; border-radius: 6px; transition: 0.2s; }
+        .navbar .nav-links a:hover { background: rgba(255,255,255,0.15); }
+        .navbar .nav-links a.active { background: rgba(255,255,255,0.2); color: white; }
+        .container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow: hidden; margin-bottom: 20px; }
+        .card-header { padding: 16px 24px; border-bottom: 1px solid #e9ecef; font-weight: 600; background: #f8f9fa; }
+        .card-body { padding: 20px 24px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .performance-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .performance-table th, .performance-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #e9ecef; }
+        .performance-table th { background: #e9ecef; font-weight: 600; }
+        .badge { display: inline-block; padding: 2px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .badge-good { background: #d4edda; color: #155724; }
+        .badge-warning { background: #fff3cd; color: #856404; }
+        .badge-danger { background: #f8d7da; color: #721c24; }
+        .empty { text-align: center; padding: 40px; color: #6c757d; }
+        .spec-box { background: #f8f9fa; padding: 12px 16px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #17a2b8; }
+        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>⛽ BPF BBM System</h1>
+        <div class="nav-links">
+            <a href="/admin">📋 Verifikasi</a>
+            <a href="/admin/riwayat">📜 Riwayat</a>
+            <a href="/admin/rekap">📊 Rekap</a>
+            <a href="/admin/analytics" class="active">📈 Analytics</a>
+            <a href="/admin/settings">⚙️ Settings</a>
+            <a href="/driver" target="_blank">🚗 Driver</a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <div class="spec-box">
+            <strong>📊 Standar Performa (dapat diatur di Settings):</strong><br>
+            🚗 <strong>Avanza</strong> - Baik: >12.5 km/L | Cukup: 10.5-12.5 km/L | Perlu Pemeriksaan: <10.5 km/L<br>
+            🚙 <strong>Innova</strong> - Baik: >10.5 km/L | Cukup: 8.5-10.5 km/L | Perlu Pemeriksaan: <8.5 km/L
+        </div>
+        
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-header">🚗 Performa Kendaraan (Minimal 2 Transaksi)</div>
+                <div class="card-body">
+                    {% if vehicle_performance %}
+                    <table class="performance-table">
+                        <thead><tr><th>Nopol</th><th>Tipe</th><th>BBM</th><th>Avg KM/L</th><th>Status</th></tr></thead>
+                        <tbody>
+                            {% for vp in vehicle_performance %}
+                            <tr>
+                                <td><strong>{{ vp.nopol }}</strong></td>
+                                <td>{{ vp.vehicle_type or 'AVANZA' }}</td>
+                                <td>{{ vp.bbm_type or 'PERTALITE' }}</td>
+                                <td>{{ "%.2f"|format(vp.avg_km_per_liter) }}</td>
+                                <td>
+                                    {% set eff = vp.avg_km_per_liter %}
+                                    {% if vp.vehicle_type == 'INNOVA' %}
+                                        {% if eff >= 10.5 %}<span class="badge badge-good">✅ Baik</span>
+                                        {% elif eff >= 8.5 %}<span class="badge badge-warning">⚠️ Cukup</span>
+                                        {% else %}<span class="badge badge-danger">🔧 Periksa</span>{% endif %}
+                                    {% else %}
+                                        {% if eff >= 12.5 %}<span class="badge badge-good">✅ Baik</span>
+                                        {% elif eff >= 10.5 %}<span class="badge badge-warning">⚠️ Cukup</span>
+                                        {% else %}<span class="badge badge-danger">🔧 Periksa</span>{% endif %}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="empty">
+                        📊 Belum ada data performa.<br>
+                        <span style="font-size:12px;">Minimal 2 transaksi per kendaraan untuk analisis</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">📊 Statistik Harian (30 hari)</div>
+                <div class="card-body">
+                    {% if daily_stats %}
+                    <table class="performance-table">
+                        <thead><tr><th>Tanggal</th><th>Rata-rata KM/L</th><th>Transaksi</th></tr></thead>
+                        <tbody>
+                            {% for ds in daily_stats %}
+                            <tr>
+                                <td>{{ ds.date.strftime('%d-%m-%Y') if ds.date else '-' }}</td>
+                                <td>{{ "%.2f"|format(ds.avg_efficiency) }}</td>
+                                <td>{{ ds.transactions }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}<div class="empty">Belum ada data harian</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

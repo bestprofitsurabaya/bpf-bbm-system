@@ -1,0 +1,24 @@
+{
+  "name": "BPF BBM System",
+  "short_name": "BPF BBM",
+  "description": "Sistem Klaim BBM PT. Bestprofit Surabaya",
+  "start_url": "/driver",
+  "display": "standalone",
+  "background_color": "#f0f2f5",
+  "theme_color": "#1a237e",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

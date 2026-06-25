@@ -4,69 +4,135 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Verifikasi BBM</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1a237e">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f4f6f9; margin: 0;}
-        .navbar { background-color: #343a40; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 15px;}
-        .navbar a { color: white; text-decoration: none; font-weight: bold; padding: 8px 15px; border-radius: 4px; transition: 0.3s; position: relative;}
-        .navbar a:hover { background-color: #495057; }
-        .navbar a.active { background-color: #007bff; }
-        .notif-badge { background-color: #dc3545; color: white; padding: 3px 7px; border-radius: 50%; font-size: 11px; position: absolute; top: -5px; right: -5px; box-shadow: 0 0 5px rgba(220,53,69,0.5);}
-        .tx-card { background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e9ecef;}
-        .gallery { display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap; }
-        .gallery img { height: 150px; border-radius: 4px; border: 1px solid #ccc; object-fit: cover;}
-        .admin-action { background-color: #f8f9fa; padding: 15px; border: 1px dashed #adb5bd; border-radius: 4px; }
-        .btn-verify { background-color: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-top:10px;}
-        .badge-pending { background-color: #ffc107; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; }
+        .navbar { background: #1a237e; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar h1 { font-size: 20px; }
+        .navbar .nav-links { display: flex; gap: 10px; flex-wrap: wrap; }
+        .navbar .nav-links a { color: rgba(255,255,255,0.8); text-decoration: none; padding: 6px 14px; border-radius: 6px; transition: 0.2s; }
+        .navbar .nav-links a:hover { background: rgba(255,255,255,0.15); }
+        .navbar .nav-links a.active { background: rgba(255,255,255,0.2); color: white; }
+        .container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .stat-card { background: white; padding: 18px 22px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 4px solid #1a237e; }
+        .stat-card .number { font-size: 28px; font-weight: 700; color: #1a237e; }
+        .stat-card .label { font-size: 13px; color: #6c757d; margin-top: 2px; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow: hidden; margin-bottom: 20px; }
+        .card-header { padding: 16px 24px; border-bottom: 1px solid #e9ecef; font-weight: 600; background: #f8f9fa; }
+        .card-body { padding: 20px 24px; }
+        .tx-item { border: 1px solid #e9ecef; border-radius: 10px; padding: 16px 20px; margin-bottom: 15px; background: #fafbfc; }
+        .tx-item:last-child { margin-bottom: 0; }
+        .tx-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+        .tx-header .nopol { font-weight: 700; font-size: 18px; color: #1a237e; }
+        .tx-header .status { background: #ffc107; padding: 2px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .tx-detail { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 6px; font-size: 13px; color: #495057; margin: 8px 0; }
+        .tx-detail span { background: #f1f3f5; padding: 2px 10px; border-radius: 4px; }
+        .tx-images { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
+        .tx-images img { width: 100px; height: 75px; object-fit: cover; border-radius: 6px; border: 1px solid #dee2e6; cursor: pointer; }
+        .tx-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; padding-top: 12px; border-top: 1px dashed #dee2e6; }
+        .tx-form .full { grid-column: 1 / -1; }
+        .tx-form label { font-size: 13px; font-weight: 500; display: block; margin-bottom: 2px; }
+        .tx-form input[type="file"], .tx-form textarea { width: 100%; padding: 6px 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 13px; }
+        .tx-form textarea { min-height: 50px; resize: vertical; }
+        .tx-form .checkbox-group { display: flex; align-items: center; gap: 8px; }
+        .btn { padding: 6px 16px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; transition: 0.2s; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-success:hover { background: #1e7e34; }
+        .empty { text-align: center; padding: 40px; color: #6c757d; }
+        .gps-info { font-size: 11px; color: #6c757d; background: #f1f3f5; padding: 2px 8px; border-radius: 4px; }
+        .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; }
+        .alert-success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+        @media (max-width: 768px) { .tx-form { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
-    <div class="navbar">
-        <a href="/admin" class="active">Klaim Pending 
-            {% if pending_count > 0 %}<span class="notif-badge">{{ pending_count }}</span>{% endif %}
-        </a>
-        <a href="/admin/riwayat">Riwayat & Report</a>
-    </div>
-
-    <h2>Verifikasi Klaim BBM (Finance)</h2>
+    <nav class="navbar">
+        <h1>⛽ BPF BBM System</h1>
+        <div class="nav-links">
+            <a href="/admin" class="active">📋 Verifikasi</a>
+            <a href="/admin/riwayat">📜 Riwayat</a>
+            <a href="/admin/rekap">📊 Rekap</a>
+            <a href="/admin/analytics">📈 Analytics</a>
+            <a href="/admin/settings">⚙️ Settings</a>
+            <a href="/driver" target="_blank">🚗 Driver</a>
+        </div>
+    </nav>
     
-    {% if not transactions %}
-        <div class="tx-card" style="text-align: center; color: #6c757d;">
-            <h3>Seluruh transaksi telah diverifikasi.</h3>
-        </div>
-    {% endif %}
-
-    {% for tx in transactions %}
-    <div class="tx-card">
-        <h3>{{ tx.nopol | upper }} <span class="badge-pending">PENDING</span></h3>
-        <p><strong>Nominal:</strong> Rp {{ "{:,.0f}".format(tx.nominal) }} | <strong>Tipe SPBU:</strong> {{ tx.spbu_type | replace('_', ' ') | title }}</p>
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message|safe }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
         
-        <div class="gallery">
-            {% if tx.foto_odo_sebelum %}<a href="/uploads/{{ tx.foto_odo_sebelum }}" target="_blank"><img src="/uploads/{{ tx.foto_odo_sebelum }}" title="ODO Sebelum"></a>{% endif %}
-            {% if tx.foto_nota_odo_sesudah %}<a href="/uploads/{{ tx.foto_nota_odo_sesudah }}" target="_blank"><img src="/uploads/{{ tx.foto_nota_odo_sesudah }}" title="Nota & ODO Sesudah"></a>{% endif %}
-            {% if tx.foto_struk %}<a href="/uploads/{{ tx.foto_struk }}" target="_blank"><img src="/uploads/{{ tx.foto_struk }}" title="Struk BBM"></a>{% endif %}
-            {% if tx.foto_struk_dispenser %}<a href="/uploads/{{ tx.foto_struk_dispenser }}" target="_blank"><img src="/uploads/{{ tx.foto_struk_dispenser }}" title="Struk di Dispenser"></a>{% endif %}
+        <div class="stats">
+            <div class="stat-card"><div class="number">{{ stats.total }}</div><div class="label">Total Transaksi</div></div>
+            <div class="stat-card"><div class="number">{{ stats.pending }}</div><div class="label">⏳ Pending</div></div>
+            <div class="stat-card"><div class="number">{{ stats.verified }}</div><div class="label">✅ Terverifikasi</div></div>
+            <div class="stat-card" style="border-left-color:#dc3545;"><div class="number">{{ stats.anomaly }}</div><div class="label">⚠️ Anomali ML</div></div>
         </div>
-
-        <div class="admin-action">
-            <form action="/admin" method="POST" enctype="multipart/form-data">
-                <input type="hidden" name="tx_id" value="{{ tx.id }}">
-                <input type="hidden" name="nopol" value="{{ tx.nopol }}">
-                <input type="hidden" name="nominal" value="{{ tx.nominal }}">
-                
-                <div style="margin-bottom: 10px;">
-                    <label style="font-weight: bold;">Upload Screenshot MyPertamina (Opsional):</label><br>
-                    <input type="file" name="foto_mypertamina" accept="image/*">
-                </div>
-
-                <div style="margin-bottom: 10px; color: #dc3545;">
-                    <input type="checkbox" id="error_{{ tx.id }}" name="mypertamina_error">
-                    <label for="error_{{ tx.id }}"><strong>Atau:</strong> MyPertamina Error (Buat Kronologis Otomatis)</label>
-                </div>
-
-                <button type="submit" class="btn-verify">Approve & Verifikasi</button>
-            </form>
+        
+        <div class="card">
+            <div class="card-header">📋 Klaim Menunggu Verifikasi ({{ transactions|length }})</div>
+            <div class="card-body">
+                {% if transactions %}
+                    {% for tx in transactions %}
+                    <div class="tx-item">
+                        <div class="tx-header">
+                            <span class="nopol">🚗 {{ tx.nopol }} ({{ tx.vehicle_type or 'AVANZA' }})</span>
+                            <span class="status">PENDING</span>
+                        </div>
+                        <div class="tx-detail">
+                            <span>👤 {{ tx.driver_name }}</span>
+                            <span>📅 {{ tx.created_at.strftime('%d-%m-%Y %H:%M') }}</span>
+                            <span>💰 Rp {{ tx.nominal|int }}</span>
+                            <span>⛽ {{ tx.bbm_type or 'PERTALITE' }}</span>
+                            <span>📊 ODO: {{ tx.odo_km }} km</span>
+                            {% if tx.ml_anomaly_flag %}
+                            <span style="background:#dc3545;color:white;">⚠️ ANOMALI</span>
+                            {% endif %}
+                            {% if tx.gps_address %}
+                            <span class="gps-info">📍 {{ tx.gps_address }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="tx-images">
+                            {% if tx.foto_odo_sebelum %}<img src="/uploads/{{ tx.foto_odo_sebelum }}" alt="ODO1">{% endif %}
+                            {% if tx.foto_nota_odo_sesudah %}<img src="/uploads/{{ tx.foto_nota_odo_sesudah }}" alt="ODO2">{% endif %}
+                            {% if tx.foto_struk %}<img src="/uploads/{{ tx.foto_struk }}" alt="STRUK">{% endif %}
+                            {% if tx.foto_struk_dispenser %}<img src="/uploads/{{ tx.foto_struk_dispenser }}" alt="DISP">{% endif %}
+                        </div>
+                        
+                        <form action="/admin" method="POST" enctype="multipart/form-data">
+                            <input type="hidden" name="tx_id" value="{{ tx.id }}">
+                            <input type="hidden" name="nopol" value="{{ tx.nopol }}">
+                            <input type="hidden" name="nominal" value="{{ tx.nominal }}">
+                            
+                            <div class="tx-form">
+                                <div class="full">
+                                    <label>📸 Upload Screenshot MyPertamina (Opsional)</label>
+                                    <input type="file" name="foto_mypertamina" accept="image/*">
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" name="mypertamina_error" id="error_{{ tx.id }}">
+                                    <label for="error_{{ tx.id }}">❌ MyPertamina Error (Buat Kronologis Otomatis)</label>
+                                </div>
+                                <div style="grid-column:1/-1; display:flex; gap:10px; justify-content:flex-end;">
+                                    <button type="submit" class="btn btn-success">✅ Verifikasi</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty">🎉 Semua klaim sudah terverifikasi!</div>
+                {% endif %}
+            </div>
         </div>
     </div>
-    {% endfor %}
 </body>
 </html>
