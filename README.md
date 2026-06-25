@@ -1,116 +1,90 @@
-# BPF BBM System
+BPF BBM System
 
 **Sistem Manajemen dan Verifikasi Klaim BBM untuk Kendaraan Operasional PT. Bestprofit**
 
-Aplikasi ini dirancang untuk mengatasi *trust issue* dalam pelaporan BBM dengan menyediakan alur verifikasi visual yang ketat, otomatisasi pembuatan kronologis, dan fitur pelaporan (*reporting*) profesional.
+Aplikasi ini adalah solusi internal yang dirancang untuk mengatasi *trust issue* dalam pelaporan BBM. Dengan menyediakan alur verifikasi visual yang ketat, otomatisasi pembuatan kronologis, dan fitur pelaporan profesional, sistem ini memastikan transparansi dan akuntabilitas penuh atas setiap klaim BBM.
 
----
-
-## 📋 Daftar Isi
-
-- [Fitur Utama](#fitur-utama)
-- [Struktur Teknologi](#struktur-teknologi)
-- [Instalasi](#instalasi)
-- [Penggunaan](#penggunaan)
-- [Struktur Proyek](#struktur-proyek)
-- [Kontribusi](#kontribusi)
-- [Lisensi](#lisensi)
-
----
-
-## 🚀 Fitur Utama
+## ✨ Fitur Unggulan
 
 ### 1. Portal Driver
-- **Unggah bukti visual** secara dinamis berdasarkan jenis SPBU (Rekanan/Non-Rekanan):
-  - Foto ODO (sebelum & sesudah)
-  - Foto struk fisik
-  - Foto dispenser
-- **Input data transaksi** yang terstruktur
+- **Unggah Bukti Visual Dinamis**: Proses unggah yang menyesuaikan dengan jenis SPBU (Rekanan/Non-Rekanan), mencakup:
+    - Foto Odometer (sebelum & sesudah)
+    - Foto Struk Fisik
+    - Foto Dispenser
+- **Input Data Transaksi**: Formulir terstruktur untuk mencatat volume, harga, dan detail transaksi lainnya.
 
-### 2. Portal Admin/Finance
-- **Dashboard verifikasi satu pintu** untuk:
-  - Menyetujui atau menolak klaim
-  - Mengunggah bukti tambahan
-  - Menangani error sistem
-- **Fitur kronologis otomatis** untuk mencatat riwayat klaim
+### 2. Portal Admin / Finance
+- **Dashboard Verifikasi Terpusat**: Satu pintu untuk menyetujui, menolak, atau meminta klarifikasi klaim.
+- **Manajemen Bukti**: Kemampuan untuk mengunggah bukti tambahan dari sisi admin.
+- **Penanganan Error**: Fasilitas untuk menangani dan meluruskan klaim yang bermasalah.
 
 ### 3. Auto-Kronologis
-- Pembuatan teks laporan kronologis secara **otomatis** jika mutasi MyPertamina tidak muncul
-- Memastikan transparansi dan akuntabilitas setiap klaim
+- **Otomatisasi Laporan**: Membuat teks laporan kronologis secara otomatis jika terjadi kendala seperti mutasi MyPertamina yang tidak muncul, memastikan setiap klaim tetap terdokumentasi.
 
 ### 4. Profesional Reporting
-- **PDF Generator** otomatis yang menyusun:
-  - Seluruh bukti foto
-  - Data transaksi
-  - Kronologis kejadian
-- Menghasilkan dokumen arsip yang **detail dan profesional**
+- **PDF Generator**: Menghasilkan dokumen PDF arsip yang komprehensif secara otomatis, yang menyusun:
+    - Seluruh bukti foto
+    - Data transaksi
+    - Kronologis kejadian
+- **Dokumen Detail**: Menghasilkan laporan yang rapi, profesional, dan siap untuk keperluan audit internal.
 
 ### 5. Sistem Terpadu
-- Berjalan di atas **infrastruktur Docker**
-- Menggunakan **MariaDB internal** untuk penyimpanan data yang aman dan persisten
-- **Terisolasi** dan mudah dideploy
+- **Infrastruktur Modern**: Berjalan di atas **Docker** dan **Docker Compose** untuk kemudahan deployment dan isolasi.
+- **Database Relasional**: Menggunakan **MariaDB** internal untuk penyimpanan data yang aman dan persisten.
 
----
-
-## 🛠️ Struktur Teknologi
+## 🛠️ Tumpukan Teknologi
 
 | Komponen | Teknologi |
-|----------|-----------|
+| :--- | :--- |
 | **Backend** | Python (Flask) |
 | **Database** | MariaDB |
 | **Infrastructure** | Docker & Docker Compose |
 | **Reporting** | fpdf2 (PDF Generation) |
 | **Frontend** | HTML, CSS, Jinja2 Templates |
+| **PWA Support** | Progressive Web App (manifest.json, sw.js) |
 
----
-
-## 🔧 Instalasi
+## 🚀 Memulai (Instalasi)
 
 ### Prasyarat
-Pastikan Anda memiliki **Docker** dan **Docker Compose** yang terpasang di server.
+Pastikan **Docker** dan **Docker Compose** telah terpasang pada sistem Anda.
 
 ### Langkah-langkah
 
-1. **Clone repositori**
-   ```bash
-   git clone https://github.com/bestprofitsurabaya/bpf-bbm-system.git
-   cd bpf-bbm-system
-   ```
+1.  **Clone Repository**
+    ```bash
+    git clone https://github.com/bestprofitsurabaya/bpf-bbm-system.git
+    cd bpf-bbm-system
+    ```
 
-2. **Jalankan dengan Docker Compose**
-   ```bash
-   docker-compose up -d
-   ```
+2.  **Jalankan dengan Docker Compose**
+    ```bash
+    docker-compose up -d
+    ```
 
-3. **Akses aplikasi**
-   - Buka browser dan akses `http://localhost:5000`
-   - Aplikasi siap digunakan
+3.  **Akses Aplikasi**
+    Buka browser dan akses `http://localhost:5000`. Aplikasi siap digunakan.
 
-4. **Hentikan aplikasi**
-   ```bash
-   docker-compose down
-   ```
+4.  **Hentikan Aplikasi**
+    ```bash
+    docker-compose down
+    ```
 
----
-
-## 📖 Penggunaan
+## 📖 Panduan Penggunaan
 
 ### Untuk Driver
-1. Login ke portal driver
-2. Pilih jenis SPBU (Rekanan/Non-Rekanan)
-3. Unggah foto ODO, struk, dan dispenser sesuai ketentuan
-4. Isi data transaksi (volume, harga, dll)
-5. Kirim klaim untuk diverifikasi
+1.  Login ke portal driver.
+2.  Pilih jenis SPBU (Rekanan/Non-Rekanan).
+3.  Unggah foto ODO, struk, dan dispenser sesuai dengan panduan.
+4.  Isi data transaksi dengan lengkap.
+5.  Kirim klaim untuk proses verifikasi.
 
-### Untuk Admin/Finance
-1. Login ke portal admin
-2. Lihat daftar klaim yang masuk di dashboard
-3. Periksa bukti-bukti yang diunggah
-4. Setujui atau tolak klaim
-5. Jika ada error, gunakan fitur kronologis otomatis
-6. Generate PDF laporan untuk arsip
-
----
+### Untuk Admin / Finance
+1.  Login ke portal admin.
+2.  Pantau daftar klaim yang masuk pada dashboard.
+3.  Periksa setiap bukti yang diunggah oleh driver.
+4.  Ambil tindakan: **Setujui**, **Tolak**, atau minta klarifikasi tambahan.
+5.  Gunakan fitur kronologis otomatis jika diperlukan untuk klaim yang error.
+6.  Generate laporan PDF untuk keperluan arsip.
 
 ## 📁 Struktur Proyek
 
@@ -120,7 +94,10 @@ bpf-bbm-system/
 ├── Dockerfile             # Konfigurasi Docker image
 ├── docker-compose.yml     # Konfigurasi Docker Compose
 ├── requirements.txt       # Dependensi Python
-├── init.sql               # Inisialisasi database
+├── init.sql               # Skrip inisialisasi database
+├── manifest.json          # Konfigurasi Progressive Web App (PWA)
+├── sw.js                  # Service Worker untuk PWA
+├── generate_icon.py       # Skrip untuk generate icon PWA
 ├── templates/             # Template HTML (Jinja2)
 │   ├── index.html
 │   ├── driver.html
@@ -130,29 +107,23 @@ bpf-bbm-system/
 └── README.md              # Dokumentasi ini
 ```
 
----
-
 ## 🤝 Kontribusi
 
-Kontribusi sangat diterima! Untuk berkontribusi:
+Kontribusi dari tim internal sangat diterima untuk pengembangan lebih lanjut. Untuk berkontribusi:
 
-1. **Fork** repositori ini
-2. Buat **branch** fitur baru (`git checkout -b fitur-keren`)
-3. **Commit** perubahan Anda (`git commit -m 'Menambahkan fitur keren'`)
-4. **Push** ke branch (`git push origin fitur-keren`)
-5. Buat **Pull Request**
-
----
+1.  **Fork** repositori ini.
+2.  Buat **branch** fitur baru (`git checkout -b fitur-keren`).
+3.  **Commit** perubahan Anda (`git commit -m 'Menambahkan fitur keren'`).
+4.  **Push** ke branch (`git push origin fitur-keren`).
+5.  Buat **Pull Request** untuk ditinjau.
 
 ## 📄 Lisensi
 
-Proyek ini adalah milik **PT. Bestprofit** dan digunakan untuk keperluan internal perusahaan.
+Proyek ini adalah hak milik **PT. Bestprofit** dan digunakan untuk keperluan internal perusahaan. Penyebaran atau penggunaan di luar lingkungan internal tanpa izin tertulis dilarang.
 
----
+## 📞 Kontak & Dukungan
 
-## 📞 Kontak
-
-Untuk pertanyaan atau dukungan, silakan hubungi tim IT PT. Bestprofit.
+Untuk pertanyaan, saran, atau laporan masalah, silakan hubungi Tim IT PT. Bestprofit Surabaya.
 
 ---
 
