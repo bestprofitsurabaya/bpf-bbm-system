@@ -90,7 +90,7 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>ID</th><th>Tgl</th><th>Driver</th><th>Nopol</th><th>BBM</th>
+                                <th>ID</th><th>Tgl</th><th>Driver</th><th>Nopol</th><th>Kendaraan</th><th>BBM</th>
                                 <th>KM Awal</th><th>KM Akhir</th><th>Jarak</th><th>Liter</th>
                                 <th>Rata-rata</th><th>Nominal</th><th>Laporan</th><th>Manajemen</th>
                             </tr>
@@ -102,6 +102,7 @@
                                 <td>{{ tx.created_at.strftime('%d-%m %H:%M') if tx.created_at else '-' }}</td>
                                 <td><strong>{{ tx.driver_name }}</strong></td>
                                 <td><span class="badge badge-success">{{ tx.nopol }}</span></td>
+                                <td>{{ tx.vehicle_type or 'AVANZA' }}</td>
                                 <td>{{ tx.bbm_type or 'PERTALITE' }}</td>
                                 <td>{{ tx.km_awal|int }}</td>
                                 <td>{{ tx.km_akhir|int }}</td>

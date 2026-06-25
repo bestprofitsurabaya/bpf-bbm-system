@@ -34,13 +34,100 @@
         .gps-status { font-size:12px; font-weight:bold; padding:6px 12px; border-radius:6px; background:#f1f3f5; display:flex; align-items:center; gap:6px; }
         .gps-status.active { background:#d4edda; color:#155724; }
         .gps-status.inactive { background:#f8d7da; color:#721c24; }
-        .camera-btn { background:#28a745; color:white; border:none; padding:12px 20px; border-radius:6px; font-size:14px; font-weight:bold; cursor:pointer; width:100%; display:flex; align-items:center; justify-content:center; gap:8px; }
-        .camera-btn:hover { background:#1e7e34; }
-        .preview-img { max-width:100%; max-height:200px; border-radius:8px; border:2px solid #dee2e6; margin-top:10px; }
-        .auto-calc { background:#e9ecef; padding:8px 12px; border-radius:6px; font-size:13px; color:#495057; }
         .install-guide { background:#e8f4fd; padding:12px 16px; border-radius:8px; margin-bottom:15px; font-size:13px; border-left:4px solid #17a2b8; }
-        .bbm-info { background:#fff3cd; padding:8px 12px; border-radius:6px; font-size:13px; color:#856404; margin-top:5px; }
-        @media (max-width:600px) { .row { grid-template-columns:1fr; } .container { padding:20px; } }
+        .validation-info { background:#fff3cd; padding:8px 12px; border-radius:6px; font-size:13px; color:#856404; margin-top:5px; display:none; }
+        .validation-info.show { display:block; }
+        .validation-info.success { background:#d4edda; color:#155724; border-left:4px solid #28a745; }
+        .validation-info.error { background:#f8d7da; color:#721c24; border-left:4px solid #dc3545; }
+        .auto-calc { background:#e9ecef; padding:8px 12px; border-radius:6px; font-size:13px; color:#495057; }
+        
+        /* ===== UPLOAD BUTTONS ===== */
+        .upload-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .upload-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .upload-btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 120px;
+            transition: 0.2s;
+        }
+        .upload-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .upload-btn-camera { background: #28a745; color: white; }
+        .upload-btn-camera:hover { background: #1e7e34; }
+        .upload-btn-gallery { background: #6c757d; color: white; }
+        .upload-btn-gallery:hover { background: #5a6268; }
+        .upload-btn-remove { background: #dc3545; color: white; padding: 6px 12px; font-size: 12px; }
+        .upload-btn-remove:hover { background: #c82333; }
+        
+        .preview-container {
+            position: relative;
+            display: inline-block;
+            margin-top: 8px;
+        }
+        .preview-img {
+            max-width: 100%;
+            max-height: 180px;
+            border-radius: 8px;
+            border: 2px solid #dee2e6;
+        }
+        .preview-remove {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .preview-remove:hover { background: #c82333; }
+        
+        .file-name {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 4px;
+            word-break: break-all;
+        }
+        
+        .badge-upload {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-upload-camera { background: #d4edda; color: #155724; }
+        .badge-upload-gallery { background: #cce5ff; color: #004085; }
+        .badge-upload-empty { background: #f8f9fa; color: #6c757d; }
+        
+        @media (max-width:600px) {
+            .row { grid-template-columns:1fr; }
+            .container { padding:20px; }
+            .upload-btn { min-width: 80px; font-size: 12px; padding: 8px 12px; }
+        }
     </style>
 </head>
 <body>
@@ -62,6 +149,8 @@
             <strong>"Install App"</strong> atau <strong>"Add to Home Screen"</strong>
         </div>
         
+        <div id="validation-info" class="validation-info"></div>
+        
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -70,7 +159,7 @@
             {% endif %}
         {% endwith %}
         
-        <form action="/driver" method="POST" enctype="multipart/form-data">
+        <form action="/driver" method="POST" enctype="multipart/form-data" id="bbmForm">
             <input type="hidden" name="gps_lat" id="gps_lat">
             <input type="hidden" name="gps_lon" id="gps_lon">
             <input type="hidden" name="gps_address" id="gps_address">
@@ -89,20 +178,16 @@
             <div class="row">
                 <div class="form-group">
                     <label>Tipe Kendaraan <span class="required">*</span></label>
-                    <select name="vehicle_type" class="form-control" required>
-                        <option value="AVANZA">🚗 Toyota Avanza</option>
-                        <option value="INNOVA">🚙 Toyota Innova</option>
+                    <select name="vehicle_type" id="vehicle_type" class="form-control" required onchange="loadBBMOptions()">
+                        <option value="">-- Pilih Kendaraan --</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label>Jenis BBM <span class="required">*</span></label>
                     <select name="bbm_type" id="bbm_type" class="form-control" required onchange="updatePrice()">
-                        {% for bbm in bbm_types %}
-                        <option value="{{ bbm.name }}" data-price="{{ bbm.price_per_liter }}">
-                            {{ bbm.name }} - Rp {{ bbm.price_per_liter|int }}
-                        </option>
-                        {% endfor %}
+                        <option value="">-- Pilih BBM --</option>
                     </select>
+                    <div id="bbm-limits" class="note" style="margin-top:5px;"></div>
                 </div>
             </div>
             
@@ -136,32 +221,102 @@
             
             <div class="divider"></div>
             
+            <!-- ====== UPLOAD FOTO ====== -->
+            
+            <!-- 1. Foto ODO Sebelum -->
             <div class="form-group">
                 <label>1. Foto ODO Sebelum Isi <span class="required">*</span></label>
-                <input type="file" name="foto_odo_sebelum" id="foto_odo_sebelum" class="form-control-file file-stamper" accept="image/*" capture="environment" required>
-                <button type="button" class="camera-btn" onclick="document.getElementById('foto_odo_sebelum').click()">📷 Buka Kamera</button>
-                <img id="preview_foto_odo_sebelum" class="preview-img hidden">
+                <div class="upload-group">
+                    <div class="upload-row">
+                        <button type="button" class="upload-btn upload-btn-camera" onclick="capturePhoto('foto_odo_sebelum')">
+                            📷 Kamera
+                        </button>
+                        <button type="button" class="upload-btn upload-btn-gallery" onclick="choosePhoto('foto_odo_sebelum')">
+                            📁 Galeri
+                        </button>
+                        <button type="button" class="upload-btn upload-btn-remove" onclick="removePhoto('foto_odo_sebelum')" style="flex:0.3;">
+                            ✕
+                        </button>
+                    </div>
+                    <input type="file" name="foto_odo_sebelum" id="foto_odo_sebelum" class="form-control-file" accept="image/*" required>
+                    <div id="preview_container_foto_odo_sebelum" class="preview-container hidden">
+                        <img id="preview_foto_odo_sebelum" class="preview-img">
+                        <button type="button" class="preview-remove" onclick="removePhoto('foto_odo_sebelum')">✕</button>
+                        <div id="file_info_foto_odo_sebelum" class="file-name"></div>
+                    </div>
+                </div>
             </div>
             
+            <!-- 2. Foto ODO + Struk -->
             <div class="form-group">
                 <label>2. Foto ODO + Struk/Nota <span class="required">*</span></label>
-                <input type="file" name="foto_nota_odo_sesudah" id="foto_nota_odo_sesudah" class="form-control-file file-stamper" accept="image/*" capture="environment" required>
-                <button type="button" class="camera-btn" onclick="document.getElementById('foto_nota_odo_sesudah').click()">📷 Buka Kamera</button>
-                <img id="preview_foto_nota_odo_sesudah" class="preview-img hidden">
+                <div class="upload-group">
+                    <div class="upload-row">
+                        <button type="button" class="upload-btn upload-btn-camera" onclick="capturePhoto('foto_nota_odo_sesudah')">
+                            📷 Kamera
+                        </button>
+                        <button type="button" class="upload-btn upload-btn-gallery" onclick="choosePhoto('foto_nota_odo_sesudah')">
+                            📁 Galeri
+                        </button>
+                        <button type="button" class="upload-btn upload-btn-remove" onclick="removePhoto('foto_nota_odo_sesudah')" style="flex:0.3;">
+                            ✕
+                        </button>
+                    </div>
+                    <input type="file" name="foto_nota_odo_sesudah" id="foto_nota_odo_sesudah" class="form-control-file" accept="image/*" required>
+                    <div id="preview_container_foto_nota_odo_sesudah" class="preview-container hidden">
+                        <img id="preview_foto_nota_odo_sesudah" class="preview-img">
+                        <button type="button" class="preview-remove" onclick="removePhoto('foto_nota_odo_sesudah')">✕</button>
+                        <div id="file_info_foto_nota_odo_sesudah" class="file-name"></div>
+                    </div>
+                </div>
             </div>
             
+            <!-- 3. Foto Struk Fisik -->
             <div class="form-group">
                 <label>3. Foto Struk Fisik <span class="required">*</span></label>
-                <input type="file" name="foto_struk" id="foto_struk" class="form-control-file file-stamper" accept="image/*" capture="environment" required>
-                <button type="button" class="camera-btn" onclick="document.getElementById('foto_struk').click()">📷 Buka Kamera</button>
-                <img id="preview_foto_struk" class="preview-img hidden">
+                <div class="upload-group">
+                    <div class="upload-row">
+                        <button type="button" class="upload-btn upload-btn-camera" onclick="capturePhoto('foto_struk')">
+                            📷 Kamera
+                        </button>
+                        <button type="button" class="upload-btn upload-btn-gallery" onclick="choosePhoto('foto_struk')">
+                            📁 Galeri
+                        </button>
+                        <button type="button" class="upload-btn upload-btn-remove" onclick="removePhoto('foto_struk')" style="flex:0.3;">
+                            ✕
+                        </button>
+                    </div>
+                    <input type="file" name="foto_struk" id="foto_struk" class="form-control-file" accept="image/*" required>
+                    <div id="preview_container_foto_struk" class="preview-container hidden">
+                        <img id="preview_foto_struk" class="preview-img">
+                        <button type="button" class="preview-remove" onclick="removePhoto('foto_struk')">✕</button>
+                        <div id="file_info_foto_struk" class="file-name"></div>
+                    </div>
+                </div>
             </div>
             
+            <!-- 4. Foto Dispenser (khusus non-rekanan) -->
             <div id="dispenser_div" class="form-group hidden">
                 <label>4. Foto Struk di Dispenser <span class="required">*</span></label>
-                <input type="file" name="foto_struk_dispenser" id="input_dispenser" class="form-control-file file-stamper" accept="image/*" capture="environment">
-                <button type="button" class="camera-btn" onclick="document.getElementById('input_dispenser').click()">📷 Buka Kamera</button>
-                <img id="preview_input_dispenser" class="preview-img hidden">
+                <div class="upload-group">
+                    <div class="upload-row">
+                        <button type="button" class="upload-btn upload-btn-camera" onclick="capturePhoto('input_dispenser')">
+                            📷 Kamera
+                        </button>
+                        <button type="button" class="upload-btn upload-btn-gallery" onclick="choosePhoto('input_dispenser')">
+                            📁 Galeri
+                        </button>
+                        <button type="button" class="upload-btn upload-btn-remove" onclick="removePhoto('input_dispenser')" style="flex:0.3;">
+                            ✕
+                        </button>
+                    </div>
+                    <input type="file" name="foto_struk_dispenser" id="input_dispenser" class="form-control-file" accept="image/*">
+                    <div id="preview_container_input_dispenser" class="preview-container hidden">
+                        <img id="preview_input_dispenser" class="preview-img">
+                        <button type="button" class="preview-remove" onclick="removePhoto('input_dispenser')">✕</button>
+                        <div id="file_info_input_dispenser" class="file-name"></div>
+                    </div>
+                </div>
             </div>
             
             <button type="submit" class="btn-submit">📤 Kirim Klaim</button>
@@ -169,7 +324,9 @@
     </div>
     
     <script>
-        // PWA Installation
+        // ============================================================
+        // PWA INSTALLATION
+        // ============================================================
         if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -182,12 +339,88 @@
             if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; }
         });
 
-        // BBM Price Update
+        // ============================================================
+        // LOAD VEHICLES & BBM OPTIONS
+        // ============================================================
+        async function loadVehicles() {
+            try {
+                const response = await fetch('/api/vehicles');
+                const vehicles = await response.json();
+                const select = document.getElementById('vehicle_type');
+                select.innerHTML = '<option value="">-- Pilih Kendaraan --</option>';
+                vehicles.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v.vehicle_type;
+                    opt.textContent = `${v.vehicle_type} (${v.brand}) - ${v.fuel_capacity}L`;
+                    select.appendChild(opt);
+                });
+            } catch (e) {
+                console.error('Error loading vehicles:', e);
+            }
+        }
+
+        async function loadBBMOptions() {
+            const vehicleType = document.getElementById('vehicle_type').value;
+            const bbmSelect = document.getElementById('bbm_type');
+            const limitsDiv = document.getElementById('bbm-limits');
+            const validationInfo = document.getElementById('validation-info');
+            
+            bbmSelect.innerHTML = '<option value="">-- Pilih BBM --</option>';
+            limitsDiv.innerHTML = '';
+            validationInfo.className = 'validation-info';
+            validationInfo.style.display = 'none';
+            
+            if (!vehicleType) return;
+            
+            try {
+                const response = await fetch(`/api/vehicle_bbm/${vehicleType}`);
+                const bbmList = await response.json();
+                
+                if (bbmList.length === 0) {
+                    validationInfo.textContent = `⚠️ Belum ada jenis BBM yang tersedia untuk ${vehicleType}`;
+                    validationInfo.className = 'validation-info show error';
+                    validationInfo.style.display = 'block';
+                    return;
+                }
+                
+                bbmList.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.bbm_type;
+                    opt.dataset.price = item.price_per_liter;
+                    opt.dataset.min = item.min_km_per_liter;
+                    opt.dataset.max = item.max_km_per_liter;
+                    opt.dataset.warning = item.warning_km_per_liter;
+                    opt.dataset.good = item.good_km_per_liter;
+                    const defaultLabel = item.is_default ? ' ⭐' : '';
+                    opt.textContent = `${item.bbm_type} - Rp ${item.price_per_liter.toLocaleString()}/L${defaultLabel}`;
+                    bbmSelect.appendChild(opt);
+                });
+                
+                const defaultItem = bbmList.find(item => item.is_default);
+                if (defaultItem) {
+                    bbmSelect.value = defaultItem.bbm_type;
+                    updatePrice();
+                    limitsDiv.innerHTML = `📊 Standar: Baik >${defaultItem.good_km_per_liter} km/L | Warning <${defaultItem.warning_km_per_liter} km/L`;
+                    validationInfo.textContent = `✅ ${vehicleType} kompatibel dengan ${bbmList.length} jenis BBM`;
+                    validationInfo.className = 'validation-info show success';
+                    validationInfo.style.display = 'block';
+                } else {
+                    validationInfo.textContent = `✅ ${vehicleType} kompatibel dengan ${bbmList.length} jenis BBM`;
+                    validationInfo.className = 'validation-info show success';
+                    validationInfo.style.display = 'block';
+                }
+            } catch (e) {
+                console.error('Error loading BBM options:', e);
+            }
+        }
+
         function updatePrice() {
             const select = document.getElementById('bbm_type');
-            const price = select.options[select.selectedIndex].dataset.price;
-            document.getElementById('price_per_liter').value = price;
-            calculateLiter();
+            const selected = select.options[select.selectedIndex];
+            if (selected && selected.dataset.price) {
+                document.getElementById('price_per_liter').value = selected.dataset.price;
+                calculateLiter();
+            }
         }
 
         function calculateLiter() {
@@ -204,6 +437,141 @@
             }
         }
 
+        // ============================================================
+        // UPLOAD FUNCTIONS - KAMERA vs GALERI
+        // ============================================================
+        
+        // Fungsi untuk membuka kamera (capture)
+        function capturePhoto(inputId) {
+            const input = document.getElementById(inputId);
+            if (input) {
+                // Set capture attribute untuk kamera
+                input.setAttribute('capture', 'environment');
+                input.removeAttribute('accept'); // tetap accept image
+                input.click();
+            }
+        }
+        
+        // Fungsi untuk memilih dari galeri
+        function choosePhoto(inputId) {
+            const input = document.getElementById(inputId);
+            if (input) {
+                // Hapus capture attribute untuk galeri
+                input.removeAttribute('capture');
+                input.click();
+            }
+        }
+        
+        // Fungsi untuk menghapus foto yang dipilih
+        function removePhoto(inputId) {
+            const input = document.getElementById(inputId);
+            const container = document.getElementById(`preview_container_${inputId}`);
+            const preview = document.getElementById(`preview_${inputId}`);
+            const fileInfo = document.getElementById(`file_info_${inputId}`);
+            
+            if (input) {
+                // Reset input
+                input.value = '';
+                // Jika required, tambahkan kembali
+                if (input.id === 'foto_odo_sebelum' || input.id === 'foto_nota_odo_sesudah' || input.id === 'foto_struk') {
+                    input.setAttribute('required', 'required');
+                }
+            }
+            
+            if (container) {
+                container.classList.add('hidden');
+            }
+            if (preview) {
+                preview.src = '';
+            }
+            if (fileInfo) {
+                fileInfo.textContent = '';
+            }
+        }
+        
+        // ============================================================
+        // PREVIEW & WATERMARK
+        // ============================================================
+        document.querySelectorAll('.form-control-file').forEach(input => {
+            input.addEventListener('change', function(e) {
+                const file = this.files[0];
+                if (!file || !file.type.startsWith('image/')) {
+                    // Jika bukan gambar, reset
+                    this.value = '';
+                    return;
+                }
+                
+                const inputId = this.id;
+                const container = document.getElementById(`preview_container_${inputId}`);
+                const preview = document.getElementById(`preview_${inputId}`);
+                const fileInfo = document.getElementById(`file_info_${inputId}`);
+                
+                const reader = new FileReader();
+                
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        // Buat canvas untuk watermark
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        
+                        // Gambar foto asli
+                        ctx.drawImage(img, 0, 0);
+                        
+                        // Watermark
+                        const fontSize = Math.max(18, img.width * 0.025);
+                        const pad = fontSize * 0.5;
+                        const lineH = fontSize * 1.3;
+                        const bgHeight = Math.min(lineH * 4, img.height * 0.18);
+                        
+                        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+                        ctx.fillRect(0, img.height - bgHeight, img.width, bgHeight);
+                        
+                        ctx.fillStyle = "#FFD700";
+                        ctx.font = `bold ${fontSize}px Arial`;
+                        ctx.textBaseline = 'bottom';
+                        
+                        const timeStr = "🕐 " + new Date().toLocaleString('id-ID');
+                        const addr = document.getElementById('gps_address').value || '';
+                        const locStr = addr ? `📍 ${addr}` : `📍 ${currentLat || '?'}, ${currentLon || '?'}`;
+                        
+                        const yStart = img.height - pad;
+                        ctx.fillText(timeStr, pad, yStart);
+                        ctx.fillText(locStr, pad, yStart - lineH * 1.0);
+                        
+                        ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+                        ctx.font = `${fontSize * 0.7}px Arial`;
+                        ctx.textBaseline = 'top';
+                        ctx.fillText("BPF BBM System", pad, pad);
+                        
+                        // Tampilkan preview
+                        preview.src = canvas.toDataURL('image/jpeg', 0.85);
+                        container.classList.remove('hidden');
+                        
+                        // Tampilkan info file
+                        const size = (file.size / 1024).toFixed(1);
+                        const source = input.hasAttribute('capture') ? '📷 Kamera' : '📁 Galeri';
+                        fileInfo.textContent = `${file.name} (${size} KB) - ${source}`;
+                        
+                        // Override file dengan gambar watermark
+                        canvas.toBlob((blob) => {
+                            const newFile = new File([blob], file.name, { type: 'image/jpeg' });
+                            const dataTransfer = new DataTransfer();
+                            dataTransfer.items.add(newFile);
+                            input.files = dataTransfer.files;
+                        }, 'image/jpeg', 0.85);
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+
+        // ============================================================
+        // SPBU TYPE TOGGLE
+        // ============================================================
         document.getElementById('spbu_type').addEventListener('change', function() {
             const disp = document.getElementById('dispenser_div');
             const inp = document.getElementById('input_dispenser');
@@ -216,7 +584,9 @@
             }
         });
 
+        // ============================================================
         // GPS
+        // ============================================================
         let currentLat = null, currentLon = null;
         const gpsText = document.getElementById('gps-text');
         const gpsIndicator = document.getElementById('gps-indicator');
@@ -231,7 +601,6 @@
                     gpsText.textContent = `📍 ${currentLat.toFixed(6)}, ${currentLon.toFixed(6)}`;
                     gpsIndicator.className = 'gps-status active';
                     
-                    // Reverse geocode
                     fetch(`https://nominatim.openstreetmap.org/reverse?lat=${currentLat}&lon=${currentLon}&format=json&zoom=18&addressdetails=1`, {
                         headers: { 'User-Agent': 'BPF-BBM-System' }
                     })
@@ -261,65 +630,10 @@
             gpsIndicator.className = 'gps-status inactive';
         }
 
-        // Watermark
-        document.querySelectorAll('.file-stamper').forEach(input => {
-            input.addEventListener('change', function(e) {
-                const file = this.files[0];
-                if (!file || !file.type.startsWith('image/')) return;
-                
-                const preview = document.getElementById('preview_' + this.id);
-                const reader = new FileReader();
-                
-                reader.onload = function(event) {
-                    const img = new Image();
-                    img.onload = function() {
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        
-                        ctx.drawImage(img, 0, 0);
-                        
-                        const fontSize = Math.max(18, img.width * 0.025);
-                        const pad = fontSize * 0.5;
-                        const lineH = fontSize * 1.3;
-                        const bgHeight = Math.min(lineH * 4, img.height * 0.18);
-                        
-                        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-                        ctx.fillRect(0, img.height - bgHeight, img.width, bgHeight);
-                        
-                        ctx.fillStyle = "#FFD700";
-                        ctx.font = `bold ${fontSize}px Arial`;
-                        ctx.textBaseline = 'bottom';
-                        
-                        const timeStr = "🕐 " + new Date().toLocaleString('id-ID');
-                        const addr = document.getElementById('gps_address').value || '';
-                        const locStr = addr ? `📍 ${addr}` : `📍 ${currentLat || '?'}, ${currentLon || '?'}`;
-                        
-                        const yStart = img.height - pad;
-                        ctx.fillText(timeStr, pad, yStart);
-                        ctx.fillText(locStr, pad, yStart - lineH * 1.0);
-                        
-                        ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
-                        ctx.font = `${fontSize * 0.7}px Arial`;
-                        ctx.textBaseline = 'top';
-                        ctx.fillText("BPF BBM System", pad, pad);
-                        
-                        preview.src = canvas.toDataURL('image/jpeg', 0.85);
-                        preview.classList.remove('hidden');
-                        
-                        canvas.toBlob((blob) => {
-                            const newFile = new File([blob], file.name, { type: 'image/jpeg' });
-                            const dataTransfer = new DataTransfer();
-                            dataTransfer.items.add(newFile);
-                            input.files = dataTransfer.files;
-                        }, 'image/jpeg', 0.85);
-                    };
-                    img.src = event.target.result;
-                };
-                reader.readAsDataURL(file);
-            });
-        });
+        // ============================================================
+        // INIT
+        // ============================================================
+        loadVehicles();
     </script>
 </body>
 </html>

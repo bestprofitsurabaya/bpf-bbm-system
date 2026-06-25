@@ -21,31 +21,248 @@
         .stat-card .number { font-size: 28px; font-weight: 700; color: #1a237e; }
         .stat-card .label { font-size: 13px; color: #6c757d; margin-top: 2px; }
         .card { background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow: hidden; margin-bottom: 20px; }
-        .card-header { padding: 16px 24px; border-bottom: 1px solid #e9ecef; font-weight: 600; background: #f8f9fa; }
+        .card-header { padding: 16px 24px; border-bottom: 1px solid #e9ecef; font-weight: 600; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
         .card-body { padding: 20px 24px; }
         .tx-item { border: 1px solid #e9ecef; border-radius: 10px; padding: 16px 20px; margin-bottom: 15px; background: #fafbfc; }
         .tx-item:last-child { margin-bottom: 0; }
         .tx-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
         .tx-header .nopol { font-weight: 700; font-size: 18px; color: #1a237e; }
-        .tx-header .status { background: #ffc107; padding: 2px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .tx-header .status { padding: 2px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .tx-header .status.pending { background: #ffc107; color: #856404; }
+        .tx-header .status.modified { background: #17a2b8; color: white; }
         .tx-detail { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 6px; font-size: 13px; color: #495057; margin: 8px 0; }
         .tx-detail span { background: #f1f3f5; padding: 2px 10px; border-radius: 4px; }
-        .tx-images { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
-        .tx-images img { width: 100px; height: 75px; object-fit: cover; border-radius: 6px; border: 1px solid #dee2e6; cursor: pointer; }
+        .gps-info { font-size: 11px; color: #6c757d; background: #f1f3f5; padding: 2px 8px; border-radius: 4px; }
+        
+        /* ===== PHOTO GALLERY ===== */
+        .photo-gallery {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        .photo-item {
+            position: relative;
+            cursor: pointer;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 2px solid #dee2e6;
+            transition: 0.2s;
+            width: 120px;
+            height: 90px;
+        }
+        .photo-item:hover {
+            border-color: #1a237e;
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .photo-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .photo-item .photo-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            font-size: 9px;
+            padding: 2px 6px;
+            text-align: center;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .photo-item .photo-badge {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            font-size: 8px;
+            padding: 1px 6px;
+            border-radius: 10px;
+        }
+        .photo-empty {
+            color: #6c757d;
+            font-size: 13px;
+            padding: 10px;
+            text-align: center;
+            width: 100%;
+        }
+        .btn-review {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn-review:hover { background: #138496; }
+        
+        /* ===== MODAL PREVIEW ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 95%;
+            max-height: 95%;
+            width: 1200px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .modal-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+            flex-shrink: 0;
+        }
+        .modal-header h2 {
+            font-size: 18px;
+            color: #1a237e;
+        }
+        .modal-header .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #6c757d;
+            padding: 0 8px;
+        }
+        .modal-header .close-btn:hover { color: #dc3545; }
+        
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .modal-photos {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .modal-photo-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #e9ecef;
+        }
+        .modal-photo-item .modal-photo-img {
+            width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+            background: white;
+            cursor: zoom-in;
+        }
+        .modal-photo-item .modal-photo-info {
+            padding: 10px 14px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+        }
+        .modal-photo-item .modal-photo-info .label {
+            font-weight: 600;
+            font-size: 13px;
+            color: #1a237e;
+        }
+        .modal-photo-item .modal-photo-info .desc {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 2px;
+        }
+        .modal-photo-item .modal-photo-info .badge-source {
+            display: inline-block;
+            padding: 1px 10px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+        .badge-camera { background: #d4edda; color: #155724; }
+        .badge-gallery { background: #cce5ff; color: #004085; }
+        .badge-empty { background: #f8f9fa; color: #6c757d; }
+        
+        .modal-footer {
+            padding: 12px 24px;
+            border-top: 1px solid #e9ecef;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .modal-footer .btn-close-modal {
+            padding: 8px 24px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .modal-footer .btn-close-modal:hover { background: #5a6268; }
+        
+        /* ===== FORM ===== */
         .tx-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; padding-top: 12px; border-top: 1px dashed #dee2e6; }
         .tx-form .full { grid-column: 1 / -1; }
         .tx-form label { font-size: 13px; font-weight: 500; display: block; margin-bottom: 2px; }
-        .tx-form input[type="file"], .tx-form textarea { width: 100%; padding: 6px 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 13px; }
+        .tx-form input[type="file"], .tx-form textarea, .tx-form select { width: 100%; padding: 6px 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 13px; }
         .tx-form textarea { min-height: 50px; resize: vertical; }
         .tx-form .checkbox-group { display: flex; align-items: center; gap: 8px; }
         .btn { padding: 6px 16px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; transition: 0.2s; }
         .btn-success { background: #28a745; color: white; }
         .btn-success:hover { background: #1e7e34; }
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-warning:hover { background: #e0a800; }
+        .btn-info { background: #17a2b8; color: white; }
+        .btn-info:hover { background: #138496; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover { background: #5a6268; }
         .empty { text-align: center; padding: 40px; color: #6c757d; }
-        .gps-info { font-size: 11px; color: #6c757d; background: #f1f3f5; padding: 2px 8px; border-radius: 4px; }
         .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; }
         .alert-success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
-        @media (max-width: 768px) { .tx-form { grid-template-columns: 1fr; } }
+        .alert-error { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
+        
+        .edit-section { background: #f8f9fa; padding: 12px; border-radius: 6px; margin-top: 10px; border-left: 4px solid #17a2b8; }
+        .edit-section h4 { margin-bottom: 8px; color: #17a2b8; }
+        .edit-section .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+        
+        @media (max-width: 768px) { 
+            .tx-form { grid-template-columns: 1fr; } 
+            .edit-section .row { grid-template-columns: 1fr; }
+            .modal-photos { grid-template-columns: 1fr; }
+            .photo-item { width: 80px; height: 60px; }
+        }
+        @media (max-width: 480px) {
+            .photo-item { width: 60px; height: 45px; }
+            .photo-item .photo-label { font-size: 7px; }
+        }
     </style>
 </head>
 <body>
@@ -78,14 +295,19 @@
         </div>
         
         <div class="card">
-            <div class="card-header">📋 Klaim Menunggu Verifikasi ({{ transactions|length }})</div>
+            <div class="card-header">
+                <span>📋 Klaim Menunggu Verifikasi ({{ transactions|length }})</span>
+                <span style="font-size:13px;color:#6c757d;font-weight:normal;">Klik foto untuk preview</span>
+            </div>
             <div class="card-body">
                 {% if transactions %}
                     {% for tx in transactions %}
                     <div class="tx-item">
                         <div class="tx-header">
                             <span class="nopol">🚗 {{ tx.nopol }} ({{ tx.vehicle_type or 'AVANZA' }})</span>
-                            <span class="status">PENDING</span>
+                            <span class="status {% if tx.status == 'modified' %}modified{% else %}pending{% endif %}">
+                                {{ tx.status|upper }}
+                            </span>
                         </div>
                         <div class="tx-detail">
                             <span>👤 {{ tx.driver_name }}</span>
@@ -100,14 +322,36 @@
                             <span class="gps-info">📍 {{ tx.gps_address }}</span>
                             {% endif %}
                         </div>
-                        <div class="tx-images">
-                            {% if tx.foto_odo_sebelum %}<img src="/uploads/{{ tx.foto_odo_sebelum }}" alt="ODO1">{% endif %}
-                            {% if tx.foto_nota_odo_sesudah %}<img src="/uploads/{{ tx.foto_nota_odo_sesudah }}" alt="ODO2">{% endif %}
-                            {% if tx.foto_struk %}<img src="/uploads/{{ tx.foto_struk }}" alt="STRUK">{% endif %}
-                            {% if tx.foto_struk_dispenser %}<img src="/uploads/{{ tx.foto_struk_dispenser }}" alt="DISP">{% endif %}
+                        
+                        <!-- ===== GALLERY PREVIEW ===== -->
+                        <div class="photo-gallery" id="gallery_{{ tx.id }}">
+                            {% set photos = [
+                                (tx.foto_odo_sebelum, 'ODO Sebelum', 'Foto Odometer sebelum pengisian'),
+                                (tx.foto_nota_odo_sesudah, 'ODO + Nota', 'Foto Odometer & Nota setelah pengisian'),
+                                (tx.foto_struk, 'Struk BBM', 'Foto struk fisik BBM'),
+                                (tx.foto_struk_dispenser, 'Dispenser', 'Foto struk di dispenser'),
+                                (tx.foto_mypertamina_admin, 'MyPertamina', 'Screenshot MyPertamina dari Admin')
+                            ] %}
+                            {% for photo, label, desc in photos %}
+                                {% if photo %}
+                                <div class="photo-item" onclick="openModal('{{ tx.id }}', '{{ photo }}', '{{ label }}', '{{ desc }}')">
+                                    <img src="/uploads/{{ photo }}" alt="{{ label }}" loading="lazy">
+                                    <span class="photo-label">{{ label }}</span>
+                                    <span class="photo-badge">📷</span>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                            {% if not tx.foto_odo_sebelum and not tx.foto_nota_odo_sesudah and not tx.foto_struk %}
+                            <div class="photo-empty">📭 Belum ada foto yang dilampirkan</div>
+                            {% endif %}
+                            <button type="button" class="btn btn-review" onclick="openModalGallery('{{ tx.id }}')">
+                                🖼️ Review Semua Foto
+                            </button>
                         </div>
                         
+                        <!-- FORM VERIFIKASI -->
                         <form action="/admin" method="POST" enctype="multipart/form-data">
+                            <input type="hidden" name="action" value="verify">
                             <input type="hidden" name="tx_id" value="{{ tx.id }}">
                             <input type="hidden" name="nopol" value="{{ tx.nopol }}">
                             <input type="hidden" name="nominal" value="{{ tx.nominal }}">
@@ -126,6 +370,58 @@
                                 </div>
                             </div>
                         </form>
+                        
+                        <!-- FORM MODIFIKASI -->
+                        <div class="edit-section">
+                            <h4>✏️ Modifikasi Data (Sebelum Verifikasi)</h4>
+                            <form action="/admin" method="POST">
+                                <input type="hidden" name="action" value="modify">
+                                <input type="hidden" name="tx_id" value="{{ tx.id }}">
+                                
+                                <div class="row">
+                                    <div>
+                                        <label>Tipe Kendaraan</label>
+                                        <select name="edit_vehicle" class="form-control">
+                                            {% for v in vehicles %}
+                                            <option value="{{ v.vehicle_type }}" {% if v.vehicle_type == tx.vehicle_type %}selected{% endif %}>
+                                                {{ v.vehicle_type }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label>Jenis BBM</label>
+                                        <select name="edit_bbm" class="form-control">
+                                            {% for b in bbm_types %}
+                                            <option value="{{ b.name }}" {% if b.name == tx.bbm_type %}selected{% endif %}>
+                                                {{ b.name }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label>Nominal (Rp)</label>
+                                        <input type="number" name="edit_nominal" class="form-control" value="{{ tx.nominal }}">
+                                    </div>
+                                    <div>
+                                        <label>ODO KM</label>
+                                        <input type="number" name="edit_odo" class="form-control" value="{{ tx.odo_km }}">
+                                    </div>
+                                    <div>
+                                        <label>Tipe SPBU</label>
+                                        <select name="edit_spbu" class="form-control">
+                                            <option value="rekanan" {% if tx.spbu_type == 'rekanan' %}selected{% endif %}>Rekanan</option>
+                                            <option value="non_rekanan" {% if tx.spbu_type == 'non_rekanan' %}selected{% endif %}>Non-Rekanan</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label>Catatan Modifikasi</label>
+                                        <input type="text" name="modification_note" class="form-control" placeholder="Alasan perubahan data...">
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-warning" style="margin-top:8px;">✏️ Simpan Perubahan</button>
+                            </form>
+                        </div>
                     </div>
                     {% endfor %}
                 {% else %}
@@ -134,5 +430,111 @@
             </div>
         </div>
     </div>
+    
+    <!-- ===== MODAL PREVIEW FOTO ===== -->
+    <div class="modal-overlay" id="photoModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">🖼️ Review Foto Bukti</h2>
+                <button class="close-btn" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <div class="modal-photos" id="modalPhotos">
+                    <!-- Dinamis diisi oleh JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-close-modal" onclick="closeModal()">Tutup</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // ============================================================
+        // MODAL FUNCTIONS
+        // ============================================================
+        let currentModalData = {};
+        
+        function openModal(txId, photo, label, desc) {
+            const modal = document.getElementById('photoModal');
+            const body = document.getElementById('modalBody');
+            const title = document.getElementById('modalTitle');
+            
+            title.textContent = `🖼️ ${label} - Transaksi #${txId}`;
+            
+            body.innerHTML = `
+                <div style="display:flex;justify-content:center;align-items:center;min-height:300px;background:#f8f9fa;border-radius:8px;">
+                    <img src="/uploads/${photo}" style="max-width:100%;max-height:70vh;object-fit:contain;border-radius:8px;">
+                </div>
+                <div style="margin-top:12px;padding:12px;background:#f8f9fa;border-radius:8px;">
+                    <p><strong>📷 ${label}</strong></p>
+                    <p style="color:#6c757d;font-size:13px;">${desc}</p>
+                    <p style="color:#6c757d;font-size:12px;margin-top:4px;">🕐 Diupload: ${new Date().toLocaleString('id-ID')}</p>
+                </div>
+            `;
+            
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function openModalGallery(txId) {
+            const modal = document.getElementById('photoModal');
+            const body = document.getElementById('modalBody');
+            const title = document.getElementById('modalTitle');
+            
+            title.textContent = `🖼️ Review Semua Foto - Transaksi #${txId}`;
+            
+            // Cari gallery di halaman
+            const gallery = document.getElementById(`gallery_${txId}`);
+            const photos = gallery.querySelectorAll('.photo-item');
+            
+            let html = '<div class="modal-photos">';
+            
+            photos.forEach(item => {
+                const img = item.querySelector('img');
+                const label = item.querySelector('.photo-label');
+                if (img && label) {
+                    html += `
+                        <div class="modal-photo-item">
+                            <img src="${img.src}" class="modal-photo-img" alt="${label.textContent}" onclick="window.open('${img.src}', '_blank')">
+                            <div class="modal-photo-info">
+                                <div class="label">📷 ${label.textContent}</div>
+                                <div class="desc">Foto bukti ${label.textContent.toLowerCase()}</div>
+                                <span class="badge-source badge-camera">📷 Dari Kamera</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            // Jika tidak ada foto
+            if (photos.length === 0) {
+                html += `<div class="photo-empty" style="grid-column:1/-1;padding:40px;text-align:center;">
+                            📭 Belum ada foto yang dilampirkan untuk transaksi ini
+                        </div>`;
+            }
+            
+            html += '</div>';
+            body.innerHTML = html;
+            
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeModal() {
+            document.getElementById('photoModal').classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeModal();
+        });
+        
+        // Close modal by clicking outside
+        document.getElementById('photoModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+    </script>
 </body>
 </html>

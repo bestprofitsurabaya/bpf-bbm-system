@@ -29,6 +29,7 @@
         .badge-danger { background: #f8d7da; color: #721c24; }
         .empty { text-align: center; padding: 40px; color: #6c757d; }
         .spec-box { background: #f8f9fa; padding: 12px 16px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #17a2b8; }
+        .info-note { font-size: 12px; color: #6c757d; margin-top: 8px; }
         @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -58,7 +59,7 @@
                 <div class="card-body">
                     {% if vehicle_performance %}
                     <table class="performance-table">
-                        <thead><tr><th>Nopol</th><th>Tipe</th><th>BBM</th><th>Avg KM/L</th><th>Status</th></tr></thead>
+                        <thead><tr><th>Nopol</th><th>Tipe</th><th>BBM</th><th>Avg KM/L</th><th>Status</th><th>Trans</th></tr></thead>
                         <tbody>
                             {% for vp in vehicle_performance %}
                             <tr>
@@ -78,10 +79,12 @@
                                         {% else %}<span class="badge badge-danger">🔧 Periksa</span>{% endif %}
                                     {% endif %}
                                 </td>
+                                <td>{{ vp.total_transactions }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
+                    <div class="info-note">📊 Menampilkan kendaraan dengan minimal 2 transaksi terverifikasi</div>
                     {% else %}
                     <div class="empty">
                         📊 Belum ada data performa.<br>
