@@ -13,10 +13,13 @@ from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 import warnings
 import threading
+from concurrent.futures import ThreadPoolExecutor
 import io
 warnings.filterwarnings('ignore')
 
 app = Flask(__name__)
+# Membatasi total worker thread di produksi guna mencegah memori leak / exhaustion
+production_pool_executor = ThreadPoolExecutor(max_workers=20)
 app.secret_key = os.environ.get('SECRET_KEY', 'bpf_bbm_secret_key_production_default_2026')
 UPLOAD_FOLDER = 'uploads'
 REPORT_FOLDER = 'reports'
@@ -41,16 +44,32 @@ DB_CONFIG = {
     'use_pure': True
 }
 
+# Inisialisasi Real Enterprise Connection Pool Terpusat
+try:
+    db_pool = pooling.MySQLConnectionPool(**DB_CONFIG)
+    print("✔ Real MySQLConnectionPool berhasil diinisialisasi secara global.")
+except Error as e:
+    print(f"❌ Gagal menginisialisasi MySQL Connection Pool: {e}")
+    db_pool = None
+
 def get_db_connection():
+    # Mengambil koneksi aktif yang sudah ready dari pool manajemen
+    if db_pool:
+        try:
+            return db_pool.get_connection()
+        except Error as pool_err:
+            print(f"⚠ Pool exhausted atau mengalami kendala: {pool_err}. Melakukan fallback ke koneksi langsung.")
+    
+    # Mekanisme pertahanan berlapis: Fallback koneksi non-pool jika terjadi kontensi tinggi
     max_retries = 5
     retry_delay = 1
+    fallback_config = {k: v for k, v in DB_CONFIG.items() if k not in ['pool_name', 'pool_size']}
     for attempt in range(max_retries):
         try:
-            conn = mysql.connector.connect(**DB_CONFIG)
-            return conn
+            return mysql.connector.connect(**fallback_config)
         except Error as e:
             if attempt == max_retries - 1:
-                print(f"Database connection error after {max_retries} attempts: {e}")
+                print(f"Database connection total failure: {e}")
                 raise
             time.sleep(retry_delay)
     return None
@@ -193,9 +212,8 @@ def log_activity_async(transaction_id, action, user_type, user_name, old_data=No
         except Exception as e:
             print(f"Log error: {e}")
     
-    thread = threading.Thread(target=_log)
-    thread.daemon = True
-    thread.start()
+    # Mendelegasikan penulisan log ke antrean executor produksi yang terkontrol
+    production_pool_executor.submit(_log)
 
 # ============================================================
 # DAILY SUMMARY UPDATE (ASYNC)
@@ -251,9 +269,8 @@ def update_daily_summary_async(transaction_data):
         except Exception as e:
             print(f"Daily summary error: {e}")
     
-    thread = threading.Thread(target=_update)
-    thread.daemon = True
-    thread.start()
+    # Mendelegasikan rekap ringkasan harian ke pool executor
+    production_pool_executor.submit(_update)
 
 # ============================================================
 # ML PERFORMANCE ANALYZER
@@ -326,7 +343,7 @@ class PerformanceAnalyzer:
                         X = np.array(efficiency_data).reshape(-1, 1)
                         scaler = StandardScaler()
                         X_scaled = scaler.fit_transform(X)
-                        iso_forest = IsolationForest(contamination=0.15, random_state=42)
+                        iso_forest = IsolationForest(contamination=0.15, random_state=42, n_jobs=-1, n_estimators=50)
                         predictions = iso_forest.fit_predict(X_scaled)
                         
                         if predictions[-1] == -1:
@@ -948,14 +965,12 @@ def generate_report(tx_id):
 
         pdf_filename = f"Report_BBM_{tx['nopol']}_{tx['id']}.pdf"
         pdf_filepath = os.path.join(app.config['UPLOAD_FOLDER'], pdf_filename)
-        pdf.output(pdf_filepath)
-
-        return send_from_directory(
-            app.config['UPLOAD_FOLDER'], 
-            pdf_filename, 
-            as_attachment=True,
-            mimetype='application/pdf'
-        )
+        pdf_out = pdf.output(dest='S')
+        pdf_bytes = pdf_out.encode('latin-1') if isinstance(pdf_out, str) else bytes(pdf_out)
+        response = make_response(pdf_bytes)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = 'attachment; filename=' + str(pdf_filename)
+        return response
     except Exception as e:
         print(f"PDF Error: {e}")
         return f"Error generating PDF: {str(e)}", 500
