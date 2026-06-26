@@ -17,7 +17,7 @@ import io
 warnings.filterwarnings('ignore')
 
 app = Flask(__name__)
-app.secret_key = 'bpf_bbm_secret_key_2026'
+app.secret_key = os.environ.get('SECRET_KEY', 'bpf_bbm_secret_key_production_default_2026')
 UPLOAD_FOLDER = 'uploads'
 REPORT_FOLDER = 'reports'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -29,12 +29,12 @@ os.makedirs(REPORT_FOLDER, exist_ok=True)
 # DATABASE POOLING
 # ============================================================
 DB_CONFIG = {
-    'host': 'db',
-    'user': 'root',
-    'password': 'password_db',
-    'database': 'bpf_asset_system',
+    'host': os.environ.get('DB_HOST', 'db'),
+    'user': os.environ.get('DB_USER', 'bpf_user'),
+    'password': os.environ.get('DB_PASSWORD', 'bpf_pass'),
+    'database': os.environ.get('DB_NAME', 'bpf_asset_system'),
     'pool_name': 'bbm_pool',
-    'pool_size': 10,
+    'pool_size': int(os.environ.get('DB_POOL_SIZE', 10)),
     'pool_reset_session': True,
     'autocommit': False,
     'connect_timeout': 60,

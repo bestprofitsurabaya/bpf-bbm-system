@@ -28,7 +28,13 @@ services:
       - ./uploads:/app/uploads
       - ./static:/app/static
     environment:
-      - FLASK_ENV=production
+      - FLASK_DEBUG=0
+      - DB_HOST=db
+      - DB_USER=bpf_user
+      - DB_PASSWORD=bpf_pass
+      - DB_NAME=bpf_asset_system
+      - DB_POOL_SIZE=15
+      - SECRET_KEY=bpf_bbm_super_secret_production_key_2026_indonesia
     depends_on:
       db:
         condition: service_healthy
