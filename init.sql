@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     gps_latitude DECIMAL(10,8),
     gps_longitude DECIMAL(11,8),
     gps_address TEXT,
+    jumlah_appointment INT DEFAULT 0,
     is_reported BOOLEAN DEFAULT FALSE,
     modified_by VARCHAR(100),
     modification_note TEXT,

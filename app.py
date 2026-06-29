@@ -18,6 +18,9 @@ import io
 warnings.filterwarnings('ignore')
 
 app = Flask(__name__)
+# Set limit upload 16MB untuk mengakomodasi resolusi kamera iPhone 13
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+
 # Membatasi total worker thread di produksi guna mencegah memori leak / exhaustion
 production_pool_executor = ThreadPoolExecutor(max_workers=20)
 app.secret_key = os.environ.get('SECRET_KEY', 'bpf_bbm_secret_key_production_default_2026')
@@ -201,7 +204,7 @@ def log_activity_async(transaction_id, action, user_type, user_name, old_data=No
             cursor.execute("""
                 INSERT INTO activity_logs 
                 (transaction_id, action, user_type, user_name, old_data, new_data, ip_address, user_agent)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (transaction_id, action, user_type, user_name, 
                   json.dumps(old_data) if old_data else None,
                   json.dumps(new_data) if new_data else None,
@@ -256,7 +259,7 @@ def update_daily_summary_async(transaction_data):
                     INSERT INTO daily_summary 
                     (summary_date, vehicle_type, total_transactions, total_liter, total_nominal, 
                      total_odo_km, avg_km_per_liter)
-                    VALUES (%s, %s, 1, %s, %s, %s, %s)
+                    VALUES (%s, %s, 1, %s, %s, %s, %s, %s, %s)
                 """, (summary_date, vehicle_type,
                       transaction_data.get('liter', 0),
                       transaction_data.get('nominal', 0),
@@ -371,6 +374,40 @@ class PerformanceAnalyzer:
                 'category': 'error',
                 'message': str(e)
             }
+
+
+@app.route('/api/get-performance/<plat_nomor>', methods=['GET'])
+def get_performance(plat_nomor):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        # Ambil data performa 30 hari terakhir
+        cursor.execute('''
+            SELECT km_per_liter, jumlah_appointment 
+            FROM transactions 
+            WHERE nopol=%s AND status='verified' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
+        ''', (plat_nomor,))
+        data = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        if not data:
+            return jsonify({"nopol": plat_nomor, "status": "BELUM CUKUP DATA", "avg_kml": 0, "total_appointment": 0})
+
+        avg_kml = sum([d['km_per_liter'] for d in data if d['km_per_liter']]) / len(data)
+        total_apt = sum([d['jumlah_appointment'] for d in data if d['jumlah_appointment']])
+        
+        performa = "BAIK (Efisien)" if avg_kml >= 10.0 else "BOROS (Perlu Pengecekan)"
+        
+        return jsonify({
+            "nopol": plat_nomor,
+            "status": performa,
+            "avg_kml": round(avg_kml, 2),
+            "total_appointment": total_apt,
+            "count": len(data)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ============================================================
 # REKAP DATA ENGINE
@@ -753,11 +790,11 @@ def driver_form():
                 INSERT INTO transactions 
                 (driver_name, nopol, vehicle_type, bbm_type, nominal, liter, price_per_liter,
                  odo_km, spbu_type, foto_odo_sebelum, foto_nota_odo_sesudah, foto_struk, foto_struk_dispenser,
-                 status, ml_anomaly_flag, km_per_liter, gps_latitude, gps_longitude, gps_address) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending', %s, %s, %s, %s, %s)
+                 status, ml_anomaly_flag, km_per_liter, gps_latitude, gps_longitude, gps_address, jumlah_appointment) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending', %s, %s, %s, %s, %s, %s, %s)
             """, (driver_name, nopol, vehicle_type, bbm_type, nominal, liter, price_per_liter,
                   odo_km, spbu_type, foto_odo_sebelum, foto_nota_odo_sesudah, foto_struk, foto_struk_dispenser,
-                  analysis['is_anomaly'], km_per_liter, gps_lat, gps_lon, gps_address))
+                  analysis['is_anomaly'], km_per_liter, gps_lat, gps_lon, gps_address, jumlah_appointment))
             
             transaction_id = cursor.lastrowid
             conn.commit()
@@ -1301,5 +1338,57 @@ def delete_tx(tx_id):
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
+
+@app.route('/api/get-feedback/<nopol>')
+def get_vehicle_performance(nopol):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    # Ambil 5 transaksi terakhir untuk rata-rata performa
+    cursor.execute("SELECT total_km, liter FROM bbm_transactions WHERE nopol=%s AND status='verified' ORDER BY created_at DESC LIMIT 5", (nopol,))
+    data = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    if not data:
+        return jsonify({"status": "info", "msg": "Belum ada data cukup untuk analisis performa."})
+    
+    # Hitung rata-rata KM per Liter (Sederhana)
+    total_km = sum([d['total_km'] for d in data])
+    total_liter = sum([d['liter'] for d in data])
+    kpl = total_km / total_liter if total_liter > 0 else 0
+    
+    # Logika Feedback
+    performa = "Optimal" if kpl > 8 else "Perlu Pengecekan"
+    return jsonify({
+        "status": "success",
+        "nopol": nopol,
+        "msg": f"Performa kendaraan {nopol} saat ini: {performa} (Efisiensi: {kpl:.2f} KM/L).",
+        "performa": performa
+    })
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
+
+@app.route('/api/get-vehicle-feedback/<nopol>', methods=['GET'])
+def get_vehicle_feedback(nopol):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    # Ambil 5 data terakhir untuk plat tersebut
+    query = "SELECT * FROM bbm_transactions WHERE nopol = %s ORDER BY created_at DESC LIMIT 5"
+    cursor.execute(query, (nopol,))
+    data = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    if not data:
+        return jsonify({"feedback": "Belum ada riwayat data untuk plat ini."})
+    
+    # Logika sederhana feedback performa
+    avg_km = sum([d['total_km'] for d in data]) / len(data)
+    if avg_km > 500:
+        msg = "Performa kendaraan sangat produktif. Pertahankan efisiensi penggunaan BBM."
+    else:
+        msg = "Penggunaan kendaraan dalam batas normal. Lakukan pengecekan rutin pada mesin."
+        
+    return jsonify({"feedback": msg})

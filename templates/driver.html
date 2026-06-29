@@ -206,6 +206,12 @@
             </div>
             
             <div class="form-group">
+                <label>Jumlah Appointment <span class="required">*</span></label>
+                <input type="number" name="jumlah_appointment" class="form-control" placeholder="Contoh: 3" required>
+                <div class="note">🤝 Masukkan 0 jika tidak ada janji temu hari ini</div>
+            </div>
+            
+            <div class="form-group">
                 <label>Odometer (KM) <span class="required">*</span></label>
                 <input type="number" name="odo_km" class="form-control" required>
                 <div class="note">📸 Pastikan foto ODO terlihat jelas</div>
@@ -320,6 +326,11 @@
             </div>
             
             <button type="submit" class="btn-submit">📤 Kirim Klaim</button>
+              <div id="feedback-area" style="display:none; padding: 20px; background: #e8f5e9;">
+                  <h4>Analisis Performa Kendaraan Anda:</h4>
+                  <p id="feedback-text"></p>
+                  <a href="/driver" class="btn btn-primary">Input Klaim Baru Lagi</a>
+              </div>
         </form>
     </div>
     
@@ -634,6 +645,123 @@
         // INIT
         // ============================================================
         loadVehicles();
+        async function showFeedback(nopol) {
+            const res = await fetch(`/api/feedback/${nopol}`);
+            const data = await res.json();
+            document.getElementById('feedback-text').innerText = 
+                `Performa untuk ${data.nopol}: ${data.performa} (Rata-rata KM: ${data.avg_km.toFixed(2)})`;
+            document.getElementById('feedback-area').style.display = 'block';
+        }
     </script>
+
+    <div id="analyticsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; justify-content:center; align-items:center; padding:20px; backdrop-filter: blur(5px);">
+        <div style="background:#fff; width:100%; max-width:400px; border-radius:16px; padding:25px; position:relative; box-shadow:0 10px 40px rgba(0,0,0,0.3); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+            <button type="button" onclick="closeAnalyticsModal()" style="position:absolute; top:15px; right:15px; background:#f1f3f5; border:none; border-radius:50%; width:32px; height:32px; font-size:16px; cursor:pointer; color:#495057; font-weight:bold; display:flex; justify-content:center; align-items:center;">✕</button>
+            
+            <h3 style="color:#1a237e; margin-bottom:15px; text-align:center; font-size:20px;">📊 Analytics Kendaraan</h3>
+            <div id="analyticsContent" style="text-align:center; font-size:15px; color:#333; margin-bottom:20px;">
+                </div>
+            
+            <button type="button" onclick="closeAnalyticsModal()" style="width:100%; padding:14px; background:#1a237e; color:white; border:none; border-radius:8px; font-size:16px; font-weight:600; cursor:pointer;">
+                Tutup & Input Baru
+            </button>
+        </div>
+    </div>
+
+    <style>
+        @keyframes popIn {
+            0% { transform: scale(0.8) translateY(20px); opacity: 0; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+    </style>
+
+    <script>
+        document.getElementById('bbmForm').addEventListener('submit', async function(e) {
+            e.preventDefault(); // Menghentikan reload halaman
+            
+            const submitBtn = document.querySelector('.btn-submit');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '⏳ Menyimpan Data...';
+            submitBtn.disabled = true;
+
+            try {
+                const formData = new FormData(this);
+                // 1. POST Klaim via AJAX
+                const response = await fetch('/driver', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'Accept': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.status === 'success') {
+                    submitBtn.innerHTML = '📊 Menarik Analytics...';
+                    
+                    // 2. Tarik Analisis Performa Kendaraan 1 Bulan
+                    const analyticsRes = await fetch(`/api/feedback/${result.nopol}`);
+                    const analyticsData = await analyticsRes.json();
+                    
+                    // 3. Tampilkan Pop-Up
+                    showAnalyticsModal(analyticsData);
+                    
+                    // 4. Bersihkan Form secara menyeluruh
+                    this.reset();
+                    document.querySelectorAll('.preview-container').forEach(el => el.classList.add('hidden'));
+                    document.querySelectorAll('.badge-upload').forEach(el => {
+                        el.className = 'badge-upload badge-upload-empty';
+                        el.innerText = 'Kosong';
+                    });
+                    document.getElementById('literDisplay').innerText = '💡 Volume = 0.00 Liter';
+                    
+                    // Bersihkan URL bar (bila ada sisa parameter cache dari script sebelumnya)
+                    const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                    window.history.replaceState({path:cleanUrl}, '', cleanUrl);
+
+                } else {
+                    alert('Gagal mengirim klaim: ' + (result.error || 'Terjadi kesalahan sistem.'));
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Terjadi kesalahan koneksi saat mengirim data.');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        function showAnalyticsModal(data) {
+            const modal = document.getElementById('analyticsModal');
+            const content = document.getElementById('analyticsContent');
+            
+            if (data.error) {
+                 content.innerHTML = `<p style="color:red;">Gagal memuat analitik.</p>`;
+            } else {
+                let color = "#28a745"; 
+                if (data.performa.includes("PERAWATAN") || data.performa.includes("Boros")) {
+                    color = "#dc3545"; 
+                } else if (data.performa.includes("CUKUP") || data.performa.includes("PERLU DATA")) {
+                    color = "#ffc107"; 
+                }
+                
+                content.innerHTML = `
+                    <h2 style="color:${color}; margin-bottom:10px; font-size: 22px;">${data.performa}</h2>
+                    <p style="margin-bottom: 10px;">Plat Nomor: <strong style="font-size:18px;">${data.nopol.toUpperCase()}</strong></p>
+                    
+                    <div style="background:#f8f9fa; padding:15px; border-radius:12px; margin-top:15px; margin-bottom:15px; border:1px solid #dee2e6;">
+                        <p style="margin:0; font-size:13px; color:#6c757d;">Rata-rata Konsumsi (1 Bulan Terakhir)</p>
+                        <h3 style="color:#1a237e; margin:8px 0; font-size:28px;">${data.avg_km.toFixed(2)} <span style="font-size:16px;">KM/L</span></h3>
+                        <p style="font-size:12px; color:#6c757d; margin:0;">Berdasarkan ${data.count || 0} data tervalidasi</p>
+                    </div>
+                `;
+            }
+            modal.style.display = 'flex';
+        }
+
+        function closeAnalyticsModal() {
+            document.getElementById('analyticsModal').style.display = 'none';
+        }
+    </script>
+
 </body>
 </html>
