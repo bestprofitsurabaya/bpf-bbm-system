@@ -15,13 +15,13 @@
         .navbar .nav-links a { color: rgba(255,255,255,0.8); text-decoration: none; padding: 6px 14px; border-radius: 6px; transition: 0.2s; }
         .navbar .nav-links a:hover { background: rgba(255,255,255,0.15); }
         .navbar .nav-links a.active { background: rgba(255,255,255,0.2); color: white; }
-        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+        .container { max-width: 1300px; margin: 20px auto; padding: 0 20px; }
         .card { background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow: hidden; margin-bottom: 20px; }
         .card-header { padding: 16px 24px; border-bottom: 1px solid #e9ecef; font-weight: 600; background: #f8f9fa; }
         .card-body { padding: 20px 24px; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 900px; }
         th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e9ecef; }
-        th { background: #f8f9fa; font-weight: 600; }
+        th { background: #f8f9fa; font-weight: 600; white-space: nowrap; }
         tr:hover { background: #f8f9fa; }
         .badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
         .badge-success { background: #d4edda; color: #155724; }
@@ -38,14 +38,14 @@
 </head>
 <body>
     <nav class="navbar">
-        <h1>⛽ BPF BBM System</h1>
+        <h1>BPF BBM System</h1>
         <div class="nav-links">
-            <a href="/admin">📋 Verifikasi</a>
-            <a href="/admin/riwayat" class="active">📜 Riwayat</a>
-            <a href="/admin/rekap">📊 Rekap</a>
-            <a href="/admin/analytics">📈 Analytics</a>
-            <a href="/admin/settings">⚙️ Settings</a>
-            <a href="/driver" target="_blank">🚗 Driver</a>
+            <a href="/admin">Verifikasi</a>
+            <a href="/admin/riwayat" class="active">Riwayat</a>
+            <a href="/admin/rekap">Rekap</a>
+            <a href="/admin/analytics">Analytics</a>
+            <a href="/admin/settings">Settings</a>
+            <a href="/driver" target="_blank">Driver</a>
         </div>
     </nav>
     
@@ -60,7 +60,7 @@
         
         <div class="card">
             <div class="card-header">
-                📜 Riwayat Transaksi Terverifikasi
+                Riwayat Transaksi Terverifikasi
                 <span style="font-size:13px;color:#6c757d;font-weight:normal;">Total: {{ transactions|length }} transaksi</span>
             </div>
             <div class="card-body">
@@ -75,6 +75,9 @@
                             <th>BBM</th>
                             <th>Nominal</th>
                             <th>Liter</th>
+                            <th>ODO KM</th>
+                            <th>KM/L</th>
+                            <th>Appointment</th>
                             <th>Status Report</th>
                             <th>Aksi</th>
                         </tr>
@@ -83,29 +86,32 @@
                         {% for tx in transactions %}
                         <tr>
                             <td>#{{ tx.id }}</td>
-                            <td>{{ tx.created_at.strftime('%d-%m-%Y %H:%M') }}</td>
+                            <td>{{ tx.created_at.strftime('%d-%m-%Y %H:%M') if tx.created_at else '-' }}</td>
                             <td><strong>{{ tx.nopol | upper }}</strong></td>
                             <td>{{ tx.driver_name }}</td>
                             <td>{{ tx.vehicle_type }}</td>
                             <td>{{ tx.bbm_type or 'PERTALITE' }}</td>
-                            <td>Rp {{ "{:,.0f}".format(tx.nominal) }}</td>
+                            <td>Rp {{ "{:,.0f}".format(tx.nominal) if tx.nominal else 0 }}</td>
                             <td>{{ tx.liter }} L</td>
+                            <td>{{ tx.odo_km }}</td>
+                            <td>{{ "%.2f"|format(tx.km_per_liter) if tx.km_per_liter else '-' }}</td>
+                            <td>{{ tx.jumlah_appointment or 0 }}</td>
                             <td>
                                 {% if tx.is_reported %}
-                                    <span class="badge badge-success">✅ Sudah</span>
+                                    <span class="badge badge-success">Sudah</span>
                                 {% else %}
-                                    <span class="badge badge-warning">⏳ Belum</span>
+                                    <span class="badge badge-warning">Belum</span>
                                 {% endif %}
                             </td>
                             <td>
                                 <a href="/admin/report/{{ tx.id }}" class="btn {% if tx.is_reported %}btn-secondary{% else %}btn-success{% endif %}">
-                                    {% if tx.is_reported %}📄 Ulang{% else %}📄 PDF{% endif %}
+                                    {% if tx.is_reported %}Ulang PDF{% else %}Buat PDF{% endif %}
                                 </a>
                             </td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="10" style="text-align:center;padding:40px;color:#6c757d;">
+                            <td colspan="13" style="text-align:center;padding:40px;color:#6c757d;">
                                 Belum ada transaksi yang diverifikasi.
                             </td>
                         </tr>

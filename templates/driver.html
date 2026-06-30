@@ -9,9 +9,6 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        #pwa-install-banner { width:100%; max-width:750px; background:#1a237e; color:white; padding:12px 20px; border-radius:8px; margin-bottom:15px; display:none; justify-content:space-between; align-items:center; }
-        #pwa-install-banner.show { display:flex; }
-        #pwa-install-btn { background:#ffc107; color:#1a237e; border:none; padding:8px 16px; border-radius:4px; cursor:pointer; font-weight:bold; }
         .container { max-width:750px; width:100%; background:#fff; border-radius:16px; box-shadow:0 8px 30px rgba(0,0,0,0.12); padding:30px; margin-bottom:20px; }
         .header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:25px; padding-bottom:15px; border-bottom:2px solid #e9ecef; }
         .header h1 { font-size:24px; color:#1a237e; }
@@ -29,135 +26,49 @@
         .divider { border-top:2px dashed #dee2e6; margin:25px 0; }
         .btn-submit { width:100%; padding:14px; background:#1a237e; color:white; border:none; border-radius:8px; font-size:16px; font-weight:600; cursor:pointer; }
         .btn-submit:hover { background:#0d1a5e; }
+        .btn-submit:disabled { background:#6c757d; cursor:not-allowed; }
         .hidden { display:none !important; }
         .note { font-size:12px; color:#6c757d; margin-top:4px; }
         .gps-status { font-size:12px; font-weight:bold; padding:6px 12px; border-radius:6px; background:#f1f3f5; display:flex; align-items:center; gap:6px; }
         .gps-status.active { background:#d4edda; color:#155724; }
         .gps-status.inactive { background:#f8d7da; color:#721c24; }
-        .install-guide { background:#e8f4fd; padding:12px 16px; border-radius:8px; margin-bottom:15px; font-size:13px; border-left:4px solid #17a2b8; }
-        .validation-info { background:#fff3cd; padding:8px 12px; border-radius:6px; font-size:13px; color:#856404; margin-top:5px; display:none; }
-        .validation-info.show { display:block; }
-        .validation-info.success { background:#d4edda; color:#155724; border-left:4px solid #28a745; }
-        .validation-info.error { background:#f8d7da; color:#721c24; border-left:4px solid #dc3545; }
         .auto-calc { background:#e9ecef; padding:8px 12px; border-radius:6px; font-size:13px; color:#495057; }
+        .upload-btn { padding:10px 16px; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; flex:1; min-width:120px; }
+        .upload-btn-camera { background:#28a745; color:white; }
+        .upload-btn-gallery { background:#6c757d; color:white; }
+        .upload-btn-remove { background:#dc3545; color:white; padding:6px 12px; font-size:12px; flex:0.3; }
+        .preview-container { position:relative; display:inline-block; margin-top:8px; }
+        .preview-img { max-width:100%; max-height:180px; border-radius:8px; border:2px solid #dee2e6; }
+        .preview-remove { position:absolute; top:-8px; right:-8px; background:#dc3545; color:white; border:none; border-radius:50%; width:24px; height:24px; cursor:pointer; font-size:14px; font-weight:bold; display:flex; align-items:center; justify-content:center; }
+        .file-name { font-size:12px; color:#6c757d; margin-top:4px; word-break:break-all; }
+        .upload-row { display:flex; gap:10px; flex-wrap:wrap; }
+        .upload-group { display:flex; flex-direction:column; gap:8px; }
         
-        /* ===== UPLOAD BUTTONS ===== */
-        .upload-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .upload-row {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .upload-btn {
-            padding: 10px 16px;
-            border: none;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            flex: 1;
-            min-width: 120px;
-            transition: 0.2s;
-        }
-        .upload-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        .upload-btn-camera { background: #28a745; color: white; }
-        .upload-btn-camera:hover { background: #1e7e34; }
-        .upload-btn-gallery { background: #6c757d; color: white; }
-        .upload-btn-gallery:hover { background: #5a6268; }
-        .upload-btn-remove { background: #dc3545; color: white; padding: 6px 12px; font-size: 12px; }
-        .upload-btn-remove:hover { background: #c82333; }
+        /* Success Toast */
+        .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#28a745; color:white; padding:14px 24px; border-radius:10px; font-weight:bold; z-index:10001; box-shadow:0 4px 15px rgba(0,0,0,0.3); max-width:90%; text-align:center; animation:fadeInUp 0.3s ease; }
+        .toast.error { background:#dc3545; }
+        @keyframes fadeInUp { from { opacity:0; transform:translateX(-50%) translateY(20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
         
-        .preview-container {
-            position: relative;
-            display: inline-block;
-            margin-top: 8px;
-        }
-        .preview-img {
-            max-width: 100%;
-            max-height: 180px;
-            border-radius: 8px;
-            border: 2px solid #dee2e6;
-        }
-        .preview-remove {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            background: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .preview-remove:hover { background: #c82333; }
-        
-        .file-name {
-            font-size: 12px;
-            color: #6c757d;
-            margin-top: 4px;
-            word-break: break-all;
-        }
-        
-        .badge-upload {
-            display: inline-block;
-            padding: 2px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-        .badge-upload-camera { background: #d4edda; color: #155724; }
-        .badge-upload-gallery { background: #cce5ff; color: #004085; }
-        .badge-upload-empty { background: #f8f9fa; color: #6c757d; }
+        /* Insight Modal */
+        #insightModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; justify-content:center; align-items:center; }
+        #insightModal .modal-content { background:white; width:90%; max-width:420px; border-radius:15px; padding:25px; position:relative; box-shadow:0 10px 40px rgba(0,0,0,0.5); }
         
         @media (max-width:600px) {
             .row { grid-template-columns:1fr; }
             .container { padding:20px; }
-            .upload-btn { min-width: 80px; font-size: 12px; padding: 8px 12px; }
         }
     </style>
 </head>
 <body>
-    <div id="pwa-install-banner">
-        <span>📱 Install aplikasi untuk akses lebih cepat!</span>
-        <button id="pwa-install-btn">Install</button>
-    </div>
-
     <div class="container">
         <div class="header">
-            <h1>⛽ Klaim BBM</h1>
+            <h1>Klaim BBM</h1>
             <div id="gps-indicator" class="gps-status inactive">
                 <span id="gps-text">Mendapatkan lokasi...</span>
             </div>
         </div>
         
-        <div class="install-guide">
-            💡 <strong>Tips:</strong> Klik menu browser (⋮ atau ⋯) lalu pilih 
-            <strong>"Install App"</strong> atau <strong>"Add to Home Screen"</strong>
-        </div>
-        
-        <div id="validation-info" class="validation-info"></div>
-        
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message|safe }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+        <div id="alert-area"></div>
         
         <form action="/driver" method="POST" enctype="multipart/form-data" id="bbmForm">
             <input type="hidden" name="gps_lat" id="gps_lat">
@@ -187,7 +98,6 @@
                     <select name="bbm_type" id="bbm_type" class="form-control" required onchange="updatePrice()">
                         <option value="">-- Pilih BBM --</option>
                     </select>
-                    <div id="bbm-limits" class="note" style="margin-top:5px;"></div>
                 </div>
             </div>
             
@@ -195,573 +105,385 @@
                 <div class="form-group">
                     <label>Nominal (Rp) <span class="required">*</span></label>
                     <input type="number" name="nominal" id="nominal" class="form-control" required oninput="calculateLiter()">
-                    <div class="note">💰 Volume akan dihitung otomatis</div>
                 </div>
                 <div class="form-group">
                     <label>Volume (Liter) <span class="required">*</span></label>
                     <input type="number" name="liter" id="liter" class="form-control" step="0.01" required readonly style="background:#e9ecef;">
                     <input type="hidden" name="price_per_liter" id="price_per_liter" value="10000">
-                    <div class="auto-calc" id="literDisplay">💡 Volume = 0.00 Liter</div>
+                    <div class="auto-calc" id="literDisplay">Volume = 0.00 Liter</div>
                 </div>
             </div>
             
             <div class="form-group">
-                <label>Jumlah Appointment <span class="required">*</span></label>
-                <input type="number" name="jumlah_appointment" class="form-control" placeholder="Contoh: 3" required>
-                <div class="note">🤝 Masukkan 0 jika tidak ada janji temu hari ini</div>
+                <label>Jumlah Appointment Marketing <span class="required">*</span></label>
+                <input type="number" name="jumlah_appointment" id="jumlah_appointment" class="form-control" placeholder="Contoh: 3 (Isi 0 jika tidak ada)" required min="0" value="0">
+                <div class="note">Masukkan 0 jika tidak ada janji temu hari ini</div>
             </div>
             
             <div class="form-group">
                 <label>Odometer (KM) <span class="required">*</span></label>
-                <input type="number" name="odo_km" class="form-control" required>
-                <div class="note">📸 Pastikan foto ODO terlihat jelas</div>
+                <input type="number" name="odo_km" id="odo_km" class="form-control" required>
             </div>
             
             <div class="form-group">
                 <label>Jenis SPBU <span class="required">*</span></label>
                 <select name="spbu_type" id="spbu_type" class="form-control" required>
-                    <option value="rekanan">🏪 SPBU Rekanan (MyPertamina)</option>
-                    <option value="non_rekanan">⛽ SPBU Non-Rekanan</option>
+                    <option value="rekanan">SPBU Rekanan (MyPertamina)</option>
+                    <option value="non_rekanan">SPBU Non-Rekanan</option>
                 </select>
             </div>
             
             <div class="divider"></div>
             
-            <!-- ====== UPLOAD FOTO ====== -->
-            
-            <!-- 1. Foto ODO Sebelum -->
+            <!-- Foto 1: ODO Sebelum -->
             <div class="form-group">
                 <label>1. Foto ODO Sebelum Isi <span class="required">*</span></label>
                 <div class="upload-group">
                     <div class="upload-row">
-                        <button type="button" class="upload-btn upload-btn-camera" onclick="capturePhoto('foto_odo_sebelum')">
-                            📷 Kamera
-                        </button>
-                        <button type="button" class="upload-btn upload-btn-gallery" onclick="choosePhoto('foto_odo_sebelum')">
-                            📁 Galeri
-                        </button>
-                        <button type="button" class="upload-btn upload-btn-remove" onclick="removePhoto('foto_odo_sebelum')" style="flex:0.3;">
-                            ✕
-                        </button>
+                        <button type="button" class="upload-btn upload-btn-camera" onclick="capturePhoto('foto_odo_sebelum')">Kamera</button>
+                        <button type="button" class="upload-btn upload-btn-gallery" onclick="choosePhoto('foto_odo_sebelum')">Galeri</button>
+                        <button type="button" class="upload-btn upload-btn-remove" onclick="removePhoto('foto_odo_sebelum')">X</button>
                     </div>
                     <input type="file" name="foto_odo_sebelum" id="foto_odo_sebelum" class="form-control-file" accept="image/*" required>
                     <div id="preview_container_foto_odo_sebelum" class="preview-container hidden">
                         <img id="preview_foto_odo_sebelum" class="preview-img">
-                        <button type="button" class="preview-remove" onclick="removePhoto('foto_odo_sebelum')">✕</button>
+                        <button type="button" class="preview-remove" onclick="removePhoto('foto_odo_sebelum')">X</button>
                         <div id="file_info_foto_odo_sebelum" class="file-name"></div>
                     </div>
                 </div>
             </div>
             
-            <!-- 2. Foto ODO + Struk -->
+            <!-- Foto 2: ODO + Struk -->
             <div class="form-group">
                 <label>2. Foto ODO + Struk/Nota <span class="required">*</span></label>
                 <div class="upload-group">
                     <div class="upload-row">
-                        <button type="button" class="upload-btn upload-btn-camera" onclick="capturePhoto('foto_nota_odo_sesudah')">
-                            📷 Kamera
-                        </button>
-                        <button type="button" class="upload-btn upload-btn-gallery" onclick="choosePhoto('foto_nota_odo_sesudah')">
-                            📁 Galeri
-                        </button>
-                        <button type="button" class="upload-btn upload-btn-remove" onclick="removePhoto('foto_nota_odo_sesudah')" style="flex:0.3;">
-                            ✕
-                        </button>
+                        <button type="button" class="upload-btn upload-btn-camera" onclick="capturePhoto('foto_nota_odo_sesudah')">Kamera</button>
+                        <button type="button" class="upload-btn upload-btn-gallery" onclick="choosePhoto('foto_nota_odo_sesudah')">Galeri</button>
+                        <button type="button" class="upload-btn upload-btn-remove" onclick="removePhoto('foto_nota_odo_sesudah')">X</button>
                     </div>
                     <input type="file" name="foto_nota_odo_sesudah" id="foto_nota_odo_sesudah" class="form-control-file" accept="image/*" required>
                     <div id="preview_container_foto_nota_odo_sesudah" class="preview-container hidden">
                         <img id="preview_foto_nota_odo_sesudah" class="preview-img">
-                        <button type="button" class="preview-remove" onclick="removePhoto('foto_nota_odo_sesudah')">✕</button>
+                        <button type="button" class="preview-remove" onclick="removePhoto('foto_nota_odo_sesudah')">X</button>
                         <div id="file_info_foto_nota_odo_sesudah" class="file-name"></div>
                     </div>
                 </div>
             </div>
             
-            <!-- 3. Foto Struk Fisik -->
+            <!-- Foto 3: Struk Fisik -->
             <div class="form-group">
                 <label>3. Foto Struk Fisik <span class="required">*</span></label>
                 <div class="upload-group">
                     <div class="upload-row">
-                        <button type="button" class="upload-btn upload-btn-camera" onclick="capturePhoto('foto_struk')">
-                            📷 Kamera
-                        </button>
-                        <button type="button" class="upload-btn upload-btn-gallery" onclick="choosePhoto('foto_struk')">
-                            📁 Galeri
-                        </button>
-                        <button type="button" class="upload-btn upload-btn-remove" onclick="removePhoto('foto_struk')" style="flex:0.3;">
-                            ✕
-                        </button>
+                        <button type="button" class="upload-btn upload-btn-camera" onclick="capturePhoto('foto_struk')">Kamera</button>
+                        <button type="button" class="upload-btn upload-btn-gallery" onclick="choosePhoto('foto_struk')">Galeri</button>
+                        <button type="button" class="upload-btn upload-btn-remove" onclick="removePhoto('foto_struk')">X</button>
                     </div>
                     <input type="file" name="foto_struk" id="foto_struk" class="form-control-file" accept="image/*" required>
                     <div id="preview_container_foto_struk" class="preview-container hidden">
                         <img id="preview_foto_struk" class="preview-img">
-                        <button type="button" class="preview-remove" onclick="removePhoto('foto_struk')">✕</button>
+                        <button type="button" class="preview-remove" onclick="removePhoto('foto_struk')">X</button>
                         <div id="file_info_foto_struk" class="file-name"></div>
                     </div>
                 </div>
             </div>
             
-            <!-- 4. Foto Dispenser (khusus non-rekanan) -->
+            <!-- Foto 4: Dispenser (non-rekanan only) -->
             <div id="dispenser_div" class="form-group hidden">
                 <label>4. Foto Struk di Dispenser <span class="required">*</span></label>
                 <div class="upload-group">
                     <div class="upload-row">
-                        <button type="button" class="upload-btn upload-btn-camera" onclick="capturePhoto('input_dispenser')">
-                            📷 Kamera
-                        </button>
-                        <button type="button" class="upload-btn upload-btn-gallery" onclick="choosePhoto('input_dispenser')">
-                            📁 Galeri
-                        </button>
-                        <button type="button" class="upload-btn upload-btn-remove" onclick="removePhoto('input_dispenser')" style="flex:0.3;">
-                            ✕
-                        </button>
+                        <button type="button" class="upload-btn upload-btn-camera" onclick="capturePhoto('foto_struk_dispenser')">Kamera</button>
+                        <button type="button" class="upload-btn upload-btn-gallery" onclick="choosePhoto('foto_struk_dispenser')">Galeri</button>
+                        <button type="button" class="upload-btn upload-btn-remove" onclick="removePhoto('foto_struk_dispenser')">X</button>
                     </div>
-                    <input type="file" name="foto_struk_dispenser" id="input_dispenser" class="form-control-file" accept="image/*">
-                    <div id="preview_container_input_dispenser" class="preview-container hidden">
-                        <img id="preview_input_dispenser" class="preview-img">
-                        <button type="button" class="preview-remove" onclick="removePhoto('input_dispenser')">✕</button>
-                        <div id="file_info_input_dispenser" class="file-name"></div>
+                    <input type="file" name="foto_struk_dispenser" id="foto_struk_dispenser" class="form-control-file" accept="image/*">
+                    <div id="preview_container_foto_struk_dispenser" class="preview-container hidden">
+                        <img id="preview_foto_struk_dispenser" class="preview-img">
+                        <button type="button" class="preview-remove" onclick="removePhoto('foto_struk_dispenser')">X</button>
+                        <div id="file_info_foto_struk_dispenser" class="file-name"></div>
                     </div>
                 </div>
             </div>
             
-            <button type="submit" class="btn-submit">📤 Kirim Klaim</button>
-              <div id="feedback-area" style="display:none; padding: 20px; background: #e8f5e9;">
-                  <h4>Analisis Performa Kendaraan Anda:</h4>
-                  <p id="feedback-text"></p>
-                  <a href="/driver" class="btn btn-primary">Input Klaim Baru Lagi</a>
-              </div>
+            <button type="submit" class="btn-submit" id="submitBtn">Kirim Klaim</button>
         </form>
     </div>
     
-    <script>
-        // ============================================================
-        // PWA INSTALLATION
-        // ============================================================
-        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('pwa-install-banner').classList.add('show');
-        });
-        document.getElementById('pwa-install-btn').addEventListener('click', async () => {
-            document.getElementById('pwa-install-banner').classList.remove('show');
-            if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; }
-        });
-
-        // ============================================================
-        // LOAD VEHICLES & BBM OPTIONS
-        // ============================================================
-        async function loadVehicles() {
-            try {
-                const response = await fetch('/api/vehicles');
-                const vehicles = await response.json();
-                const select = document.getElementById('vehicle_type');
-                select.innerHTML = '<option value="">-- Pilih Kendaraan --</option>';
-                vehicles.forEach(v => {
-                    const opt = document.createElement('option');
-                    opt.value = v.vehicle_type;
-                    opt.textContent = `${v.vehicle_type} (${v.brand}) - ${v.fuel_capacity}L`;
-                    select.appendChild(opt);
-                });
-            } catch (e) {
-                console.error('Error loading vehicles:', e);
-            }
-        }
-
-        async function loadBBMOptions() {
-            const vehicleType = document.getElementById('vehicle_type').value;
-            const bbmSelect = document.getElementById('bbm_type');
-            const limitsDiv = document.getElementById('bbm-limits');
-            const validationInfo = document.getElementById('validation-info');
-            
-            bbmSelect.innerHTML = '<option value="">-- Pilih BBM --</option>';
-            limitsDiv.innerHTML = '';
-            validationInfo.className = 'validation-info';
-            validationInfo.style.display = 'none';
-            
-            if (!vehicleType) return;
-            
-            try {
-                const response = await fetch(`/api/vehicle_bbm/${vehicleType}`);
-                const bbmList = await response.json();
-                
-                if (bbmList.length === 0) {
-                    validationInfo.textContent = `⚠️ Belum ada jenis BBM yang tersedia untuk ${vehicleType}`;
-                    validationInfo.className = 'validation-info show error';
-                    validationInfo.style.display = 'block';
-                    return;
-                }
-                
-                bbmList.forEach(item => {
-                    const opt = document.createElement('option');
-                    opt.value = item.bbm_type;
-                    opt.dataset.price = item.price_per_liter;
-                    opt.dataset.min = item.min_km_per_liter;
-                    opt.dataset.max = item.max_km_per_liter;
-                    opt.dataset.warning = item.warning_km_per_liter;
-                    opt.dataset.good = item.good_km_per_liter;
-                    const defaultLabel = item.is_default ? ' ⭐' : '';
-                    opt.textContent = `${item.bbm_type} - Rp ${item.price_per_liter.toLocaleString()}/L${defaultLabel}`;
-                    bbmSelect.appendChild(opt);
-                });
-                
-                const defaultItem = bbmList.find(item => item.is_default);
-                if (defaultItem) {
-                    bbmSelect.value = defaultItem.bbm_type;
-                    updatePrice();
-                    limitsDiv.innerHTML = `📊 Standar: Baik >${defaultItem.good_km_per_liter} km/L | Warning <${defaultItem.warning_km_per_liter} km/L`;
-                    validationInfo.textContent = `✅ ${vehicleType} kompatibel dengan ${bbmList.length} jenis BBM`;
-                    validationInfo.className = 'validation-info show success';
-                    validationInfo.style.display = 'block';
-                } else {
-                    validationInfo.textContent = `✅ ${vehicleType} kompatibel dengan ${bbmList.length} jenis BBM`;
-                    validationInfo.className = 'validation-info show success';
-                    validationInfo.style.display = 'block';
-                }
-            } catch (e) {
-                console.error('Error loading BBM options:', e);
-            }
-        }
-
-        function updatePrice() {
-            const select = document.getElementById('bbm_type');
-            const selected = select.options[select.selectedIndex];
-            if (selected && selected.dataset.price) {
-                document.getElementById('price_per_liter').value = selected.dataset.price;
-                calculateLiter();
-            }
-        }
-
-        function calculateLiter() {
-            const nom = document.getElementById('nominal').value;
-            const price = document.getElementById('price_per_liter').value || 10000;
-            if (nom > 0 && price > 0) {
-                const liter = nom / price;
-                document.getElementById('liter').value = liter.toFixed(2);
-                document.getElementById('literDisplay').innerHTML = 
-                    `💡 Volume = ${liter.toFixed(2)} Liter (Rp ${parseInt(nom).toLocaleString()} / Rp ${parseInt(price).toLocaleString()})`;
-            } else {
-                document.getElementById('liter').value = '';
-                document.getElementById('literDisplay').innerHTML = '💡 Volume = 0.00 Liter';
-            }
-        }
-
-        // ============================================================
-        // UPLOAD FUNCTIONS - KAMERA vs GALERI
-        // ============================================================
-        
-        // Fungsi untuk membuka kamera (capture)
-        function capturePhoto(inputId) {
-            const input = document.getElementById(inputId);
-            if (input) {
-                // Set capture attribute untuk kamera
-                input.setAttribute('capture', 'environment');
-                input.removeAttribute('accept'); // tetap accept image
-                input.click();
-            }
-        }
-        
-        // Fungsi untuk memilih dari galeri
-        function choosePhoto(inputId) {
-            const input = document.getElementById(inputId);
-            if (input) {
-                // Hapus capture attribute untuk galeri
-                input.removeAttribute('capture');
-                input.click();
-            }
-        }
-        
-        // Fungsi untuk menghapus foto yang dipilih
-        function removePhoto(inputId) {
-            const input = document.getElementById(inputId);
-            const container = document.getElementById(`preview_container_${inputId}`);
-            const preview = document.getElementById(`preview_${inputId}`);
-            const fileInfo = document.getElementById(`file_info_${inputId}`);
-            
-            if (input) {
-                // Reset input
-                input.value = '';
-                // Jika required, tambahkan kembali
-                if (input.id === 'foto_odo_sebelum' || input.id === 'foto_nota_odo_sesudah' || input.id === 'foto_struk') {
-                    input.setAttribute('required', 'required');
-                }
-            }
-            
-            if (container) {
-                container.classList.add('hidden');
-            }
-            if (preview) {
-                preview.src = '';
-            }
-            if (fileInfo) {
-                fileInfo.textContent = '';
-            }
-        }
-        
-        // ============================================================
-        // PREVIEW & WATERMARK
-        // ============================================================
-        document.querySelectorAll('.form-control-file').forEach(input => {
-            input.addEventListener('change', function(e) {
-                const file = this.files[0];
-                if (!file || !file.type.startsWith('image/')) {
-                    // Jika bukan gambar, reset
-                    this.value = '';
-                    return;
-                }
-                
-                const inputId = this.id;
-                const container = document.getElementById(`preview_container_${inputId}`);
-                const preview = document.getElementById(`preview_${inputId}`);
-                const fileInfo = document.getElementById(`file_info_${inputId}`);
-                
-                const reader = new FileReader();
-                
-                reader.onload = function(event) {
-                    const img = new Image();
-                    img.onload = function() {
-                        // Buat canvas untuk watermark
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        
-                        // Gambar foto asli
-                        ctx.drawImage(img, 0, 0);
-                        
-                        // Watermark
-                        const fontSize = Math.max(18, img.width * 0.025);
-                        const pad = fontSize * 0.5;
-                        const lineH = fontSize * 1.3;
-                        const bgHeight = Math.min(lineH * 4, img.height * 0.18);
-                        
-                        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-                        ctx.fillRect(0, img.height - bgHeight, img.width, bgHeight);
-                        
-                        ctx.fillStyle = "#FFD700";
-                        ctx.font = `bold ${fontSize}px Arial`;
-                        ctx.textBaseline = 'bottom';
-                        
-                        const timeStr = "🕐 " + new Date().toLocaleString('id-ID');
-                        const addr = document.getElementById('gps_address').value || '';
-                        const locStr = addr ? `📍 ${addr}` : `📍 ${currentLat || '?'}, ${currentLon || '?'}`;
-                        
-                        const yStart = img.height - pad;
-                        ctx.fillText(timeStr, pad, yStart);
-                        ctx.fillText(locStr, pad, yStart - lineH * 1.0);
-                        
-                        ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
-                        ctx.font = `${fontSize * 0.7}px Arial`;
-                        ctx.textBaseline = 'top';
-                        ctx.fillText("BPF BBM System", pad, pad);
-                        
-                        // Tampilkan preview
-                        preview.src = canvas.toDataURL('image/jpeg', 0.85);
-                        container.classList.remove('hidden');
-                        
-                        // Tampilkan info file
-                        const size = (file.size / 1024).toFixed(1);
-                        const source = input.hasAttribute('capture') ? '📷 Kamera' : '📁 Galeri';
-                        fileInfo.textContent = `${file.name} (${size} KB) - ${source}`;
-                        
-                        // Override file dengan gambar watermark
-                        canvas.toBlob((blob) => {
-                            const newFile = new File([blob], file.name, { type: 'image/jpeg' });
-                            const dataTransfer = new DataTransfer();
-                            dataTransfer.items.add(newFile);
-                            input.files = dataTransfer.files;
-                        }, 'image/jpeg', 0.85);
-                    };
-                    img.src = event.target.result;
-                };
-                reader.readAsDataURL(file);
-            });
-        });
-
-        // ============================================================
-        // SPBU TYPE TOGGLE
-        // ============================================================
-        document.getElementById('spbu_type').addEventListener('change', function() {
-            const disp = document.getElementById('dispenser_div');
-            const inp = document.getElementById('input_dispenser');
-            if (this.value === 'non_rekanan') { 
-                disp.classList.remove('hidden'); 
-                inp.setAttribute('required', 'required'); 
-            } else { 
-                disp.classList.add('hidden'); 
-                inp.removeAttribute('required'); 
-            }
-        });
-
-        // ============================================================
-        // GPS
-        // ============================================================
-        let currentLat = null, currentLon = null;
-        const gpsText = document.getElementById('gps-text');
-        const gpsIndicator = document.getElementById('gps-indicator');
-
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                pos => {
-                    currentLat = pos.coords.latitude;
-                    currentLon = pos.coords.longitude;
-                    document.getElementById('gps_lat').value = currentLat;
-                    document.getElementById('gps_lon').value = currentLon;
-                    gpsText.textContent = `📍 ${currentLat.toFixed(6)}, ${currentLon.toFixed(6)}`;
-                    gpsIndicator.className = 'gps-status active';
-                    
-                    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${currentLat}&lon=${currentLon}&format=json&zoom=18&addressdetails=1`, {
-                        headers: { 'User-Agent': 'BPF-BBM-System' }
-                    })
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data && data.address) {
-                            const addr = data.address;
-                            const parts = [];
-                            ['road', 'village', 'town', 'city', 'county', 'state', 'country'].forEach(k => {
-                                if (addr[k]) parts.push(addr[k]);
-                            });
-                            const address = parts.join(', ') || data.display_name;
-                            document.getElementById('gps_address').value = address;
-                            gpsText.textContent = `📍 ${address}`;
-                        }
-                    })
-                    .catch(() => {});
-                },
-                err => {
-                    gpsText.textContent = "⚠️ GPS tidak aktif";
-                    gpsIndicator.className = 'gps-status inactive';
-                },
-                { enableHighAccuracy: true, timeout: 15000 }
-            );
-        } else {
-            gpsText.textContent = "❌ GPS tidak didukung";
-            gpsIndicator.className = 'gps-status inactive';
-        }
-
-        // ============================================================
-        // INIT
-        // ============================================================
-        loadVehicles();
-        async function showFeedback(nopol) {
-            const res = await fetch(`/api/feedback/${nopol}`);
-            const data = await res.json();
-            document.getElementById('feedback-text').innerText = 
-                `Performa untuk ${data.nopol}: ${data.performa} (Rata-rata KM: ${data.avg_km.toFixed(2)})`;
-            document.getElementById('feedback-area').style.display = 'block';
-        }
-    </script>
-
-    <div id="analyticsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; justify-content:center; align-items:center; padding:20px; backdrop-filter: blur(5px);">
-        <div style="background:#fff; width:100%; max-width:400px; border-radius:16px; padding:25px; position:relative; box-shadow:0 10px 40px rgba(0,0,0,0.3); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-            <button type="button" onclick="closeAnalyticsModal()" style="position:absolute; top:15px; right:15px; background:#f1f3f5; border:none; border-radius:50%; width:32px; height:32px; font-size:16px; cursor:pointer; color:#495057; font-weight:bold; display:flex; justify-content:center; align-items:center;">✕</button>
-            
-            <h3 style="color:#1a237e; margin-bottom:15px; text-align:center; font-size:20px;">📊 Analytics Kendaraan</h3>
-            <div id="analyticsContent" style="text-align:center; font-size:15px; color:#333; margin-bottom:20px;">
-                </div>
-            
-            <button type="button" onclick="closeAnalyticsModal()" style="width:100%; padding:14px; background:#1a237e; color:white; border:none; border-radius:8px; font-size:16px; font-weight:600; cursor:pointer;">
-                Tutup & Input Baru
-            </button>
+    <!-- INSIGHT MODAL -->
+    <div id="insightModal">
+        <div class="modal-content">
+            <button onclick="closeInsightModal()" style="position:absolute; top:12px; right:12px; border:none; background:#eee; border-radius:50%; width:32px; height:32px; font-size:18px; cursor:pointer;">X</button>
+            <h3 style="color:#004085; text-align:center; margin-bottom:20px;">Performance Insight</h3>
+            <div id="insightContent" style="text-align:center; min-height:100px;"></div>
+            <button onclick="closeInsightModal()" style="width:100%; padding:12px; background:#007bff; color:white; border:none; border-radius:10px; font-size:16px; margin-top:20px; font-weight:bold; cursor:pointer;">Input Klaim Baru</button>
         </div>
     </div>
 
-    <style>
-        @keyframes popIn {
-            0% { transform: scale(0.8) translateY(20px); opacity: 0; }
-            100% { transform: scale(1) translateY(0); opacity: 1; }
-        }
-    </style>
-
+    <!-- SINGLE AJAX SUBMIT SCRIPT -->
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.1/dist/browser-image-compression.js"></script>
     <script>
-        document.getElementById('bbmForm').addEventListener('submit', async function(e) {
-            e.preventDefault(); // Menghentikan reload halaman
-            
-            const submitBtn = document.querySelector('.btn-submit');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '⏳ Menyimpan Data...';
-            submitBtn.disabled = true;
+    // ============================================================
+    // LOAD VEHICLES & BBM
+    // ============================================================
+    async function loadVehicles() {
+        try {
+            const response = await fetch('/api/vehicles');
+            const vehicles = await response.json();
+            const select = document.getElementById('vehicle_type');
+            select.innerHTML = '<option value="">-- Pilih Kendaraan --</option>';
+            vehicles.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.vehicle_type;
+                opt.textContent = v.vehicle_type + ' (' + v.brand + ') - ' + v.fuel_capacity + 'L';
+                select.appendChild(opt);
+            });
+        } catch(e) { console.error('Error loading vehicles:', e); }
+    }
 
-            try {
-                const formData = new FormData(this);
-                // 1. POST Klaim via AJAX
-                const response = await fetch('/driver', {
-                    method: 'POST',
-                    body: formData,
-                    headers: { 'Accept': 'application/json' }
-                });
+    async function loadBBMOptions() {
+        const vehicleType = document.getElementById('vehicle_type').value;
+        const bbmSelect = document.getElementById('bbm_type');
+        bbmSelect.innerHTML = '<option value="">-- Pilih BBM --</option>';
+        if (!vehicleType) return;
+        try {
+            const response = await fetch('/api/vehicle_bbm/' + vehicleType);
+            const bbmList = await response.json();
+            bbmList.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.bbm_type;
+                opt.dataset.price = item.price_per_liter;
+                opt.textContent = item.bbm_type + ' - Rp ' + item.price_per_liter.toLocaleString() + '/L' + (item.is_default ? ' (Default)' : '');
+                bbmSelect.appendChild(opt);
+                if (item.is_default) bbmSelect.value = item.bbm_type;
+            });
+            if (bbmSelect.value) updatePrice();
+        } catch(e) { console.error('Error loading BBM:', e); }
+    }
+
+    function updatePrice() {
+        const select = document.getElementById('bbm_type');
+        const selected = select.options[select.selectedIndex];
+        if (selected && selected.dataset.price) {
+            document.getElementById('price_per_liter').value = selected.dataset.price;
+            calculateLiter();
+        }
+    }
+
+    function calculateLiter() {
+        const nom = document.getElementById('nominal').value;
+        const price = document.getElementById('price_per_liter').value || 10000;
+        if (nom > 0 && price > 0) {
+            const liter = nom / price;
+            document.getElementById('liter').value = liter.toFixed(2);
+            document.getElementById('literDisplay').innerHTML = 'Volume = ' + liter.toFixed(2) + ' Liter';
+        } else {
+            document.getElementById('liter').value = '';
+            document.getElementById('literDisplay').innerHTML = 'Volume = 0.00 Liter';
+        }
+    }
+
+    // ============================================================
+    // UPLOAD PHOTO HELPERS
+    // ============================================================
+    function capturePhoto(inputId) {
+        const input = document.getElementById(inputId);
+        if (input) { input.setAttribute('capture', 'environment'); input.click(); }
+    }
+    function choosePhoto(inputId) {
+        const input = document.getElementById(inputId);
+        if (input) { input.removeAttribute('capture'); input.click(); }
+    }
+    function removePhoto(inputId) {
+        const input = document.getElementById(inputId);
+        const container = document.getElementById('preview_container_' + inputId);
+        const preview = document.getElementById('preview_' + inputId);
+        const fileInfo = document.getElementById('file_info_' + inputId);
+        if (input) input.value = '';
+        if (container) container.classList.add('hidden');
+        if (preview) preview.src = '';
+        if (fileInfo) fileInfo.textContent = '';
+    }
+
+    // Preview handler untuk semua file input
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('form-control-file') && e.target.files[0]) {
+            const input = e.target;
+            const inputId = input.id;
+            const file = input.files[0];
+            const container = document.getElementById('preview_container_' + inputId);
+            const preview = document.getElementById('preview_' + inputId);
+            const fileInfo = document.getElementById('file_info_' + inputId);
+            
+            if (!file.type.startsWith('image/')) { input.value = ''; return; }
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                if (preview) preview.src = event.target.result;
+                if (container) container.classList.remove('hidden');
+                if (fileInfo) fileInfo.textContent = file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // SPBU toggle
+    document.getElementById('spbu_type').addEventListener('change', function() {
+        const disp = document.getElementById('dispenser_div');
+        const inp = document.getElementById('foto_struk_dispenser');
+        if (this.value === 'non_rekanan') { disp.classList.remove('hidden'); inp.setAttribute('required', 'required'); }
+        else { disp.classList.add('hidden'); inp.removeAttribute('required'); }
+    });
+
+    // GPS
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                document.getElementById('gps_lat').value = pos.coords.latitude;
+                document.getElementById('gps_lon').value = pos.coords.longitude;
+                document.getElementById('gps-text').textContent = 'GPS: ' + pos.coords.latitude.toFixed(6) + ', ' + pos.coords.longitude.toFixed(6);
+                document.getElementById('gps-indicator').className = 'gps-status active';
                 
+                fetch('https://nominatim.openstreetmap.org/reverse?lat=' + pos.coords.latitude + '&lon=' + pos.coords.longitude + '&format=json&zoom=18', {
+                    headers: { 'User-Agent': 'BPF-BBM-System' }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data && data.display_name) {
+                        document.getElementById('gps_address').value = data.display_name;
+                    }
+                }).catch(() => {});
+            },
+            () => {
+                document.getElementById('gps-text').textContent = 'GPS tidak aktif';
+                document.getElementById('gps-indicator').className = 'gps-status inactive';
+            },
+            { enableHighAccuracy: true, timeout: 15000 }
+        );
+    }
+
+    // ============================================================
+    // SINGLE AJAX FORM SUBMIT - NO CONFLICTS
+    // ============================================================
+    document.getElementById('bbmForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const submitBtn = document.getElementById('submitBtn');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = 'Memproses...';
+        submitBtn.disabled = true;
+
+        try {
+            const formData = new FormData(this);
+            
+            // Kompresi gambar jika ukuran > 1MB
+            const fileInputs = this.querySelectorAll('input[type="file"]');
+            for (const fileInput of fileInputs) {
+                if (fileInput.files[0] && fileInput.files[0].size > 1024 * 1024) {
+                    if (typeof browserImageCompression !== 'undefined') {
+                        try {
+                            const compressed = await browserImageCompression(fileInput.files[0], {
+                                maxSizeMB: 1.5,
+                                maxWidthOrHeight: 1920,
+                                useWebWorker: true
+                            });
+                            formData.set(fileInput.name, compressed, compressed.name);
+                        } catch(compErr) {
+                            console.log('Compression skipped:', compErr);
+                        }
+                    }
+                }
+            }
+
+            // POST dengan Accept: application/json
+            const response = await fetch('/driver', {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' }
+            });
+            
+            const contentType = response.headers.get('content-type');
+            
+            if (contentType && contentType.includes('application/json')) {
                 const result = await response.json();
                 
                 if (response.ok && result.status === 'success') {
-                    submitBtn.innerHTML = '📊 Menarik Analytics...';
+                    submitBtn.innerHTML = 'Menganalisis...';
                     
-                    // 2. Tarik Analisis Performa Kendaraan 1 Bulan
-                    const analyticsRes = await fetch(`/api/feedback/${result.nopol}`);
-                    const analyticsData = await analyticsRes.json();
+                    // Fetch performance insight
+                    let insightData = { nopol: result.nopol, status: 'BELUM CUKUP DATA', avg_kml: 0, total_appointment: 0 };
+                    try {
+                        const insightRes = await fetch('/api/get-performance/' + result.nopol);
+                        insightData = await insightRes.json();
+                    } catch(e) {}
                     
-                    // 3. Tampilkan Pop-Up
-                    showAnalyticsModal(analyticsData);
-                    
-                    // 4. Bersihkan Form secara menyeluruh
+                    showInsightModal(insightData);
                     this.reset();
-                    document.querySelectorAll('.preview-container').forEach(el => el.classList.add('hidden'));
-                    document.querySelectorAll('.badge-upload').forEach(el => {
-                        el.className = 'badge-upload badge-upload-empty';
-                        el.innerText = 'Kosong';
-                    });
-                    document.getElementById('literDisplay').innerText = '💡 Volume = 0.00 Liter';
                     
-                    // Bersihkan URL bar (bila ada sisa parameter cache dari script sebelumnya)
-                    const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-                    window.history.replaceState({path:cleanUrl}, '', cleanUrl);
-
+                    // Reset default values
+                    const aptField = document.getElementById('jumlah_appointment');
+                    if (aptField) aptField.value = '0';
+                    
+                    showToast('Klaim berhasil dikirim!', 'success');
                 } else {
-                    alert('Gagal mengirim klaim: ' + (result.error || 'Terjadi kesalahan sistem.'));
+                    showToast('Gagal: ' + (result.error || result.msg || 'Unknown error'), 'error');
                 }
-            } catch (error) {
-                console.error(error);
-                alert('Terjadi kesalahan koneksi saat mengirim data.');
-            } finally {
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-            }
-        });
-
-        function showAnalyticsModal(data) {
-            const modal = document.getElementById('analyticsModal');
-            const content = document.getElementById('analyticsContent');
-            
-            if (data.error) {
-                 content.innerHTML = `<p style="color:red;">Gagal memuat analitik.</p>`;
             } else {
-                let color = "#28a745"; 
-                if (data.performa.includes("PERAWATAN") || data.performa.includes("Boros")) {
-                    color = "#dc3545"; 
-                } else if (data.performa.includes("CUKUP") || data.performa.includes("PERLU DATA")) {
-                    color = "#ffc107"; 
+                // Fallback: jika server merespon redirect
+                if (response.redirected) {
+                    window.location.href = response.url;
+                    return;
                 }
-                
-                content.innerHTML = `
-                    <h2 style="color:${color}; margin-bottom:10px; font-size: 22px;">${data.performa}</h2>
-                    <p style="margin-bottom: 10px;">Plat Nomor: <strong style="font-size:18px;">${data.nopol.toUpperCase()}</strong></p>
-                    
-                    <div style="background:#f8f9fa; padding:15px; border-radius:12px; margin-top:15px; margin-bottom:15px; border:1px solid #dee2e6;">
-                        <p style="margin:0; font-size:13px; color:#6c757d;">Rata-rata Konsumsi (1 Bulan Terakhir)</p>
-                        <h3 style="color:#1a237e; margin:8px 0; font-size:28px;">${data.avg_km.toFixed(2)} <span style="font-size:16px;">KM/L</span></h3>
-                        <p style="font-size:12px; color:#6c757d; margin:0;">Berdasarkan ${data.count || 0} data tervalidasi</p>
-                    </div>
-                `;
+                showToast('Server merespon tidak valid. Silakan coba lagi.', 'error');
             }
-            modal.style.display = 'flex';
+        } catch (error) {
+            console.error('Submit error:', error);
+            showToast('Terjadi kesalahan koneksi. Silakan coba lagi.', 'error');
+        } finally {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
         }
+    });
 
-        function closeAnalyticsModal() {
-            document.getElementById('analyticsModal').style.display = 'none';
-        }
+    // ============================================================
+    // INSIGHT MODAL
+    // ============================================================
+    function showInsightModal(data) {
+        const content = document.getElementById('insightContent');
+        if (!content) return;
+        
+        let color = '#ffc107';
+        if (data.status && data.status.indexOf('BAIK') >= 0) color = '#28a745';
+        else if (data.status && data.status.indexOf('BOROS') >= 0) color = '#dc3545';
+        
+        content.innerHTML = 
+            '<h2 style="color:' + color + '; margin-bottom:5px;">' + (data.status || 'Analisis') + '</h2>' +
+            '<p style="font-size:18px;">Kendaraan: <strong>' + ((data.nopol || '').toUpperCase()) + '</strong></p>' +
+            '<hr style="border:0.5px solid #ddd; margin:15px 0;">' +
+            '<div style="display:flex; justify-content:space-around;">' +
+            '<div><p style="margin:0;font-size:12px;color:#666;">Konsumsi (1 Bln)</p><h3 style="margin:5px 0;color:#333;">' + (data.avg_kml || 0) + ' <span style="font-size:14px;">KM/L</span></h3></div>' +
+            '<div><p style="margin:0;font-size:12px;color:#666;">Total Appointment</p><h3 style="margin:5px 0;color:#333;">' + (data.total_appointment || 0) + ' <span style="font-size:14px;">Kali</span></h3></div>' +
+            '</div>';
+        
+        document.getElementById('insightModal').style.display = 'flex';
+    }
+
+    function closeInsightModal() {
+        document.getElementById('insightModal').style.display = 'none';
+    }
+
+    // Toast notification
+    function showToast(message, type) {
+        const toast = document.createElement('div');
+        toast.className = 'toast' + (type === 'error' ? ' error' : '');
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(() => toast.remove(), 500); }, 4000);
+    }
+
+    // Init
+    loadVehicles();
     </script>
-
 </body>
 </html>

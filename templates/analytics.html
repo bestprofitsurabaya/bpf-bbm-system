@@ -18,48 +18,66 @@
         .container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
         .card { background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow: hidden; margin-bottom: 20px; }
         .card-header { padding: 16px 24px; border-bottom: 1px solid #e9ecef; font-weight: 600; background: #f8f9fa; }
-        .card-body { padding: 20px 24px; }
+        .card-body { padding: 20px 24px; overflow-x: auto; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .performance-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        .performance-table th, .performance-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #e9ecef; }
-        .performance-table th { background: #e9ecef; font-weight: 600; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #e9ecef; }
+        th { background: #e9ecef; font-weight: 600; white-space: nowrap; }
+        tr:hover { background: #f8f9fa; }
         .badge { display: inline-block; padding: 2px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
         .badge-good { background: #d4edda; color: #155724; }
         .badge-warning { background: #fff3cd; color: #856404; }
         .badge-danger { background: #f8d7da; color: #721c24; }
         .empty { text-align: center; padding: 40px; color: #6c757d; }
-        .spec-box { background: #f8f9fa; padding: 12px 16px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #17a2b8; }
+        .spec-box { background: #e8f4fd; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #17a2b8; font-size: 13px; }
         .info-note { font-size: 12px; color: #6c757d; margin-top: 8px; }
-        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+        .stat-mini { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+        .stat-mini .mini-card { background: white; padding: 14px 18px; border-radius: 10px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+        .stat-mini .mini-card .num { font-size: 22px; font-weight: 700; color: #1a237e; }
+        .stat-mini .mini-card .lbl { font-size: 11px; color: #6c757d; }
+        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .stat-mini { grid-template-columns: 1fr 1fr; } }
     </style>
 </head>
 <body>
     <nav class="navbar">
-        <h1>⛽ BPF BBM System</h1>
+        <h1>BPF BBM System</h1>
         <div class="nav-links">
-            <a href="/admin">📋 Verifikasi</a>
-            <a href="/admin/riwayat">📜 Riwayat</a>
-            <a href="/admin/rekap">📊 Rekap</a>
-            <a href="/admin/analytics" class="active">📈 Analytics</a>
-            <a href="/admin/settings">⚙️ Settings</a>
-            <a href="/driver" target="_blank">🚗 Driver</a>
+            <a href="/admin">Verifikasi</a>
+            <a href="/admin/riwayat">Riwayat</a>
+            <a href="/admin/rekap">Rekap</a>
+            <a href="/admin/analytics" class="active">Analytics</a>
+            <a href="/admin/settings">Settings</a>
+            <a href="/driver" target="_blank">Driver</a>
         </div>
     </nav>
     
     <div class="container">
         <div class="spec-box">
-            <strong>📊 Standar Performa (dapat diatur di Settings):</strong><br>
-            🚗 <strong>Avanza</strong> - Baik: >12.5 km/L | Cukup: 10.5-12.5 km/L | Perlu Pemeriksaan: <10.5 km/L<br>
-            🚙 <strong>Innova</strong> - Baik: >10.5 km/L | Cukup: 8.5-10.5 km/L | Perlu Pemeriksaan: <8.5 km/L
+            <strong>Standar Performa Kendaraan (diatur di Settings):</strong><br>
+            Nilai di bawah ini adalah standar umum. Sesuaikan di halaman Settings untuk setiap tipe kendaraan dan BBM.
+        </div>
+        
+        {% set total_kendaraan = vehicle_performance|length if vehicle_performance else 0 %}
+        {% set total_transaksi = vehicle_performance|sum(attribute='total_transactions') if vehicle_performance else 0 %}
+        {% set avg_global = (vehicle_performance|sum(attribute='avg_km_per_liter') / total_kendaraan)|round(2) if total_kendaraan > 0 else 0 %}
+        {% set kendaraan_boros = vehicle_performance|selectattr('avg_km_per_liter', 'lt', 10)|list|length if vehicle_performance else 0 %}
+        
+        <div class="stat-mini">
+            <div class="mini-card"><div class="num">{{ total_kendaraan }}</div><div class="lbl">Kendaraan Aktif</div></div>
+            <div class="mini-card"><div class="num">{{ total_transaksi }}</div><div class="lbl">Total Transaksi</div></div>
+            <div class="mini-card"><div class="num">{{ avg_global }}</div><div class="lbl">Rata-rata KM/L Global</div></div>
+            <div class="mini-card"><div class="num">{{ kendaraan_boros }}</div><div class="lbl">Perlu Pengecekan</div></div>
         </div>
         
         <div class="grid-2">
             <div class="card">
-                <div class="card-header">🚗 Performa Kendaraan (Minimal 2 Transaksi)</div>
+                <div class="card-header">Performa Kendaraan (Min. 2 Transaksi)</div>
                 <div class="card-body">
                     {% if vehicle_performance %}
-                    <table class="performance-table">
-                        <thead><tr><th>Nopol</th><th>Tipe</th><th>BBM</th><th>Avg KM/L</th><th>Status</th><th>Trans</th></tr></thead>
+                    <table>
+                        <thead>
+                            <tr><th>Nopol</th><th>Tipe</th><th>BBM</th><th>Avg KM/L</th><th>Trans</th><th>Appt</th><th>Terakhir</th><th>Status</th></tr>
+                        </thead>
                         <tbody>
                             {% for vp in vehicle_performance %}
                             <tr>
@@ -67,38 +85,37 @@
                                 <td>{{ vp.vehicle_type or 'AVANZA' }}</td>
                                 <td>{{ vp.bbm_type or 'PERTALITE' }}</td>
                                 <td>{{ "%.2f"|format(vp.avg_km_per_liter) }}</td>
+                                <td>{{ vp.total_transactions }}</td>
+                                <td>{{ vp.jumlah_appointment or 0 }}</td>
+                                <td>{{ vp.last_transaction.strftime('%d-%m-%Y') if vp.last_transaction else '-' }}</td>
                                 <td>
                                     {% set eff = vp.avg_km_per_liter %}
-                                    {% if vp.vehicle_type == 'INNOVA' %}
-                                        {% if eff >= 10.5 %}<span class="badge badge-good">✅ Baik</span>
-                                        {% elif eff >= 8.5 %}<span class="badge badge-warning">⚠️ Cukup</span>
-                                        {% else %}<span class="badge badge-danger">🔧 Periksa</span>{% endif %}
+                                    {% set good = vp.good_km_per_liter or 12 %}
+                                    {% set warn = vp.warning_km_per_liter or 10 %}
+                                    {% if eff >= good %}
+                                        <span class="badge badge-good">Baik</span>
+                                    {% elif eff >= warn %}
+                                        <span class="badge badge-warning">Cukup</span>
                                     {% else %}
-                                        {% if eff >= 12.5 %}<span class="badge badge-good">✅ Baik</span>
-                                        {% elif eff >= 10.5 %}<span class="badge badge-warning">⚠️ Cukup</span>
-                                        {% else %}<span class="badge badge-danger">🔧 Periksa</span>{% endif %}
+                                        <span class="badge badge-danger">Periksa</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ vp.total_transactions }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
-                    <div class="info-note">📊 Menampilkan kendaraan dengan minimal 2 transaksi terverifikasi</div>
+                    <div class="info-note">Menampilkan kendaraan dengan minimal 2 transaksi terverifikasi</div>
                     {% else %}
-                    <div class="empty">
-                        📊 Belum ada data performa.<br>
-                        <span style="font-size:12px;">Minimal 2 transaksi per kendaraan untuk analisis</span>
-                    </div>
+                    <div class="empty">Belum ada data performa. Minimal 2 transaksi per kendaraan untuk analisis.</div>
                     {% endif %}
                 </div>
             </div>
             
             <div class="card">
-                <div class="card-header">📊 Statistik Harian (30 hari)</div>
+                <div class="card-header">Statistik Harian (30 Hari Terakhir)</div>
                 <div class="card-body">
                     {% if daily_stats %}
-                    <table class="performance-table">
+                    <table>
                         <thead><tr><th>Tanggal</th><th>Rata-rata KM/L</th><th>Transaksi</th></tr></thead>
                         <tbody>
                             {% for ds in daily_stats %}

@@ -15,7 +15,7 @@
         .navbar .nav-links a { color: rgba(255,255,255,0.8); text-decoration: none; padding: 6px 14px; border-radius: 6px; transition: 0.2s; }
         .navbar .nav-links a:hover { background: rgba(255,255,255,0.15); }
         .navbar .nav-links a.active { background: rgba(255,255,255,0.2); color: white; }
-        .container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
+        .container { max-width: 1500px; margin: 20px auto; padding: 0 20px; }
         .card { background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow: hidden; margin-bottom: 20px; }
         .card-header { padding: 16px 24px; border-bottom: 1px solid #e9ecef; font-weight: 600; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
         .card-body { padding: 20px 24px; }
@@ -31,7 +31,7 @@
         .btn-warning { background: #ffc107; color: #212529; }
         .btn-danger { background: #dc3545; color: white; }
         .btn-info { background: #17a2b8; color: white; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; overflow-x: auto; display: block; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 1200px; }
         th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e9ecef; white-space: nowrap; }
         th { background: #e9ecef; font-weight: 600; position: sticky; top: 0; }
         tr:hover { background: #f8f9fa; }
@@ -46,14 +46,14 @@
 </head>
 <body>
     <nav class="navbar">
-        <h1>⛽ BPF BBM System</h1>
+        <h1>BPF BBM System</h1>
         <div class="nav-links">
-            <a href="/admin">📋 Verifikasi</a>
-            <a href="/admin/riwayat">📜 Riwayat</a>
-            <a href="/admin/rekap" class="active">📊 Rekap</a>
-            <a href="/admin/analytics">📈 Analytics</a>
-            <a href="/admin/settings">⚙️ Settings</a>
-            <a href="/driver" target="_blank">🚗 Driver</a>
+            <a href="/admin">Verifikasi</a>
+            <a href="/admin/riwayat">Riwayat</a>
+            <a href="/admin/rekap" class="active">Rekap</a>
+            <a href="/admin/analytics">Analytics</a>
+            <a href="/admin/settings">Settings</a>
+            <a href="/driver" target="_blank">Driver</a>
         </div>
     </nav>
     
@@ -68,21 +68,21 @@
         
         <div class="card">
             <div class="card-header">
-                <span>📊 Rekapitulasi & Manajemen Transaksi</span>
+                <span>Rekapitulasi & Manajemen Transaksi</span>
                 <span style="font-size:13px;color:#6c757d;">Total: {{ transactions|length }} transaksi</span>
             </div>
             <div class="card-body">
                 <form class="filter-form" method="GET" action="/admin/rekap">
-                    <div><label>📅 Dari</label><input type="date" name="start_date" value="{{ filters.start_date }}"></div>
-                    <div><label>📅 Sampai</label><input type="date" name="end_date" value="{{ filters.end_date }}"></div>
-                    <div><label>🚗 No. Polisi</label><input type="text" name="nopol" value="{{ filters.nopol }}" placeholder="Semua"></div>
-                    <div><label>👤 Driver</label><input type="text" name="driver" value="{{ filters.driver }}" placeholder="Semua"></div>
-                    <div><button type="submit" class="btn-filter">🔍 Filter</button></div>
+                    <div><label>Dari</label><input type="date" name="start_date" value="{{ filters.start_date }}"></div>
+                    <div><label>Sampai</label><input type="date" name="end_date" value="{{ filters.end_date }}"></div>
+                    <div><label>No. Polisi</label><input type="text" name="nopol" value="{{ filters.nopol }}" placeholder="Semua"></div>
+                    <div><label>Driver</label><input type="text" name="driver" value="{{ filters.driver }}" placeholder="Semua"></div>
+                    <div><button type="submit" class="btn-filter">Filter</button></div>
                 </form>
                 
                 <div class="action-buttons">
-                    <a href="/admin/rekap/pdf?{{ request.query_string.decode('utf-8') }}" target="_blank" class="btn btn-preview">👀 Preview</a>
-                    <a href="/admin/rekap/pdf?dl=1&{{ request.query_string.decode('utf-8') }}" class="btn btn-download">⬇️ Download PDF</a>
+                    <a href="/admin/rekap/pdf?{{ request.query_string.decode('utf-8') }}" target="_blank" class="btn btn-preview">Preview PDF</a>
+                    <a href="/admin/rekap/pdf?dl=1&{{ request.query_string.decode('utf-8') }}" class="btn btn-download">Download PDF</a>
                 </div>
                 
                 {% if transactions %}
@@ -90,10 +90,21 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>ID</th><th>Tgl</th><th>Driver</th><th>Nopol</th><th>Kendaraan</th><th>BBM</th>
-                                <th>KM Awal</th><th>KM Akhir</th><th>Jarak</th>
-                <th>Apt</th><th>Liter</th>
-                                <th>Rata-rata</th><th>Nominal</th><th>Laporan</th><th>Manajemen</th>
+                                <th>ID</th>
+                                <th>Tgl</th>
+                                <th>Driver</th>
+                                <th>Nopol</th>
+                                <th>Kendaraan</th>
+                                <th>BBM</th>
+                                <th>KM Awal</th>
+                                <th>KM Akhir</th>
+                                <th>Jarak</th>
+                                <th>Liter</th>
+                                <th>Rata-rata</th>
+                                <th>Appointment</th>
+                                <th>Nominal</th>
+                                <th>Laporan</th>
+                                <th>Manajemen</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -105,18 +116,19 @@
                                 <td><span class="badge badge-success">{{ tx.nopol }}</span></td>
                                 <td>{{ tx.vehicle_type or 'AVANZA' }}</td>
                                 <td>{{ tx.bbm_type or 'PERTALITE' }}</td>
-                                <td>{{ tx.km_awal|int }}</td>
-                                <td>{{ tx.km_akhir|int }}</td>
-                                <td>{{ tx.total_km|int }} km</td>
+                                <td>{{ tx.km_awal|int if tx.km_awal else 0 }}</td>
+                                <td>{{ tx.km_akhir|int if tx.km_akhir else 0 }}</td>
+                                <td>{{ tx.total_km|int if tx.total_km else 0 }} km</td>
                                 <td>{{ tx.liter }}</td>
-                                <td>{{ "%.2f"|format(tx.rata_rata) }}</td>
-                                <td>Rp {{ "{:,.0f}".format(tx.nominal) }}</td>
+                                <td>{{ "%.2f"|format(tx.rata_rata) if tx.rata_rata else '-' }}</td>
+                                <td><strong>{{ tx.jumlah_appointment or 0 }}</strong></td>
+                                <td>Rp {{ "{:,.0f}".format(tx.nominal) if tx.nominal else 0 }}</td>
                                 <td>
-                                    <a href="/admin/report/{{ tx.id }}" class="btn btn-info btn-sm">📄</a>
+                                    <a href="/admin/report/{{ tx.id }}" class="btn btn-info btn-sm">PDF</a>
                                 </td>
                                 <td>
-                                    <a href="/admin/unverify/{{ tx.id }}" class="btn btn-warning btn-sm" onclick="return confirm('Kembalikan ke Pending?')">↩️</a>
-                                    <a href="/admin/delete/{{ tx.id }}" class="btn btn-danger btn-sm" onclick="return confirm('HAPUS PERMANEN?')">🗑️</a>
+                                    <a href="/admin/unverify/{{ tx.id }}" class="btn btn-warning btn-sm" onclick="return confirm('Kembalikan ke Pending?')">Unverify</a>
+                                    <a href="/admin/delete/{{ tx.id }}" class="btn btn-danger btn-sm" onclick="return confirm('HAPUS PERMANEN?')">Hapus</a>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -124,7 +136,7 @@
                     </table>
                 </div>
                 {% else %}
-                <div class="empty">📭 Tidak ada data dengan filter yang dipilih</div>
+                <div class="empty">Tidak ada data dengan filter yang dipilih</div>
                 {% endif %}
             </div>
         </div>

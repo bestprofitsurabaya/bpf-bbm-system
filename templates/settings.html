@@ -19,49 +19,37 @@
         .card { background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow: hidden; margin-bottom: 20px; }
         .card-header { padding: 16px 24px; border-bottom: 1px solid #e9ecef; font-weight: 600; background: #f8f9fa; }
         .card-body { padding: 24px; overflow-x: auto; }
-        .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; font-weight: 500; font-size: 13px; color: #333; margin-bottom: 3px; }
         .form-control { width: 100%; padding: 6px 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 13px; }
         .form-control:focus { border-color: #1a237e; outline: none; }
-        .row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
-        .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 600px; }
+        th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e9ecef; }
+        th { background: #e9ecef; font-weight: 600; }
+        tr:hover { background: #f8f9fa; }
         .btn { padding: 6px 14px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px; transition: 0.2s; }
-        .btn-success { background: #28a745; color: white; }
-        .btn-success:hover { background: #1e7e34; }
-        .btn-danger { background: #dc3545; color: white; }
-        .btn-danger:hover { background: #c82333; }
         .btn-primary { background: #1a237e; color: white; }
         .btn-primary:hover { background: #0d1a5e; }
-        .btn-sm { padding: 4px 10px; font-size: 11px; }
-        .btn-add { background: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-add { background: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 10px; }
         .btn-add:hover { background: #1e7e34; }
         .btn-remove { background: #dc3545; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
         .btn-remove:hover { background: #c82333; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid #e9ecef; }
-        th { background: #e9ecef; font-weight: 600; }
-        .checkbox-group { display: flex; align-items: center; gap: 8px; }
         .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; }
         .alert-success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
         .alert-error { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
-        .section-title { font-size: 16px; font-weight: 600; margin: 20px 0 10px 0; color: #1a237e; border-bottom: 2px solid #e9ecef; padding-bottom: 8px; }
-        .new-row { background: #f8f9fa; padding: 8px; border-radius: 6px; margin-top: 8px; }
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; }
-        .badge-success { background: #d4edda; color: #155724; }
-        .badge-warning { background: #fff3cd; color: #856404; }
-        @media (max-width: 768px) { .row { grid-template-columns: 1fr 1fr; } .row-2 { grid-template-columns: 1fr; } }
+        .note { font-size: 12px; color: #6c757d; margin-top: 8px; }
+        .checkbox-inline { display: flex; align-items: center; gap: 6px; }
+        @media (max-width: 768px) { table { font-size: 11px; } th, td { padding: 4px 6px; } }
     </style>
 </head>
 <body>
     <nav class="navbar">
-        <h1>⛽ BPF BBM System</h1>
+        <h1>BPF BBM System</h1>
         <div class="nav-links">
-            <a href="/admin">📋 Verifikasi</a>
-            <a href="/admin/riwayat">📜 Riwayat</a>
-            <a href="/admin/rekap">📊 Rekap</a>
-            <a href="/admin/analytics">📈 Analytics</a>
-            <a href="/admin/settings" class="active">⚙️ Settings</a>
-            <a href="/driver" target="_blank">🚗 Driver</a>
+            <a href="/admin">Verifikasi</a>
+            <a href="/admin/riwayat">Riwayat</a>
+            <a href="/admin/rekap">Rekap</a>
+            <a href="/admin/analytics">Analytics</a>
+            <a href="/admin/settings" class="active">Settings</a>
+            <a href="/driver" target="_blank">Driver</a>
         </div>
     </nav>
     
@@ -77,31 +65,25 @@
         <form method="POST">
             <!-- VEHICLES -->
             <div class="card">
-                <div class="card-header">🚗 Manajemen Tipe Kendaraan</div>
+                <div class="card-header">Manajemen Tipe Kendaraan</div>
                 <div class="card-body">
                     <table>
                         <thead>
-                            <tr>
-                                <th>Tipe</th>
-                                <th>Brand</th>
-                                <th>Kapasitas (L)</th>
-                                <th>Aktif</th>
-                                <th>Aksi</th>
-                            </tr>
+                            <tr><th>Tipe</th><th>Brand</th><th>Kapasitas (L)</th><th>Aktif</th><th>Aksi</th></tr>
                         </thead>
                         <tbody id="vehicle-table">
                             {% for v in vehicles %}
                             <tr>
                                 <td>
                                     <input type="hidden" name="vehicle_id[]" value="{{ v.id }}">
-                                    <input type="text" name="vehicle_name[]" class="form-control" value="{{ v.vehicle_type }}" style="width:100%;">
+                                    <input type="text" name="vehicle_name[]" class="form-control" value="{{ v.vehicle_type }}">
                                 </td>
-                                <td><input type="text" name="vehicle_brand[]" class="form-control" value="{{ v.brand }}" style="width:100%;"></td>
+                                <td><input type="text" name="vehicle_brand[]" class="form-control" value="{{ v.brand }}"></td>
                                 <td><input type="number" name="vehicle_capacity[]" class="form-control" value="{{ v.fuel_capacity }}" style="width:80px;" step="1"></td>
-                                <td class="checkbox-group">
+                                <td class="checkbox-inline">
                                     <input type="checkbox" name="vehicle_active[]" value="{{ loop.index0 }}" {% if v.is_active %}checked{% endif %}>
                                 </td>
-                                <td><button type="button" class="btn-remove" onclick="removeRow(this, 'vehicle')">✕</button></td>
+                                <td><button type="button" class="btn-remove" onclick="removeRow(this, 'vehicle')">Hapus</button></td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -112,29 +94,24 @@
             
             <!-- BBM TYPES -->
             <div class="card">
-                <div class="card-header">⛽ Manajemen Jenis BBM</div>
+                <div class="card-header">Manajemen Jenis BBM</div>
                 <div class="card-body">
                     <table>
                         <thead>
-                            <tr>
-                                <th>Nama BBM</th>
-                                <th>Harga/Liter (Rp)</th>
-                                <th>Aktif</th>
-                                <th>Aksi</th>
-                            </tr>
+                            <tr><th>Nama BBM</th><th>Harga/Liter (Rp)</th><th>Aktif</th><th>Aksi</th></tr>
                         </thead>
                         <tbody id="bbm-table">
                             {% for b in bbm_types %}
                             <tr>
                                 <td>
                                     <input type="hidden" name="bbm_id[]" value="{{ b.id }}">
-                                    <input type="text" name="bbm_name[]" class="form-control" value="{{ b.name }}" style="width:100%;">
+                                    <input type="text" name="bbm_name[]" class="form-control" value="{{ b.name }}">
                                 </td>
                                 <td><input type="number" name="bbm_price[]" class="form-control" value="{{ b.price_per_liter }}" step="100" style="width:120px;"></td>
-                                <td class="checkbox-group">
+                                <td class="checkbox-inline">
                                     <input type="checkbox" name="bbm_active[]" value="{{ loop.index0 }}" {% if b.is_active %}checked{% endif %}>
                                 </td>
-                                <td><button type="button" class="btn-remove" onclick="removeRow(this, 'bbm')">✕</button></td>
+                                <td><button type="button" class="btn-remove" onclick="removeRow(this, 'bbm')">Hapus</button></td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -145,82 +122,67 @@
             
             <!-- VEHICLE-BBM LIMITS -->
             <div class="card">
-                <div class="card-header">📊 Batas Konsumsi per Kendaraan & BBM</div>
+                <div class="card-header">Batas Konsumsi per Kendaraan & BBM</div>
                 <div class="card-body">
                     <table>
                         <thead>
-                            <tr>
-                                <th>Kendaraan</th>
-                                <th>BBM</th>
-                                <th>Baik (KM/L)</th>
-                                <th>Warning (KM/L)</th>
-                                <th>Min (KM/L)</th>
-                                <th>Max (KM/L)</th>
-                                <th>Default</th>
-                            </tr>
+                            <tr><th>Kendaraan</th><th>BBM</th><th>Baik (KM/L)</th><th>Warning (KM/L)</th><th>Min (KM/L)</th><th>Max (KM/L)</th><th>Default</th></tr>
                         </thead>
                         <tbody>
                             {% for limit in vehicle_limits %}
                             <tr>
                                 <td>
                                     <input type="hidden" name="limit_id[]" value="{{ limit.id }}">
-                                    <input type="text" name="limit_vehicle[]" class="form-control" value="{{ limit.vehicle_type }}" style="width:100%;" readonly>
+                                    <strong>{{ limit.vehicle_type }}</strong>
                                 </td>
-                                <td>
-                                    <input type="text" name="limit_bbm[]" class="form-control" value="{{ limit.bbm_type }}" style="width:100%;" readonly>
-                                </td>
+                                <td><strong>{{ limit.bbm_type }}</strong></td>
                                 <td><input type="number" name="limit_good[]" class="form-control" value="{{ limit.good_km_per_liter }}" step="0.5" style="width:70px;"></td>
                                 <td><input type="number" name="limit_warning[]" class="form-control" value="{{ limit.warning_km_per_liter }}" step="0.5" style="width:70px;"></td>
                                 <td><input type="number" name="limit_min[]" class="form-control" value="{{ limit.min_km_per_liter }}" step="0.5" style="width:70px;"></td>
                                 <td><input type="number" name="limit_max[]" class="form-control" value="{{ limit.max_km_per_liter }}" step="0.5" style="width:70px;"></td>
-                                <td class="checkbox-group">
+                                <td class="checkbox-inline">
                                     <input type="checkbox" name="limit_default[]" value="{{ loop.index0 }}" {% if limit.is_default %}checked{% endif %}>
                                 </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
-                    <div class="note" style="margin-top:8px;color:#6c757d;font-size:12px;">
-                        ⚠️ Hanya satu jenis BBM per kendaraan yang bisa dijadikan default (⭐)
-                    </div>
+                    <div class="note">Hanya satu jenis BBM per kendaraan yang bisa dijadikan default.</div>
                 </div>
             </div>
             
             <div style="margin-top:20px;text-align:center;">
-                <button type="submit" class="btn btn-primary" style="padding:10px 40px;font-size:16px;">💾 Simpan Semua Settings</button>
+                <button type="submit" class="btn btn-primary" style="padding:12px 48px;font-size:16px;">Simpan Semua Settings</button>
             </div>
         </form>
     </div>
     
     <script>
-        // Add Vehicle Row
         function addVehicleRow() {
             const tbody = document.getElementById('vehicle-table');
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td><input type="text" name="new_vehicle_name[]" class="form-control" placeholder="Tipe" style="width:100%;"></td>
-                <td><input type="text" name="new_vehicle_brand[]" class="form-control" placeholder="Brand" style="width:100%;" value="Toyota"></td>
+                <td><input type="text" name="new_vehicle_name[]" class="form-control" placeholder="Tipe kendaraan"></td>
+                <td><input type="text" name="new_vehicle_brand[]" class="form-control" placeholder="Brand" value="Toyota"></td>
                 <td><input type="number" name="new_vehicle_capacity[]" class="form-control" placeholder="45" style="width:80px;"></td>
-                <td class="checkbox-group"><input type="checkbox" checked disabled></td>
-                <td><button type="button" class="btn-remove" onclick="this.closest('tr').remove()">✕</button></td>
+                <td class="checkbox-inline"><input type="checkbox" checked disabled></td>
+                <td><button type="button" class="btn-remove" onclick="this.closest('tr').remove()">Hapus</button></td>
             `;
             tbody.appendChild(row);
         }
         
-        // Add BBM Row
         function addBBMRow() {
             const tbody = document.getElementById('bbm-table');
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td><input type="text" name="new_bbm_name[]" class="form-control" placeholder="Nama BBM" style="width:100%;"></td>
+                <td><input type="text" name="new_bbm_name[]" class="form-control" placeholder="Nama BBM"></td>
                 <td><input type="number" name="new_bbm_price[]" class="form-control" placeholder="Harga" step="100" style="width:120px;"></td>
-                <td class="checkbox-group"><input type="checkbox" checked disabled></td>
-                <td><button type="button" class="btn-remove" onclick="this.closest('tr').remove()">✕</button></td>
+                <td class="checkbox-inline"><input type="checkbox" checked disabled></td>
+                <td><button type="button" class="btn-remove" onclick="this.closest('tr').remove()">Hapus</button></td>
             `;
             tbody.appendChild(row);
         }
         
-        // Remove Row (mark for deletion)
         function removeRow(btn, type) {
             if (confirm('Hapus data ini?')) {
                 const row = btn.closest('tr');
