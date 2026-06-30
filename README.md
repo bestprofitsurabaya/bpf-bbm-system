@@ -285,7 +285,7 @@ Proyek ini adalah hak milik **PT. Bestprofit** dan digunakan untuk keperluan int
 ## 📞 Kontak & Dukungan
 
 Untuk pertanyaan, saran, atau laporan masalah:
-- 📧 **Email**: it@bestprofit.co.id
+- 📧 **Email**: it2.sby@bestprofit-futures.co.id
 - 💬 **Internal**: Hubungi Tim IT PT. Bestprofit Surabaya
 - 🐛 **Issue**: Laporkan melalui GitHub Issues (internal)
 
