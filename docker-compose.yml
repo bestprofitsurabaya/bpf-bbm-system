@@ -17,6 +17,8 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 10s
       retries: 5
+    networks:
+      - default
 
   web:
     build: .
@@ -38,6 +40,15 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - default            # Terhubung ke bbm_mariadb
+      - nextcloud_net      # Terhubung ke nextcloud_nginx
 
 volumes:
   bbm_db_data:
+  
+networks:
+  default:
+  nextcloud_net:
+    external: true
+    name: nextcloud_net
