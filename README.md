@@ -1,10 +1,3 @@
-# README.md - BPF BBM System
-
-Berdasarkan kode terbaru yang telah diunggah ke GitHub, berikut adalah **README.md** yang komprehensif dan mencerminkan semua fitur terkini.
-
----
-
-```markdown
 # 🚗 BPF BBM System
 
 **Sistem Manajemen dan Verifikasi Klaim BBM untuk Kendaraan Operasional PT. Bestprofit Surabaya**
