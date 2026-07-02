@@ -7,145 +7,46 @@
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#1d4ed8">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-        :root {
-            --primary: #2563eb;
-            --primary-dark: #1d4ed8;
-            --primary-light: #dbeafe;
-            --success: #059669;
-            --success-light: #d1fae5;
-            --warning: #d97706;
-            --warning-light: #fef3c7;
-            --danger: #dc2626;
-            --danger-light: #fee2e2;
-            --info: #0891b2;
-            --info-light: #cffafe;
-            --gray-50: #f9fafb;
-            --gray-100: #f3f4f6;
-            --gray-200: #e5e7eb;
-            --gray-300: #d1d5db;
-            --gray-400: #9ca3af;
-            --gray-500: #6b7280;
-            --gray-600: #4b5563;
-            --gray-700: #374151;
-            --gray-800: #1f2937;
-            --gray-900: #111827;
-            --white: #ffffff;
-            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-            --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
-            --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
-            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
-            --radius: 10px;
-            --radius-sm: 6px;
-            --radius-lg: 14px;
-        }
+    <style>
+        :root { --primary: #2563eb; --primary-dark: #1d4ed8; --success: #059669; --success-light: #d1fae5; --warning: #d97706; --warning-light: #fef3c7; --danger: #dc2626; --danger-light: #fee2e2; --info: #0891b2; --info-light: #cffafe; --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-400: #9ca3af; --gray-500: #6b7280; --gray-700: #374151; --gray-800: #1f2937; --gray-900: #111827; --white: #ffffff; --shadow: 0 1px 3px rgba(0,0,0,0.1); --shadow-md: 0 4px 6px rgba(0,0,0,0.07); --radius: 12px; --radius-sm: 6px; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif; background: var(--gray-50); color: var(--gray-800); line-height: 1.6; }
-        
-        /* Navbar */
-        .navbar { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: var(--shadow-md); position: sticky; top: 0; z-index: 100; }
-        .navbar h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
-        .navbar .nav-links { display: flex; gap: 4px; flex-wrap: wrap; }
-        .navbar .nav-links a { color: rgba(255,255,255,0.85); text-decoration: none; padding: 7px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; transition: all 0.2s; }
-        .navbar .nav-links a:hover { background: rgba(255,255,255,0.12); color: white; }
+        body { font-family: "Inter", sans-serif; background: var(--gray-50); color: var(--gray-800); }
+        .navbar { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-md); position: sticky; top: 0; z-index: 100; }
+        .navbar h1 { font-size: 18px; font-weight: 700; }
+        .navbar .nav-links { display: flex; gap: 6px; }
+        .navbar .nav-links a { color: rgba(255,255,255,0.85); text-decoration: none; padding: 8px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; }
         .navbar .nav-links a.active { background: rgba(255,255,255,0.2); color: white; font-weight: 600; }
-        
-        /* Container */
         .container { max-width: 1400px; margin: 0 auto; padding: 24px 20px; }
-        
-        /* Cards */
-        .card { background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow); border: 1px solid var(--gray-200); overflow: hidden; margin-bottom: 20px; }
-        .card-header { padding: 16px 22px; border-bottom: 1px solid var(--gray-200); font-weight: 600; font-size: 15px; color: var(--gray-800); background: var(--gray-50); display: flex; justify-content: space-between; align-items: center; }
-        .card-body { padding: 20px 22px; }
-        
-        /* Stats */
-        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 22px; }
-        .stat-card { background: var(--white); padding: 18px 20px; border-radius: var(--radius); box-shadow: var(--shadow-sm); border: 1px solid var(--gray-200); border-left: 4px solid var(--primary); cursor: pointer; text-decoration: none; color: inherit; display: block; transition: all 0.2s; }
-        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-        .stat-card .number { font-size: 28px; font-weight: 700; color: var(--gray-900); }
-        .stat-card .label { font-size: 12px; color: var(--gray-500); margin-top: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
-        .stat-card.active-tab { background: var(--primary-light); border-color: var(--primary); }
-        
-        /* Tabs */
-        .tab-nav { display: flex; gap: 2px; margin-bottom: 18px; background: var(--gray-100); border-radius: var(--radius); padding: 4px; overflow-x: auto; }
-        .tab-btn { padding: 10px 22px; border: none; background: transparent; border-radius: var(--radius-sm); cursor: pointer; font-weight: 500; font-size: 13px; white-space: nowrap; color: var(--gray-600); transition: all 0.2s; }
-        .tab-btn:hover { color: var(--gray-900); }
-        .tab-btn.active { background: var(--white); color: var(--primary); font-weight: 600; box-shadow: var(--shadow-sm); }
-        
-        /* Tables */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--gray-200); margin-bottom: 20px; overflow: hidden; }
+        .card-header { padding: 16px 20px; border-bottom: 1px solid var(--gray-200); font-weight: 600; font-size: 14px; background: var(--gray-50); display: flex; justify-content: space-between; align-items: center; }
+        .card-body { padding: 20px; }
+        .stat-mini { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+        .mini-card { background: var(--white); padding: 16px; border-radius: var(--radius); text-align: center; border: 1px solid var(--gray-200); box-shadow: var(--shadow); }
+        .mini-card .num { font-size: 24px; font-weight: 700; color: var(--primary); }
+        .mini-card .lbl { font-size: 11px; color: var(--gray-500); margin-top: 4px; text-transform: uppercase; font-weight: 600; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th { background: var(--gray-100); color: var(--gray-700); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 12px; text-align: left; border-bottom: 2px solid var(--gray-200); white-space: nowrap; }
-        td { padding: 10px 12px; border-bottom: 1px solid var(--gray-100); color: var(--gray-700); }
-        tr:hover td { background: var(--gray-50); }
-        
-        /* Badges */
-        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
-        .badge-pending { background: var(--warning-light); color: var(--warning); }
-        .badge-ga { background: var(--info-light); color: var(--info); }
-        .badge-finance { background: var(--success-light); color: var(--success); }
-        .badge-archive { background: var(--gray-100); color: var(--gray-500); }
-        .badge-reject { background: var(--danger-light); color: var(--danger); }
+        th { background: var(--gray-100); color: var(--gray-700); font-weight: 600; padding: 10px; border-bottom: 2px solid var(--gray-200); text-align: left; }
+        td { padding: 12px 10px; border-bottom: 1px solid var(--gray-100); }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
         .badge-good { background: var(--success-light); color: var(--success); }
         .badge-warning { background: var(--warning-light); color: var(--warning); }
         .badge-danger { background: var(--danger-light); color: var(--danger); }
-        
-        /* Buttons */
-        .btn { padding: 7px 16px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; letter-spacing: 0.3px; }
-        .btn-success { background: var(--success); color: white; }
-        .btn-success:hover { background: #047857; }
-        .btn-info { background: var(--info); color: white; }
-        .btn-info:hover { background: #0e7490; }
-        .btn-warning { background: var(--warning); color: white; }
-        .btn-warning:hover { background: #b45309; }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-danger:hover { background: #b91c1c; }
-        .btn-secondary { background: var(--gray-500); color: white; }
-        .btn-secondary:hover { background: var(--gray-600); }
-        .btn-outline { background: white; color: var(--primary); border: 1.5px solid var(--primary); }
-        .btn-outline:hover { background: var(--primary-light); }
+        .btn { padding: 8px 16px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-primary:hover { background: var(--primary-dark); }
-        .btn-sm { padding: 4px 10px; font-size: 11px; }
-        
-        /* Forms */
-        .form-control { width: 100%; padding: 9px 13px; border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm); font-size: 13px; color: var(--gray-800); background: var(--white); transition: border-color 0.2s; }
-        .form-control:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-        .form-control[readonly] { background: var(--gray-100); color: var(--gray-600); }
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; font-weight: 600; font-size: 13px; color: var(--gray-700); margin-bottom: 5px; }
-        .form-group label .required { color: var(--danger); }
-        
-        /* Alerts */
-        .alert { padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 14px; font-size: 13px; font-weight: 500; }
-        .alert-success { background: var(--success-light); color: #065f46; border-left: 4px solid var(--success); }
-        .alert-error { background: var(--danger-light); color: #991b1b; border-left: 4px solid var(--danger); }
-        .alert-warning { background: var(--warning-light); color: #92400e; border-left: 4px solid var(--warning); }
-        
-        /* Empty state */
-        .empty { text-align: center; padding: 48px 20px; color: var(--gray-400); }
-        .empty-icon { font-size: 48px; margin-bottom: 12px; }
-        
-        /* Misc */
-        .note { font-size: 12px; color: var(--gray-500); margin-top: 4px; }
-        .divider { border-top: 1.5px dashed var(--gray-200); margin: 22px 0; }
-        .text-sm { font-size: 12px; }
+        .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(17,24,39,0.6); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-content { background: white; border-radius: var(--radius); width: 100%; max-width: 460px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); animation: slideIn 0.2s ease-out; }
+        .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--gray-200); font-weight: 700; color: var(--gray-900); display: flex; justify-content: space-between; }
+        .modal-body { padding: 20px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px; }
+        .form-control { width: 100%; padding: 10px; border: 1.5px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 13px; }
+        .checkbox-group { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: var(--gray-700); }
         .text-gray { color: var(--gray-500); }
         .font-bold { font-weight: 700; }
-        .mt-2 { margin-top: 8px; }
-        .mt-4 { margin-top: 16px; }
-        .mb-4 { margin-bottom: 16px; }
-        .flex { display: flex; }
-        .gap-2 { gap: 8px; }
-        .flex-wrap { flex-wrap: wrap; }
-</style>
-    <style>
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .spec-box { background: var(--primary-light); padding: 14px 18px; border-radius: var(--radius); margin-bottom: 20px; border-left: 4px solid var(--primary); font-size: 13px; color: var(--gray-700); }
-        .stat-mini { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
-        .stat-mini .mini-card { background: var(--white); padding: 18px; border-radius: var(--radius); text-align: center; box-shadow: var(--shadow-sm); border: 1px solid var(--gray-200); }
-        .stat-mini .mini-card .num { font-size: 24px; font-weight: 700; color: var(--primary); }
-        .stat-mini .mini-card .lbl { font-size: 11px; color: var(--gray-500); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .stat-mini { grid-template-columns: 1fr 1fr; } }
+        @keyframes slideIn { from { transform: translateY(15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @media (max-width: 768px) { .grid-2, .stat-mini { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -160,82 +61,121 @@
     </nav>
     
     <div class="container">
-        <div class="spec-box">
-            <strong>Standar Performa Kendaraan</strong><br>
-            <span class="text-sm">Diatur di halaman Settings untuk setiap tipe kendaraan dan BBM.</span>
-        </div>
-        
         {% set total_kendaraan = vehicle_performance|length if vehicle_performance else 0 %}
         {% set total_transaksi = vehicle_performance|sum(attribute='total_transactions') if vehicle_performance else 0 %}
         {% set avg_global = (vehicle_performance|sum(attribute='avg_km_per_liter') / total_kendaraan)|round(2) if total_kendaraan > 0 else 0 %}
         {% set kendaraan_boros = vehicle_performance|selectattr('avg_km_per_liter', 'lt', 10)|list|length if vehicle_performance else 0 %}
         
         <div class="stat-mini">
-            <div class="mini-card"><div class="num">{{ total_kendaraan }}</div><div class="lbl">Kendaraan</div></div>
-            <div class="mini-card"><div class="num">{{ total_transaksi }}</div><div class="lbl">Transaksi</div></div>
-            <div class="mini-card"><div class="num">{{ avg_global }}</div><div class="lbl">Avg KM/L</div></div>
-            <div class="mini-card"><div class="num">{{ kendaraan_boros }}</div><div class="lbl">Perlu Cek</div></div>
+            <div class="mini-card"><div class="num">{{ total_kendaraan }}</div><div class="lbl">Total Unit</div></div>
+            <div class="mini-card"><div class="num">{{ total_transaksi }}</div><div class="lbl">Log Transaksi</div></div>
+            <div class="mini-card"><div class="num">{{ avg_global }}</div><div class="lbl">Avg Efisiensi</div></div>
+            <div class="mini-card" style="border-left:4px solid var(--danger);"><div class="num" style="color:var(--danger);">{{ kendaraan_boros }}</div><div class="lbl">Perlu Evaluasi</div></div>
         </div>
         
         <div class="grid-2">
             <div class="card">
-                <div class="card-header">Performa Kendaraan</div>
+                <div class="card-header">
+                    <span>Peringkat & Diagnostik Driver</span>
+                    <button class="btn btn-primary" onclick="openReportModal()">Cetak Rapor Driver</button>
+                </div>
                 <div class="card-body" style="overflow-x:auto;">
                     {% if vehicle_performance %}
                     <table>
-                        <thead><tr><th>Nopol</th><th>Tipe</th><th>BBM</th><th>Avg KM/L</th><th>Trans</th><th>Appt</th><th>Terakhir</th><th>Status</th></tr></thead>
+                        <thead><tr><th>Nopol</th><th>Unit</th><th>Avg KM/L</th><th>Appt</th><th>Status ML</th></tr></thead>
                         <tbody>
                             {% for vp in vehicle_performance %}
                             <tr>
                                 <td><strong>{{ vp.nopol }}</strong></td>
-                                <td>{{ vp.vehicle_type or 'AVANZA' }}</td>
-                                <td>{{ vp.bbm_type or 'PERTALITE' }}</td>
-                                <td>{{ "%.2f"|format(vp.avg_km_per_liter) }}</td>
-                                <td>{{ vp.total_transactions }}</td>
-                                <td>{{ vp.jumlah_appointment or 0 }}</td>
-                                <td>{{ vp.last_transaction.strftime('%d/%m/%Y') if vp.last_transaction else '-' }}</td>
+                                <td>{{ vp.vehicle_type }}</td>
+                                <td><span class="font-bold">{{ "%.2f"|format(vp.avg_km_per_liter) if vp.avg_km_per_liter and vp.avg_km_per_liter > 0 else "N/A" }}</span></td>
+                                <td>{{ vp.jumlah_appointment or 0 }} x</td>
                                 <td>
-                                    {% set eff = vp.avg_km_per_liter %}
-                                    {% set good = vp.good_km_per_liter or 12 %}
-                                    {% set warn = vp.warning_km_per_liter or 10 %}
-                                    {% if eff >= good %}
-                                        <span class="badge badge-good">Baik</span>
-                                    {% elif eff >= warn %}
-                                        <span class="badge badge-warning">Cukup</span>
+                                    {% if vp.avg_km_per_liter and vp.avg_km_per_liter > 0 %}
+                                        {% if vp.avg_km_per_liter >= (vp.good_km_per_liter or 12) %}
+                                            <span class="badge badge-good">Efisien (Baik)</span>
+                                        {% elif vp.avg_km_per_liter >= (vp.warning_km_per_liter or 10) %}
+                                            <span class="badge badge-warning">Normal (Cukup)</span>
+                                        {% else %}
+                                            <span class="badge badge-danger">Anomali (Boros)</span>
+                                        {% endif %}
                                     {% else %}
-                                        <span class="badge badge-danger">Periksa</span>
+                                        <span class="badge" style="background:var(--gray-100);color:var(--gray-500);">Belum Ada Data</span>
                                     {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
-                    {% else %}
-                    <div class="empty"><div class="empty-icon">&#128200;</div><p>Belum ada data performa.</p></div>
-                    {% endif %}
+                    {% else %}<p class="text-gray">Belum tersedia rekaman performa.</p>{% endif %}
                 </div>
             </div>
             
             <div class="card">
-                <div class="card-header">Statistik Harian (30 Hari)</div>
+                <div class="card-header">Trend Efisiensi (30 Hari Terakhir)</div>
                 <div class="card-body">
                     {% if daily_stats %}
                     <table>
-                        <thead><tr><th>Tanggal</th><th>Rata-rata KM/L</th><th>Transaksi</th></tr></thead>
+                        <thead><tr><th>Tanggal</th><th>Efisiensi Global</th><th>Volume</th></tr></thead>
                         <tbody>
                             {% for ds in daily_stats %}
-                            <tr>
-                                <td>{{ ds.date.strftime('%d/%m/%Y') if ds.date else '-' }}</td>
-                                <td>{{ "%.2f"|format(ds.avg_efficiency) }}</td>
-                                <td>{{ ds.transactions }}</td>
-                            </tr>
+                            <tr><td>{{ ds.date.strftime('%d/%m/%Y') if ds.date else '-' }}</td><td>{{ "%.2f"|format(ds.avg_efficiency) }} KM/L</td><td>{{ ds.transactions }} data</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
-                    {% else %}<div class="empty"><p>Belum ada data harian.</p></div>{% endif %}
+                    {% else %}<p class="text-gray">Belum ada statistik harian.</p>{% endif %}
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- EXPORT MODAL -->
+    <div id="reportModal" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Ekspor Rapor Performa Driver</h3>
+                <span style="cursor:pointer;font-size:18px;" onclick="closeReportModal()">&times;</span>
+            </div>
+            <form action="/admin/analytics/export" method="POST">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Periode</label>
+                        <select class="form-control" id="periodSelect" onchange="handlePeriodChange()">
+                            <option value="weekly">Mingguan (7 Hari)</option>
+                            <option value="monthly" selected>Bulanan (30 Hari)</option>
+                            <option value="custom">Kustom</option>
+                        </select>
+                    </div>
+                    <div id="customDateRange" style="display:none;grid-template-columns:1fr 1fr;gap:10px;">
+                        <div><label>Dari</label><input type="date" name="start_date" id="startDate" class="form-control"></div>
+                        <div><label>Sampai</label><input type="date" name="end_date" id="endDate" class="form-control"></div>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="only_summary" value="1" id="onlySummary">
+                        <label for="onlySummary" style="font-weight:400;">Hanya Ringkasan (1 Halaman + Saran ML)</label>
+                    </div>
+                    <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:10px;">
+                        <button type="button" class="btn" style="background:var(--gray-200);color:var(--gray-700);" onclick="closeReportModal()">Batal</button>
+                        <button type="submit" class="btn btn-primary">Unduh Massal (.ZIP)</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openReportModal() { document.getElementById('reportModal').style.display = 'flex'; handlePeriodChange(); }
+        function closeReportModal() { document.getElementById('reportModal').style.display = 'none'; }
+        function handlePeriodChange() {
+            var p = document.getElementById('periodSelect').value;
+            var c = document.getElementById('customDateRange');
+            var today = new Date().toISOString().split('T')[0];
+            var week = new Date(Date.now() - 7*86400000).toISOString().split('T')[0];
+            var month = new Date(Date.now() - 30*86400000).toISOString().split('T')[0];
+            if (p === 'weekly') { document.getElementById('startDate').value = week; document.getElementById('endDate').value = today; c.style.display = 'none'; }
+            else if (p === 'monthly') { document.getElementById('startDate').value = month; document.getElementById('endDate').value = today; c.style.display = 'none'; }
+            else { c.style.display = 'grid'; }
+        }
+    </script>
 </body>
 </html>

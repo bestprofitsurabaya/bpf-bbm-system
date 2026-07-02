@@ -254,7 +254,7 @@ def log_activity_async(transaction_id, action, user_type, user_name, old_data=No
             cursor.execute("""
                 INSERT INTO activity_logs 
                 (transaction_id, action, user_type, user_name, old_data, new_data, ip_address, user_agent)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """, (transaction_id, action, user_type, user_name, 
                   json.dumps(old_data) if old_data else None,
                   json.dumps(new_data) if new_data else None,
@@ -309,7 +309,7 @@ def update_daily_summary_async(transaction_data):
                     INSERT INTO daily_summary 
                     (summary_date, vehicle_type, total_transactions, total_liter, total_nominal, 
                      total_odo_km, avg_km_per_liter)
-                    VALUES (%s, %s, 1, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, 1, %s, %s, %s, %s)
                 """, (summary_date, vehicle_type,
                       transaction_data.get('liter', 0),
                       transaction_data.get('nominal', 0),
@@ -328,9 +328,38 @@ def update_daily_summary_async(transaction_data):
 # ============================================================
 # ML PERFORMANCE ANALYZER
 # ============================================================
+
+# ============================================================
+# HUMAN INSIGHT ENGINE
+# ============================================================
+def generate_human_insight(performa, avg_kpl, limit_good, appt, total_tx):
+    if total_tx == 0:
+        return "Sistem belum mendeteksi data transaksi yang cukup untuk menyusun analisis berkendara secara akurat."
+        
+    base_msg = f"Rata-rata konsumsi BBM Anda saat ini adalah {avg_kpl:.2f} KM/Liter. "
+    appt_ratio = appt / total_tx if total_tx > 0 else 0
+    
+    if performa in ["SANGAT BAIK", "BAIK"]:
+        insight = base_msg + "Performa berkendara Anda dinilai sangat efisien dan konsisten mengikuti standar pabrikan. Pertahankan gaya mengemudi ekonomis ini (eco-driving) dan pastikan tekanan ban selalu ideal untuk menjaga kestabilan efisiensi."
+    elif performa == "CUKUP":
+        insight = base_msg + "Tingkat efisiensi Anda berada di zona aman, namun masih memiliki ruang untuk optimalisasi. "
+        if appt_ratio > 3:
+            insight += "Banyaknya janji temu marketing yang Anda selesaikan mengindikasikan tingginya rute operasional. Usahakan untuk mengelompokkan area pertemuan dalam satu waktu guna mengurangi jarak tempuh yang tidak efisien."
+        else:
+            insight += "Cobalah untuk menerapkan metode akselerasi halus (smooth acceleration) dan hindari pengereman mendadak yang tidak perlu."
+    else:
+        insight = base_msg + f"Konsumsi bahan bakar Anda terdeteksi berada di bawah batas efisiensi standar ({limit_good} KM/L). "
+        if appt_ratio > 4:
+            insight += "Analisis model mendeteksi adanya pengaruh signifikan dari tingginya mobilitas rute pendek perkotaan (rasio appointment tinggi). Faktor utama pemborosan kemungkinan besar bersumber dari perilaku idling (mesin menyala statis saat menunggu jadwal temu client). Sangat disarankan untuk mematikan mesin jika berhenti lebih dari 2 menit."
+        else:
+            insight += "Kondisi ini terindikasi dipengaruhi oleh gaya berkendara agresif atau kemungkinan penurunan tekanan udara ban. Pastikan melakukan servis rutin berkala dan cek filter udara kendaraan Anda."
+            
+    return insight
+
 class PerformanceAnalyzer:
     @staticmethod
     def analyze_performance(nopol, current_efficiency, conn, vehicle_type, bbm_type):
+        cursor = None
         try:
             cursor = conn.cursor(dictionary=True)
             cursor.execute("""
@@ -340,6 +369,7 @@ class PerformanceAnalyzer:
             """, (vehicle_type, bbm_type))
             limit = cursor.fetchone()
             cursor.close()
+            cursor = None
             
             if not limit:
                 warning = 10.5
@@ -355,11 +385,12 @@ class PerformanceAnalyzer:
             cursor = conn.cursor(dictionary=True)
             cursor.execute("""
                 SELECT km_per_liter FROM transactions 
-                WHERE nopol = %s AND km_per_liter > 0 AND status = 'verified' 
+                WHERE nopol = %s AND km_per_liter > 0 AND status IN ('verified_ga','os_finance','archived') 
                 ORDER BY created_at DESC LIMIT 15
             """, (nopol,))
             history = cursor.fetchall()
             cursor.close()
+            cursor = None
             
             if current_efficiency <= 0:
                 return {
@@ -424,6 +455,12 @@ class PerformanceAnalyzer:
                 'category': 'error',
                 'message': str(e)
             }
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
 
 
 @app.route('/api/get-performance/<plat_nomor>', methods=['GET'])
@@ -435,7 +472,7 @@ def get_performance(plat_nomor):
         cursor.execute('''
             SELECT km_per_liter, jumlah_appointment 
             FROM transactions 
-            WHERE nopol=%s AND status IN ('archived', 'os_finance', 'verified_ga') AND created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
+            WHERE nopol=%s AND status IN ('verified', 'archived', 'os_finance', 'verified_ga') AND km_per_liter > 0 AND created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
         ''', (plat_nomor,))
         data = cursor.fetchall()
         cursor.close()
@@ -474,7 +511,7 @@ def get_rekap_data(start_date=None, end_date=None, nopol=None, driver=None):
             SELECT t.*, d.vehicle_type as master_vehicle, d.bbm_type as master_bbm
             FROM transactions t
             LEFT JOIN drivers d ON t.driver_name = d.name
-            WHERE t.status IN ('archived', 'os_finance', 'verified_ga')
+            WHERE t.status IN ('verified', 'archived', 'os_finance', 'verified_ga') AND t.km_per_liter > 0
         """
         params = []
         
@@ -913,7 +950,7 @@ def driver_form():
             
             cursor.execute("""
                 SELECT odo_km FROM transactions 
-                WHERE nopol = %s AND status = 'verified_ga' 
+                WHERE nopol = %s 
                 ORDER BY created_at DESC LIMIT 1
             """, (nopol,))
             previous = cursor.fetchone()
@@ -988,7 +1025,7 @@ def admin_dashboard():
                 
                 cursor.execute("""
                     UPDATE transactions 
-                    SET is_mypertamina_error=%s, kronologis_text=%s, foto_mypertamina_admin=%s, status='verified',
+                    SET is_mypertamina_error=%s, kronologis_text=%s, foto_mypertamina_admin=%s, status='verified_ga',
                         updated_at=CURRENT_TIMESTAMP
                     WHERE id=%s
                 """, (is_error, kronologis, foto_mypertamina, tx_id))
@@ -1066,13 +1103,13 @@ def admin_dashboard():
         cursor = conn.cursor(dictionary=True)
         tab = request.args.get('tab', 'ga_queue')
         if tab == 'finance':
-            cursor.execute("SELECT * FROM transactions WHERE status = 'verified_ga' ORDER BY created_at ASC")
+            cursor.execute("SELECT * FROM transactions WHERE status = 'verified_ga' AND (is_dummy = 0 OR is_dummy IS NULL) ORDER BY created_at ASC")
         elif tab == 'driver_confirm':
-            cursor.execute("SELECT * FROM transactions WHERE status = 'os_finance' ORDER BY created_at ASC")
+            cursor.execute("SELECT * FROM transactions WHERE status = 'os_finance' AND (is_dummy = 0 OR is_dummy IS NULL) ORDER BY created_at ASC")
         elif tab == 'archive':
-            cursor.execute("SELECT * FROM transactions WHERE status = 'archived' ORDER BY created_at DESC")
+            cursor.execute("SELECT * FROM transactions WHERE status = 'archived' AND (is_dummy = 0 OR is_dummy IS NULL) ORDER BY created_at DESC")
         else:
-            cursor.execute("SELECT * FROM transactions WHERE status IN ('pending', 'modified') ORDER BY created_at ASC")
+            cursor.execute("SELECT * FROM transactions WHERE status IN ('pending', 'modified') AND (is_dummy = 0 OR is_dummy IS NULL) ORDER BY created_at ASC")
         pending_txs = cursor.fetchall()
         
         cursor.execute("SELECT COUNT(*) as total FROM transactions")
@@ -1150,10 +1187,14 @@ def generate_report(tx_id):
 
         pdf_filename = f"Report_BBM_{tx['nopol']}_{tx['id']}.pdf"
         pdf_filepath = os.path.join(app.config['UPLOAD_FOLDER'], pdf_filename)
-        pdf_out = pdf.output(dest='S')
-        pdf_bytes = pdf_out.encode('latin-1') if isinstance(pdf_out, str) else bytes(pdf_out)
+        pdf_raw = pdf.output(dest='S')
+        if isinstance(pdf_raw, str):
+            pdf_bytes = pdf_raw.encode('latin-1')
+        else:
+            pdf_bytes = bytes(pdf_raw)
         response = make_response(pdf_bytes)
         response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Length'] = len(pdf_bytes)
         response.headers['Content-Disposition'] = 'attachment; filename=' + str(pdf_filename)
         return response
     except Exception as e:
@@ -1232,12 +1273,16 @@ def rekap_pdf():
         # ===== GENERATE PDF =====
         is_download = request.args.get('dl') == '1'
         
-        # Gunakan output dengan buffer untuk memastikan file lengkap
-        pdf_output = pdf.output(dest='S')
+        # Ambil output mentah dari FPDF dan konversi ke bytes murni
+        pdf_raw = pdf.output(dest='S')
+        if isinstance(pdf_raw, str):
+            pdf_bytes = pdf_raw.encode('latin-1')
+        else:
+            pdf_bytes = bytes(pdf_raw)
         
-        response = make_response(pdf_output)
+        response = make_response(pdf_bytes)
         response.headers['Content-Type'] = 'application/pdf'
-        response.headers['Content-Length'] = len(pdf_output)
+        response.headers['Content-Length'] = len(pdf_bytes)
         
         if is_download:
             response.headers['Content-Disposition'] = 'attachment; filename=Rekap_BBM.pdf'
@@ -1266,14 +1311,15 @@ def admin_analytics():
         
         cursor.execute("""
             SELECT t.nopol, t.vehicle_type, t.bbm_type,
-                   AVG(t.km_per_liter) as avg_km_per_liter,
+                   AVG(NULLIF(t.km_per_liter, 0)) as avg_km_per_liter,
                    COUNT(*) as total_transactions,
+                   SUM(t.jumlah_appointment) as jumlah_appointment,
                    MAX(t.created_at) as last_transaction,
                    MIN(t.created_at) as first_transaction,
                    vba.good_km_per_liter, vba.warning_km_per_liter
             FROM transactions t
             JOIN vehicle_bbm_allowed vba ON t.vehicle_type = vba.vehicle_type AND t.bbm_type = vba.bbm_type
-            WHERE t.status IN ('archived', 'os_finance', 'verified_ga')
+            WHERE t.status IN ('verified', 'archived', 'os_finance', 'verified_ga')
             GROUP BY t.nopol, t.vehicle_type, t.bbm_type, vba.good_km_per_liter, vba.warning_km_per_liter
             HAVING COUNT(*) >= 1
             ORDER BY avg_km_per_liter DESC
@@ -1283,14 +1329,14 @@ def admin_analytics():
         if not vehicle_performance:
             cursor.execute("""
                 SELECT t.nopol, t.vehicle_type, t.bbm_type,
-                       AVG(t.km_per_liter) as avg_km_per_liter,
+                       AVG(NULLIF(t.km_per_liter, 0)) as avg_km_per_liter,
                        COUNT(*) as total_transactions,
                        MAX(t.created_at) as last_transaction,
                        MIN(t.created_at) as first_transaction,
                        vba.good_km_per_liter, vba.warning_km_per_liter
                 FROM transactions t
                 JOIN vehicle_bbm_allowed vba ON t.vehicle_type = vba.vehicle_type AND t.bbm_type = vba.bbm_type
-                WHERE t.status IN ('archived', 'os_finance', 'verified_ga')
+                WHERE t.status IN ('verified', 'archived', 'os_finance', 'verified_ga')
                 GROUP BY t.nopol, t.vehicle_type, t.bbm_type, vba.good_km_per_liter, vba.warning_km_per_liter
                 ORDER BY avg_km_per_liter DESC
             """)
@@ -1298,10 +1344,10 @@ def admin_analytics():
         
         cursor.execute("""
             SELECT DATE(created_at) as date, 
-                   AVG(km_per_liter) as avg_efficiency,
+                   AVG(NULLIF(km_per_liter, 0)) as avg_efficiency,
                    COUNT(*) as transactions
             FROM transactions 
-            WHERE status IN ('archived', 'os_finance', 'verified_ga')
+            WHERE status IN ('verified', 'archived', 'os_finance', 'verified_ga') AND km_per_liter > 0
             GROUP BY DATE(created_at)
             ORDER BY date DESC LIMIT 30
         """)
@@ -1496,7 +1542,7 @@ def get_vehicle_feedback(nopol):
         cursor.execute(
             "SELECT odo_km, liter, km_per_liter, jumlah_appointment, created_at "
             "FROM transactions "
-            "WHERE nopol=%s AND status IN ('archived', 'os_finance', 'verified_ga') "
+            "WHERE nopol=%s AND status IN ('verified', 'archived', 'os_finance', 'verified_ga') AND km_per_liter > 0 "
             "ORDER BY created_at DESC LIMIT 10",
             (nopol,)
         )
@@ -1531,6 +1577,7 @@ def get_vehicle_feedback(nopol):
         else:
             performa = "BOROS"
 
+        human_msg = generate_human_insight(performa, avg_kpl, 12.0, total_apt, len(km_values))
         return jsonify({
             "status": "success",
             "nopol": nopol,
@@ -1538,7 +1585,7 @@ def get_vehicle_feedback(nopol):
             "total_data": len(km_values),
             "total_appointment": total_apt,
             "performa": performa,
-            "msg": f"Performa {nopol}: {performa} (Rata-rata {avg_kpl:.2f} KM/L)"
+            "msg": human_msg
         })
     except Exception as e:
         return jsonify({"status": "error", "msg": str(e)}), 500
@@ -1983,6 +2030,243 @@ def sync_user():
         return jsonify({'status': 'success', 'msg': 'User ' + username + ' saved'})
     except Exception as e:
         return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+
+
+# ============================================================
+# ROUTES - BACKUP DATABASE
+# ============================================================
+@app.route('/admin/backup')
+def backup_database():
+    try:
+        import subprocess
+        import tempfile
+        from flask import Response
+        
+        # Dump database
+        result = subprocess.run(
+            ['mysqldump', '-h', 'db', '-u', 'bpf_user', '-pbpf_pass', 'bpf_asset_system'],
+            capture_output=True, text=True
+        )
+        
+        if result.returncode != 0:
+            return f"Backup failed: {result.stderr}", 500
+        
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'backup_bpf_bbm_{timestamp}.sql'
+        
+        return Response(
+            result.stdout,
+            mimetype='application/sql',
+            headers={'Content-Disposition': f'attachment; filename={filename}'}
+        )
+    except Exception as e:
+        return f"Error: {str(e)}", 500
+
+# ============================================================
+# ROUTES - DUMMY DATA TOGGLE
+# ============================================================
+@app.route('/api/dummy-data/toggle', methods=['POST'])
+def toggle_dummy_data():
+    try:
+        data = request.get_json()
+        enable = data.get('enable', False)
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        if enable:
+            # Insert dummy data jika belum ada
+            cursor.execute("""
+                INSERT IGNORE INTO transactions 
+                (driver_name, nopol, vehicle_type, bbm_type, nominal, liter, price_per_liter, odo_km, spbu_type, status, km_per_liter, jumlah_appointment, is_dummy, gps_address, kronologis_text) VALUES
+                ('AKHAD', 'L 1413 CBI', 'AVANZA', 'PERTALITE', 200000, 20.00, 10000, 12936, 'rekanan', 'archived', 12.50, 3, 1, 'Jl. Raya Darmo No. 45, Surabaya', 'Pengisian BBM rutin untuk operasional marketing'),
+                ('AHMAT', 'B 2628 SRP', 'INNOVA', 'PERTAMAX', 270000, 20.00, 13500, 71126, 'rekanan', 'archived', 10.20, 5, 1, 'Jl. Ahmad Yani No. 120, Surabaya', 'Pengisian BBM untuk kunjungan client area Surabaya Barat'),
+                ('BUDI', 'L 1234 ABC', 'AVANZA', 'PERTALITE', 150000, 15.00, 10000, 45230, 'non_rekanan', 'verified_ga', 11.00, 2, 1, 'Jl. Raya Gubeng No. 78, Surabaya', 'Pengisian darurat di SPBU non-rekanan'),
+                ('CANDRA', 'B 5678 DEF', 'INNOVA', 'PERTAMAX', 300000, 22.22, 13500, 89200, 'rekanan', 'os_finance', 9.50, 4, 1, 'Jl. Mayjend Sungkono No. 200, Surabaya', 'Pengisian BBM untuk operasional mingguan')
+            """)
+        else:
+            # Hapus dummy data
+            cursor.execute("DELETE FROM transactions WHERE is_dummy = 1")
+        
+        # Update config
+        cursor.execute("""
+            INSERT INTO system_config (config_key, config_value) VALUES ('dummy_data_enabled', %s)
+            ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)
+        """, ('true' if enable else 'false',))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return jsonify({'status': 'success', 'msg': f'Dummy data {"enabled" if enable else "disabled"}'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+@app.route('/api/dummy-data/status')
+def dummy_data_status():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT config_value FROM system_config WHERE config_key = 'dummy_data_enabled'")
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        enabled = row['config_value'] == 'true' if row else False
+        return jsonify({'enabled': enabled})
+    except Exception as e:
+        return jsonify({'enabled': False, 'error': str(e)})
+
+
+
+# ============================================================
+# ROUTES - ANALYTICS EXPORT (ZIP Bundle)
+# ============================================================
+@app.route('/admin/analytics/export', methods=['POST'])
+def export_analytics_pdf():
+    import zipfile
+    from io import BytesIO
+    
+    start_date = request.form.get('start_date')
+    end_date = request.form.get('end_date')
+    only_summary = request.form.get('only_summary') == '1'
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT name, nopol, vehicle_type, bbm_type FROM drivers WHERE is_active = TRUE")
+    drivers = cursor.fetchall()
+    
+    if not drivers:
+        cursor.close()
+        conn.close()
+        flash('Tidak ada driver aktif untuk diekspor', 'warning')
+        return redirect(url_for('admin_analytics'))
+        
+    memory_zip = BytesIO()
+    
+    with zipfile.ZipFile(memory_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for drv in drivers:
+            # FIX UTAMA: Tambahkan status 'verified' ke dalam filter IN agar data terhitung
+            query = """
+                SELECT * FROM transactions 
+                WHERE driver_name = %s 
+                  AND status IN ('verified', 'archived', 'os_finance', 'verified_ga')
+            """
+            params = [drv['name']]
+            
+            if start_date:
+                query += " AND DATE(created_at) >= %s"
+                params.append(start_date)
+            if end_date:
+                query += " AND DATE(created_at) <= %s"
+                params.append(end_date)
+                
+            query += " ORDER BY created_at DESC"
+            cursor.execute(query, params)
+            tx_history = cursor.fetchall()
+            
+            cursor.execute("""
+                SELECT good_km_per_liter, warning_km_per_liter 
+                FROM vehicle_bbm_allowed 
+                WHERE vehicle_type = %s AND bbm_type = %s LIMIT 1
+            """, (drv['vehicle_type'], drv['bbm_type']))
+            limit_rule = cursor.fetchone()
+            good_limit = float(limit_rule['good_km_per_liter']) if limit_rule else 12.0
+            
+            # Memastikan hanya menghitung km_per_liter yang valid (> 0)
+            km_values = [t['km_per_liter'] for t in tx_history if t.get('km_per_liter') and float(t['km_per_liter']) > 0]
+            avg_kpl = sum(km_values) / len(km_values) if km_values else 0
+            
+            # Ambil nilai appointment secara aman dengan fallback ke 0 jika bernilai None
+            total_appt = sum([int(t.get('jumlah_appointment') or 0) for t in tx_history])
+            
+            if avg_kpl >= good_limit:
+                performa = "SANGAT BAIK" if avg_kpl >= (good_limit + 2) else "BAIK"
+            elif avg_kpl >= (good_limit - 2) and avg_kpl > 0:
+                performa = "CUKUP"
+            else:
+                performa = "BOROS" if avg_kpl > 0 else "BELUM ADA DATA"
+                
+            insight_text = generate_human_insight(performa, avg_kpl, good_limit, total_appt, len(tx_history))
+            
+            # --- Rendering FPDF Layout ---
+            pdf = FPDF(orientation='P', unit='mm', format='A4')
+            pdf.add_page()
+            pdf.set_margins(12, 12, 12)
+            
+            pdf.set_font('helvetica', 'B', 14)
+            pdf.set_text_color(30, 64, 175)
+            pdf.cell(0, 8, "RAPOR ANALYTICS PERFORMA DRIVER", align="C", ln=True)
+            pdf.set_font('helvetica', 'B', 10)
+            pdf.set_text_color(71, 85, 105)
+            periode_str = f"Periode: {start_date or 'Awal'} s/d {end_date or 'Akhir'}"
+            pdf.cell(0, 5, periode_str, align="C", ln=True)
+            pdf.ln(5)
+            
+            pdf.set_fill_color(241, 245, 249)
+            pdf.set_font('helvetica', 'B', 9)
+            pdf.cell(0, 6, " Profil Pengoperasian Kendaraan", fill=True, ln=True)
+            pdf.set_font('helvetica', '', 9)
+            pdf.cell(45, 6, f" Nama Driver: {drv['name']}", border=1)
+            pdf.cell(45, 6, f" No. Polisi: {drv['nopol']}", border=1)
+            pdf.cell(50, 6, f" Tipe Unit: {drv['vehicle_type']}", border=1)
+            pdf.cell(50, 6, f" Jenis BBM: {drv['bbm_type']}", border=1, ln=True)
+            pdf.ln(4)
+            
+            pdf.set_font('helvetica', 'B', 9)
+            pdf.cell(0, 6, " Hasil Evaluasi & Diagnostik Model", fill=True, ln=True)
+            pdf.set_font('helvetica', '', 9)
+            pdf.cell(45, 6, f" Rata-rata Efisiensi: {avg_kpl:.2f} KM/L", border=1)
+            pdf.cell(45, 6, f" Status Konsumsi: {performa}", border=1)
+            pdf.cell(50, 6, f" Total Janji Temu: {total_appt} Kali", border=1)
+            pdf.cell(50, 6, f" Total Transaksi: {len(tx_history)} Data", border=1, ln=True)
+            pdf.ln(4)
+            
+            pdf.set_font('helvetica', 'B', 9)
+            pdf.set_text_color(8, 145, 178)
+            pdf.cell(0, 6, " AI-Driven Intelligent Coaching Insights", ln=True)
+            pdf.set_font('helvetica', 'I', 9)
+            pdf.set_text_color(51, 65, 85)
+            pdf.multi_cell(0, 5, insight_text, border=1)
+            pdf.ln(4)
+            
+            if not only_summary and tx_history:
+                pdf.set_font('helvetica', 'B', 9)
+                pdf.set_text_color(15, 23, 42)
+                pdf.cell(0, 6, " Lampiran Detail Log Transaksi", fill=True, ln=True)
+                pdf.set_font('helvetica', 'B', 8)
+                pdf.cell(30, 6, "Tanggal", border=1, align="C")
+                pdf.cell(35, 6, "Nominal", border=1, align="C")
+                pdf.cell(25, 6, "Volume (L)", border=1, align="C")
+                pdf.cell(30, 6, "Odometer", border=1, align="C")
+                pdf.cell(30, 6, "Efisiensi", border=1, align="C")
+                pdf.cell(40, 6, "Appointment", border=1, align="C", ln=True)
+                
+                pdf.set_font('helvetica', '', 8)
+                for tx in tx_history[:15]:
+                    tgl = tx['created_at'].strftime('%d/%m/%Y') if tx.get('created_at') else '-'
+                    kml_val = float(tx.get('km_per_liter') or 0)
+                    pdf.cell(30, 5, tgl, border=1, align="C")
+                    pdf.cell(35, 5, f"Rp {tx['nominal']:,.0f}", border=1, align="R")
+                    pdf.cell(25, 5, f"{tx['liter']:.2f}", border=1, align="C")
+                    pdf.cell(30, 5, f"{tx['odo_km']:,} km", border=1, align="C")
+                    pdf.cell(30, 5, f"{kml_val:.2f} KM/L", border=1, align="C")
+                    pdf.cell(40, 5, f"{tx.get('jumlah_appointment', 0)} x", border=1, align="C", ln=True)
+            
+            pdf_raw = pdf.output(dest='S')
+            pdf_bytes = pdf_raw.encode('latin-1') if isinstance(pdf_raw, str) else bytes(pdf_raw)
+            
+            safe_name = drv['name'].replace(" ", "_")
+            zf.writestr(f"Rapor_BBM_{safe_name}_{drv['nopol']}.pdf", pdf_bytes)
+            
+    cursor.close()
+    conn.close()
+    
+    memory_zip.seek(0)
+    response = make_response(memory_zip.read())
+    response.headers['Content-Type'] = 'application/zip'
+    response.headers['Content-Disposition'] = f"attachment; filename=Bundel_Rapor_BBM_{datetime.now().strftime('%Y%m%d')}.zip"
+    return response
 
 
 if __name__ == '__main__':

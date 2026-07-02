@@ -74,6 +74,17 @@
         @keyframes fadeInUp { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
         
         @media (max-width: 600px) { .row { grid-template-columns: 1fr; } .container { padding: 20px; } }
+    
+        .badge { display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600; }
+        .badge-good { background:var(--success-light);color:var(--success); }
+        .badge-warning { background:var(--warning-light);color:var(--warning); }
+        .badge-danger { background:var(--danger-light);color:var(--danger); }
+        .badge-ga { background:var(--info-light);color:var(--info); }
+        .btn-primary { background:var(--primary);color:white;padding:7px 16px;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:12px; }
+        .card { background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--gray-200);margin-bottom:20px;overflow:hidden; }
+        .card-header { padding:16px 20px;border-bottom:1px solid var(--gray-200);font-weight:600;background:var(--gray-50); }
+        .card-body { padding:20px; }
+
     </style>
 </head>
 <body>
@@ -203,6 +214,31 @@
             </div>
             
             <button type="submit" class="btn-submit" id="submitBtn">Kirim Klaim</button>
+        
+            <!-- RAPOR PERFORMA DRIVER -->
+            <div class="card" style="margin-top:20px;border-left:4px solid var(--primary);">
+                <div class="card-header" style="background:var(--gray-50);font-weight:700;font-size:14px;padding:14px 18px;">
+                    Rapor Performa Mengemudi Saya
+                </div>
+                <div class="card-body" style="padding:16px;">
+                    <div class="form-group">
+                        <label style="font-size:12px;font-weight:600;color:var(--gray-700);">Masukkan Plat Nomor Unit Anda</label>
+                        <div style="display:flex;gap:8px;">
+                            <input type="text" id="driverNopolInput" class="form-control" placeholder="Contoh: L 1413 CBI" style="text-transform:uppercase;flex:1;">
+                            <button type="button" class="btn btn-primary" onclick="checkMyPerformance()" style="padding:9px 18px;">Analisis</button>
+                        </div>
+                    </div>
+                    <div id="performanceResultBox" style="display:none;margin-top:14px;padding:14px;border-radius:var(--radius);border:1px solid var(--gray-200);">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                            <span style="font-size:11px;font-weight:600;color:var(--gray-500);">SKOR KONSUMSI:</span>
+                            <span id="badgeStatusML" class="badge">Mengkalkulasi...</span>
+                        </div>
+                        <div style="font-size:13px;font-weight:700;color:var(--gray-900);margin-bottom:6px;" id="textKplResult">Rata-rata: 0 KM / Liter</div>
+                        <p id="textMLInsight" style="font-size:12px;color:var(--gray-600);line-height:1.5;background:var(--gray-50);padding:10px;border-radius:6px;border-left:3px solid var(--info);">Memuat rekomendasi...</p>
+                    </div>
+                </div>
+            </div>
+
         </form>
     </div>
     
@@ -603,6 +639,38 @@
     // ============================================================
     initGPS();
     loadDrivers();
+    
+    function checkMyPerformance() {
+        var nopol = document.getElementById('driverNopolInput').value.trim().toUpperCase();
+        if (!nopol) { showToast('Masukkan plat nomor!', 'error'); return; }
+        var box = document.getElementById('performanceResultBox');
+        var badge = document.getElementById('badgeStatusML');
+        var kpl = document.getElementById('textKplResult');
+        var insight = document.getElementById('textMLInsight');
+        box.style.display = 'block';
+        kpl.innerText = "Menganalisis data...";
+        insight.innerText = "Model AI sedang mengevaluasi riwayat log Odometer...";
+        fetch('/api/get-feedback/' + encodeURIComponent(nopol))
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    kpl.innerText = 'Rata-rata Konsumsi: ' + data.avg_km_per_liter + ' KM/Liter';
+                    insight.innerText = data.msg;
+                    badge.innerText = data.performa;
+                    badge.className = 'badge';
+                    if (data.performa === 'BOROS') badge.classList.add('badge-danger');
+                    else if (data.performa === 'CUKUP') badge.classList.add('badge-warning');
+                    else badge.classList.add('badge-good');
+                } else {
+                    kpl.innerText = 'Data tidak ditemukan';
+                    insight.innerText = data.msg || 'Pastikan plat nomor terdaftar dan telah disetujui GA.';
+                    badge.innerText = 'INFO';
+                    badge.className = 'badge badge-ga';
+                }
+            })
+            .catch(err => { kpl.innerText = 'Gagal'; insight.innerText = 'Error koneksi.'; });
+    }
+
     </script>
 </body>
 </html>

@@ -116,6 +116,68 @@
             </div>
         </div>
         
+        
+        <!-- BACKUP & DEMO DATA -->
+        <div class="card">
+            <div class="card-header">Backup & Demo Data</div>
+            <div class="card-body">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                    <!-- BACKUP -->
+                    <div style="padding:14px;background:var(--gray-50);border-radius:var(--radius);">
+                        <strong style="color:var(--gray-700);">Backup Database</strong>
+                        <p class="note mb-4">Download cadangan database. Simpan sebelum melakukan perubahan besar.</p>
+                        <button class="btn-add" onclick="doBackup()" style="margin-right:8px;">Buat Backup</button>
+                        <span id="backupStatus" class="text-sm"></span>
+                        <div id="backupList" style="margin-top:12px;max-height:200px;overflow-y:auto;"></div>
+                    </div>
+                    
+                    <!-- DEMO DATA -->
+                    <div style="padding:14px;background:var(--gray-50);border-radius:var(--radius);">
+                        <strong style="color:var(--gray-700);">Demo Data</strong>
+                        <p class="note mb-4">Data dummy untuk demonstrasi. Data ini bisa direset kapan saja.</p>
+                        <div style="margin-bottom:8px;">
+                            <span class="text-sm">Status: </span>
+                            <span id="demoStatus" class="badge badge-ga">Loading...</span>
+                        </div>
+                        <button class="btn-add" onclick="resetDemo()" style="margin-right:8px;">Reset Demo Data</button>
+                        <span id="demoMsg" class="text-sm"></span>
+                    </div>
+                </div>
+                
+                <!-- RESTORE -->
+                <div style="margin-top:16px;padding:14px;background:#fef3c7;border-radius:var(--radius);border-left:4px solid var(--warning);">
+                    <strong style="color:var(--warning);">⚠️ Restore Database</strong>
+                    <p class="note mb-4">Mengembalikan database dari file backup. Semua data saat ini akan ditimpa!</p>
+                    <select id="restoreFile" class="form-control" style="width:auto;display:inline-block;margin-right:8px;">
+                        <option value="">-- Pilih file backup --</option>
+                    </select>
+                    <button class="btn btn-danger" onclick="doRestore()" style="padding:8px 16px;">Restore</button>
+                    <span id="restoreStatus" class="text-sm" style="margin-left:8px;"></span>
+                </div>
+            </div>
+        </div>
+
+        
+        <!-- BACKUP & DUMMY DATA -->
+        <div class="card">
+            <div class="card-header">Backup & Data Demo</div>
+            <div class="card-body">
+                <div style="display:flex;gap:20px;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:250px;">
+                        <strong>Backup Database</strong>
+                        <p class="note" style="margin:8px 0;">Download seluruh data transaksi dalam format SQL.</p>
+                        <a href="/admin/backup" class="btn btn-primary">Download Backup (.sql)</a>
+                    </div>
+                    <div style="flex:1;min-width:250px;">
+                        <strong>Data Demo</strong>
+                        <p class="note" style="margin:8px 0;">Aktifkan data dummy untuk demo aplikasi. Data ini tidak muncul di dashboard utama.</p>
+                        <button id="dummyToggleBtn" class="btn btn-warning" onclick="toggleDummyData()">Loading...</button>
+                        <span id="dummyStatus" style="font-size:12px;margin-left:10px;"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- SETTINGS FORM -->
         <form method="POST">
             <div class="card"><div class="card-header">Tipe Kendaraan</div><div class="card-body">
@@ -180,7 +242,91 @@
             if (data.status === 'success') {
                 document.getElementById('settingsGate').style.display = 'none';
                 document.getElementById('settingsContent').style.display = 'block';
-                loadDrivers(); loadUsers();
+                loadDrivers();
+    checkDummyStatus(); loadUsers();
+    // ============================================================
+    // BACKUP & RESTORE
+    // ============================================================
+    async function doBackup() {
+        var s = document.getElementById('backupStatus');
+        s.textContent = 'Membuat backup...';
+        s.style.color = 'var(--gray-500)';
+        try {
+            var res = await fetch('/api/backup', {method:'POST'});
+            var data = await res.json();
+            if (data.status === 'success') {
+                s.textContent = '✅ ' + data.msg + ' (' + data.size + ')';
+                s.style.color = 'green';
+                loadBackups();
+            } else {
+                s.textContent = '❌ ' + data.msg;
+                s.style.color = 'red';
+            }
+        } catch(e) { s.textContent = 'Error'; s.style.color = 'red'; }
+    }
+    
+    async function loadBackups() {
+        try {
+            var res = await fetch('/api/backups');
+            var files = await res.json();
+            var list = document.getElementById('backupList');
+            var select = document.getElementById('restoreFile');
+            
+            list.innerHTML = files.length ? files.map(f => 
+                '<div style="padding:6px 0;border-bottom:1px solid var(--gray-200);display:flex;justify-content:space-between;align-items:center;">' +
+                '<span style="font-size:12px;"><strong>' + f.filename + '</strong><br><span class="text-sm">' + f.date + ' | ' + f.size + '</span></span>' +
+                '<a href="/api/backup/download/' + f.filename + '" class="btn btn-sm btn-outline" style="font-size:10px;">Download</a>' +
+                '</div>'
+            ).join('') : '<p class="text-sm" style="color:var(--gray-400);">Belum ada backup</p>';
+            
+            select.innerHTML = '<option value="">-- Pilih backup --</option>' + files.map(f => '<option value="' + f.filename + '">' + f.filename + ' (' + f.date + ')</option>').join('');
+        } catch(e) {}
+    }
+    
+    async function doRestore() {
+        var file = document.getElementById('restoreFile').value;
+        var s = document.getElementById('restoreStatus');
+        if (!file) { s.textContent = 'Pilih file dulu!'; s.style.color = 'red'; return; }
+        if (!confirm('⚠️ YAKIN restore database? Semua data saat ini akan ditimpa!')) return;
+        
+        s.textContent = 'Restoring...';
+        s.style.color = 'var(--warning)';
+        try {
+            var res = await fetch('/api/backup/restore', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename:file})});
+            var data = await res.json();
+            s.textContent = data.status === 'success' ? '✅ ' + data.msg : '❌ ' + data.msg;
+            s.style.color = data.status === 'success' ? 'green' : 'red';
+        } catch(e) { s.textContent = 'Error'; s.style.color = 'red'; }
+    }
+    
+    // ============================================================
+    // DEMO DATA
+    // ============================================================
+    async function loadDemoStatus() {
+        try {
+            var res = await fetch('/api/demo-data/status');
+            var data = await res.json();
+            document.getElementById('demoStatus').textContent = data.demo_count + ' transaksi demo';
+            document.getElementById('demoStatus').className = data.demo_count > 0 ? 'badge badge-ga' : 'badge badge-danger';
+        } catch(e) {}
+    }
+    
+    async function resetDemo() {
+        if (!confirm('Reset demo data? Data demo akan dihapus dan dibuat ulang.')) return;
+        var s = document.getElementById('demoMsg');
+        s.textContent = 'Merese...';
+        try {
+            var res = await fetch('/api/demo-data/reset', {method:'POST'});
+            var data = await res.json();
+            s.textContent = data.status === 'success' ? '✅ ' + data.msg : '❌ Gagal';
+            s.style.color = data.status === 'success' ? 'green' : 'red';
+            loadDemoStatus();
+        } catch(e) { s.textContent = 'Error'; s.style.color = 'red'; }
+    }
+    
+    loadBackups();
+    loadDemoStatus();
+
             } else { err.textContent = 'PIN salah!'; err.style.display = 'block'; document.getElementById('adminPinInput').value = ''; }
         } catch(e) { err.textContent = 'Error'; err.style.display = 'block'; }
     }
@@ -206,9 +352,11 @@
         var d = await res.json();
         s.textContent = d.status==='success'?'Berhasil!':'Gagal';
         s.style.color = d.status==='success'?'green':'red';
-        if(d.status==='success'){document.getElementById('newDriverName').value='';document.getElementById('newDriverNopol').value='';loadDrivers();}
+        if(d.status==='success'){document.getElementById('newDriverName').value='';document.getElementById('newDriverNopol').value='';loadDrivers();
+    checkDummyStatus();}
     }
-    async function deactDrv(name){if(confirm('Nonaktifkan '+name+'?')){await fetch('/api/drivers/'+encodeURIComponent(name)+'/deactivate',{method:'POST'});loadDrivers();}}
+    async function deactDrv(name){if(confirm('Nonaktifkan '+name+'?')){await fetch('/api/drivers/'+encodeURIComponent(name)+'/deactivate',{method:'POST'});loadDrivers();
+    checkDummyStatus();}}
     
     // ============================================================
     // USERS
@@ -237,6 +385,59 @@
     
     function addVRow(){var tr=document.createElement('tr');tr.innerHTML='<td><input type="text" name="new_vehicle_name[]" class="form-control" placeholder="Tipe"></td><td><input type="text" name="new_vehicle_brand[]" class="form-control" value="Toyota"></td><td><input type="number" name="new_vehicle_capacity[]" class="form-control" value="45" style="width:80px;"></td><td><input type="checkbox" checked disabled></td><td><button type="button" class="btn-remove" onclick="this.closest(\'tr\').remove()">Hapus</button></td>';document.getElementById('vehicle-table').appendChild(tr);}
     function addBRow(){var tr=document.createElement('tr');tr.innerHTML='<td><input type="text" name="new_bbm_name[]" class="form-control" placeholder="BBM"></td><td><input type="number" name="new_bbm_price[]" class="form-control" placeholder="Harga" style="width:120px;"></td><td><input type="checkbox" checked disabled></td><td><button type="button" class="btn-remove" onclick="this.closest(\'tr\').remove()">Hapus</button></td>';document.getElementById('bbm-table').appendChild(tr);}
-    </script>
+    
+    // ============================================================
+    // DUMMY DATA TOGGLE
+    // ============================================================
+    async function checkDummyStatus() {
+        try {
+            var res = await fetch('/api/dummy-data/status');
+            var data = await res.json();
+            var btn = document.getElementById('dummyToggleBtn');
+            if (data.enabled) {
+                btn.textContent = 'Nonaktifkan Data Demo';
+                btn.className = 'btn btn-danger';
+            } else {
+                btn.textContent = 'Aktifkan Data Demo';
+                btn.className = 'btn btn-success';
+            }
+        } catch(e) { console.error(e); }
+    }
+    
+    async function toggleDummyData() {
+        var btn = document.getElementById('dummyToggleBtn');
+        var currentText = btn.textContent;
+        btn.textContent = '...';
+        btn.disabled = true;
+        
+        try {
+            var res = await fetch('/api/dummy-data/status');
+            var data = await res.json();
+            var enable = !data.enabled;
+            
+            var toggleRes = await fetch('/api/dummy-data/toggle', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({enable: enable})
+            });
+            var result = await toggleRes.json();
+            
+            if (result.status === 'success') {
+                checkDummyStatus();
+                document.getElementById('dummyStatus').textContent = result.msg;
+                document.getElementById('dummyStatus').style.color = 'green';
+            }
+        } catch(e) {
+            console.error(e);
+            document.getElementById('dummyStatus').textContent = 'Error';
+            document.getElementById('dummyStatus').style.color = 'red';
+        } finally {
+            btn.disabled = false;
+        }
+    }
+    
+    checkDummyStatus();
+
+</script>
 </body>
 </html>
