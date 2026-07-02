@@ -1,33 +1,33 @@
-# ? BPF BBM System v1.0
+⛽ BPF BBM System v1.0
 
 **Sistem Manajemen Klaim BBM PT. Bestprofit Surabaya**
 
-Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, dan pengarsipan klaim BBM dengan workflow GA ? Finance ? Archive. Dilengkapi dengan deteksi anomali Machine Learning, GPS tracking, watermark foto otomatis, dan PIN security.
+Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, dan pengarsipan klaim BBM dengan workflow GA → Finance → Archive. Dilengkapi dengan deteksi anomali Machine Learning, GPS tracking, watermark foto otomatis, dan PIN security.
 
 ---
 
-## ?? Fitur Utama
+## 🚀 Fitur Utama
 
-### ?? Driver (PWA)
+### 📱 Driver (PWA)
 | Fitur | Deskripsi |
 |-------|-----------|
-| Auto-fill Form | Pilih nama ? Nopol, Kendaraan, BBM otomatis terisi |
+| Auto-fill Form | Pilih nama → Nopol, Kendaraan, BBM otomatis terisi |
 | GPS Auto-Detect | Alamat administratif lengkap + SPBU terdekat |
 | Watermark Otomatis | Tanggal, jam, dan lokasi tertanam di setiap foto |
 | Kompresi Client-Side | Foto dikecilkan sebelum upload (hemat bandwidth) |
 | Self-Analytics | Cek performa kendaraan sendiri via input nopol |
 | PWA Installable | Install di homescreen smartphone |
 
-### ????? GA (General Affairs)
+### 👨‍💼 GA (General Affairs)
 | Fitur | Deskripsi |
 |-------|-----------|
 | Tab View Dashboard | Antrean GA / Finance / Driver TTD / Arsip |
 | PIN Security 6-Digit | Verifikasi sebelum approve |
 | Preview Foto | Lihat bukti sebelum persetujuan |
 | Reject + Alasan | Tolak transaksi dengan catatan |
-| Workflow Indicator | Progress bar GA ? Finance ? TTD ? Arsip |
+| Workflow Indicator | Progress bar GA → Finance → TTD → Arsip |
 
-### ?? Finance
+### 💰 Finance
 | Fitur | Deskripsi |
 |-------|-----------|
 | Disburse Dana | Konfirmasi pencairan dengan PIN |
@@ -35,7 +35,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, dan
 | Download ZIP | Semua bukti + info transaksi dalam 1 file |
 | PDF Report | Laporan profesional 1 halaman per transaksi |
 
-### ?? Analytics & Rekap
+### 📊 Analytics & Rekap
 | Fitur | Deskripsi |
 |-------|-----------|
 | Rekapitulasi | Filter tanggal, nopol, driver |
@@ -45,7 +45,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, dan
 | Human Insight Engine | Narasi saran berkendara berbasis AI |
 | Export PDF | Laporan dengan tanda tangan |
 
-### ?? Admin Settings
+### ⚙️ Admin Settings
 | Fitur | Deskripsi |
 |-------|-----------|
 | Driver-Kendaraan | Mapping driver ke nopol + BBM |
@@ -58,14 +58,14 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, dan
 
 ---
 
-## ?? Workflow
+## 🔄 Workflow
 
 ```
-+---------+     +---------+     +----------+     +---------+     +---------+
-� DRIVER  �----?�   GA    �----?� FINANCE  �----?� DRIVER  �----?� ARCHIVE �
-� Submit  �     � Approve �     � Payout   �     � TTD OS  �     �  ZIP    �
-� pending �     �verified �     �os_finance�     �archived �     � download�
-+---------+     +---------+     +----------+     +---------+     +---------+
+┌─────────┐     ┌─────────┐     ┌──────────┐     ┌─────────┐     ┌─────────┐
+│ DRIVER  │────▶│   GA    │────▶│ FINANCE  │────▶│ DRIVER  │────▶│ ARCHIVE │
+│ Submit  │     │ Approve │     │ Payout   │     │ TTD OS  │     │  ZIP    │
+│ pending │     │verified │     │os_finance│     │archived │     │ download│
+└─────────┘     └─────────┘     └──────────┘     └─────────┘     └─────────┘
 ```
 
 | Step | Aktor | Action | Status |
@@ -78,7 +78,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, dan
 
 ---
 
-## ?? Tech Stack
+## 🛠 Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
@@ -94,7 +94,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, dan
 
 ---
 
-## ?? Quick Start
+## 📦 Quick Start
 
 ### Prerequisites
 - Docker & Docker Compose
@@ -125,37 +125,37 @@ docker compose up -d
 | GA Officer | `ga_officer` | `123456` |
 | Finance Officer | `finance_officer` | `123456` |
 
-> ?? **Ganti PIN default segera** di Settings ? Manajemen User & PIN
+> ⚠️ **Ganti PIN default segera** di Settings → Manajemen User & PIN
 
 ---
 
-## ?? Project Structure
+## 📁 Project Structure
 
 ```
 bpf-bbm-system/
-+-- app.py                  # Main Flask application
-+-- init.sql                # Database schema + seed data
-+-- requirements.txt        # Python dependencies
-+-- Dockerfile              # Container build
-+-- docker-compose.yml      # Multi-container orchestration
-+-- manifest.json           # PWA manifest
-+-- sw.js                   # Service Worker
-+-- README.md               # Documentation
-+-- templates/
-�   +-- admin.html          # Dashboard with tab view + PIN modal
-�   +-- driver.html         # Driver claim form + auto-fill + GPS
-�   +-- rekap.html          # Rekapitulasi with filters
-�   +-- analytics.html      # Performance analytics + export modal
-�   +-- settings.html       # Admin settings + PIN gate
-+-- static/
-�   +-- icon-192.png        # PWA icon 192x192
-�   +-- icon-512.png        # PWA icon 512x512
-+-- uploads/                # Uploaded photos (mounted volume)
+├── app.py                  # Main Flask application
+├── init.sql                # Database schema + seed data
+├── requirements.txt        # Python dependencies
+├── Dockerfile              # Container build
+├── docker-compose.yml      # Multi-container orchestration
+├── manifest.json           # PWA manifest
+├── sw.js                   # Service Worker
+├── README.md               # Documentation
+├── templates/
+│   ├── admin.html          # Dashboard with tab view + PIN modal
+│   ├── driver.html         # Driver claim form + auto-fill + GPS
+│   ├── rekap.html          # Rekapitulasi with filters
+│   ├── analytics.html      # Performance analytics + export modal
+│   └── settings.html       # Admin settings + PIN gate
+├── static/
+│   ├── icon-192.png        # PWA icon 192x192
+│   └── icon-512.png        # PWA icon 512x512
+└── uploads/                # Uploaded photos (mounted volume)
 ```
 
 ---
 
-## ?? API Endpoints
+## 🔌 API Endpoints
 
 ### Public
 | Method | Endpoint | Description |
@@ -211,7 +211,7 @@ bpf-bbm-system/
 
 ---
 
-## ?? Database Schema
+## 🗄 Database Schema
 
 ### `transactions`
 | Column | Type | Description |
@@ -260,7 +260,7 @@ bpf-bbm-system/
 
 ---
 
-## ?? Security Features
+## 🔒 Security Features
 
 | Fitur | Deskripsi |
 |-------|-----------|
@@ -275,7 +275,7 @@ bpf-bbm-system/
 
 ---
 
-## ?? Docker Deployment
+## 🐳 Docker Deployment
 
 ```bash
 # Start
@@ -319,7 +319,7 @@ docker compose up -d
 
 ---
 
-## ?? Monitoring & Maintenance
+## 📊 Monitoring & Maintenance
 
 ```bash
 # Check transaction distribution
@@ -343,12 +343,12 @@ docker exec bbm_mariadb mysql -uroot -ppassword_db bpf_asset_system \
   -e "SELECT COUNT(*) as total, SUM(CASE WHEN km_per_liter>0 THEN 1 ELSE 0 END) as has_kml, ROUND(AVG(NULLIF(km_per_liter,0)),2) as avg_kml FROM transactions WHERE status IN ('verified_ga','os_finance','archived');"
 
 # Backup database (via Settings page)
-# http://NAS_IP:5001/admin/settings ? Download Backup (.sql)
+# http://NAS_IP:5001/admin/settings → Download Backup (.sql)
 ```
 
 ---
 
-## ?? UI Theme
+## 🎨 UI Theme
 
 | Element | Value |
 |---------|-------|
@@ -360,7 +360,7 @@ docker exec bbm_mariadb mysql -uroot -ppassword_db bpf_asset_system \
 
 ---
 
-## ?? User Roles
+## 👥 User Roles
 
 | Role | Access | Default PIN |
 |------|--------|-------------|
@@ -371,36 +371,36 @@ docker exec bbm_mariadb mysql -uroot -ppassword_db bpf_asset_system \
 
 ---
 
-## ?? Changelog
+## 📝 Changelog
 
 ### v1.0 (July 2026) - Stable Release
-- ? GA ? Finance ? Archive workflow
-- ? PIN security system (6-digit)
-- ? Driver-vehicle master data + auto-fill
-- ? GPS administrative location + SPBU finder
-- ? Auto-watermark on photos (date, time, location)
-- ? Professional PDF report (narrow margin, humanistic narrative)
-- ? User management (CRUD + role-based)
-- ? Settings PIN gate (admin only)
-- ? Modern UI theme (Inter font, blue palette)
-- ? Analytics with appointment tracking
-- ? Human Insight Engine (AI-driven coaching)
-- ? ZIP archive download (all evidence)
-- ? Rapor massal export (per driver PDF)
-- ? Dummy data toggle (demo mode)
-- ? Database backup (download SQL)
-- ? PWA support (installable)
-- ? Image compression (client-side)
-- ? ML anomaly detection (Isolation Forest)
-- ? Audit trail (activity logs)
-- ? Connection pooling (MySQLConnectionPool)
-- ? SQL injection prevention (parameterized queries)
-- ? km_per_liter auto-calculation (NULLIF + previous ODO tracking)
-- ? Responsive design (mobile + desktop)
+- ✅ GA → Finance → Archive workflow
+- ✅ PIN security system (6-digit)
+- ✅ Driver-vehicle master data + auto-fill
+- ✅ GPS administrative location + SPBU finder
+- ✅ Auto-watermark on photos (date, time, location)
+- ✅ Professional PDF report (narrow margin, humanistic narrative)
+- ✅ User management (CRUD + role-based)
+- ✅ Settings PIN gate (admin only)
+- ✅ Modern UI theme (Inter font, blue palette)
+- ✅ Analytics with appointment tracking
+- ✅ Human Insight Engine (AI-driven coaching)
+- ✅ ZIP archive download (all evidence)
+- ✅ Rapor massal export (per driver PDF)
+- ✅ Dummy data toggle (demo mode)
+- ✅ Database backup (download SQL)
+- ✅ PWA support (installable)
+- ✅ Image compression (client-side)
+- ✅ ML anomaly detection (Isolation Forest)
+- ✅ Audit trail (activity logs)
+- ✅ Connection pooling (MySQLConnectionPool)
+- ✅ SQL injection prevention (parameterized queries)
+- ✅ km_per_liter auto-calculation (NULLIF + previous ODO tracking)
+- ✅ Responsive design (mobile + desktop)
 
 ---
 
-## ?? License
+## 📄 License
 
 Internal use - PT. Bestprofit Surabaya  
 Version 1.0 | July 2026
