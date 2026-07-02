@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - BPF BBM System</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1d4ed8">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb; --primary-dark: #1d4ed8; --primary-light: #dbeafe;
+            --success: #059669; --success-light: #d1fae5;
+            --warning: #d97706; --warning-light: #fef3c7;
+            --danger: #dc2626; --danger-light: #fee2e2;
+            --info: #0891b2; --info-light: #cffafe;
+            --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb;
+            --gray-300: #d1d5db; --gray-400: #9ca3af; --gray-500: #6b7280;
+            --gray-600: #4b5563; --gray-700: #374151; --gray-800: #1f2937; --gray-900: #111827;
+            --white: #ffffff;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+            --radius: 10px; --radius-sm: 6px; --radius-lg: 14px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Inter", "Segoe UI", system-ui, sans-serif; background: var(--gray-50); color: var(--gray-800); line-height: 1.6; }
+        .navbar { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: var(--shadow-md); position: sticky; top: 0; z-index: 100; }
+        .navbar h1 { font-size: 20px; font-weight: 700; }
+        .navbar .nav-links { display: flex; gap: 4px; flex-wrap: wrap; }
+        .navbar .nav-links a { color: rgba(255,255,255,0.85); text-decoration: none; padding: 7px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; }
+        .navbar .nav-links a:hover { background: rgba(255,255,255,0.12); color: white; }
+        .navbar .nav-links a.active { background: rgba(255,255,255,0.2); color: white; font-weight: 600; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 24px 20px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 22px; }
+        .stat-card { background: var(--white); padding: 18px 20px; border-radius: var(--radius); box-shadow: var(--shadow-sm); border: 1px solid var(--gray-200); border-left: 4px solid var(--primary); cursor: pointer; text-decoration: none; color: inherit; display: block; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .stat-card .number { font-size: 28px; font-weight: 700; color: var(--gray-900); }
+        .stat-card .label { font-size: 12px; color: var(--gray-500); margin-top: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card.active-tab { background: var(--primary-light); border-color: var(--primary); }
+        .tab-nav { display: flex; gap: 2px; margin-bottom: 18px; background: var(--gray-100); border-radius: var(--radius); padding: 4px; overflow-x: auto; }
+        .tab-btn { padding: 10px 22px; border: none; background: transparent; border-radius: var(--radius-sm); cursor: pointer; font-weight: 500; font-size: 13px; white-space: nowrap; color: var(--gray-600); }
+        .tab-btn:hover { color: var(--gray-900); }
+        .tab-btn.active { background: var(--white); color: var(--primary); font-weight: 600; box-shadow: var(--shadow-sm); }
+        .card { background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow); border: 1px solid var(--gray-200); overflow: hidden; margin-bottom: 20px; }
+        .card-header { padding: 16px 22px; border-bottom: 1px solid var(--gray-200); font-weight: 600; font-size: 15px; color: var(--gray-800); background: var(--gray-50); display: flex; justify-content: space-between; align-items: center; }
+        .card-body { padding: 20px 22px; }
+        .tx-item { border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 12px; background: var(--white); }
+        .tx-item:hover { box-shadow: var(--shadow-md); }
+        .tx-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+        .tx-header .nopol { font-weight: 700; font-size: 17px; color: var(--gray-900); }
+        .tx-detail { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--gray-600); margin: 8px 0; }
+        .tx-detail span { background: var(--gray-100); padding: 3px 10px; border-radius: 20px; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .badge-pending { background: var(--warning-light); color: var(--warning); }
+        .badge-ga { background: var(--info-light); color: var(--info); }
+        .badge-finance { background: var(--success-light); color: var(--success); }
+        .badge-archive { background: var(--gray-100); color: var(--gray-500); }
+        .badge-reject { background: var(--danger-light); color: var(--danger); }
+        .workflow-indicator { display: flex; align-items: center; gap: 6px; font-size: 11px; margin: 10px 0; padding: 8px 12px; background: var(--gray-50); border-radius: var(--radius-sm); }
+        .workflow-step { padding: 3px 10px; border-radius: 20px; font-weight: 600; }
+        .workflow-step.done { background: var(--success-light); color: var(--success); }
+        .workflow-step.current { background: var(--warning-light); color: var(--warning); }
+        .workflow-step.next { background: var(--gray-100); color: var(--gray-400); }
+        .workflow-arrow { color: var(--gray-400); }
+        .photo-gallery { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+        .photo-thumb { width: 56px; height: 42px; object-fit: cover; border-radius: var(--radius-sm); cursor: pointer; border: 1.5px solid var(--gray-200); }
+        .photo-thumb:hover { border-color: var(--primary); }
+        .btn { padding: 7px 16px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-info { background: var(--info); color: white; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-secondary { background: var(--gray-500); color: white; }
+        .btn-outline { background: white; color: var(--primary); border: 1.5px solid var(--primary); }
+        .btn:hover { opacity: 0.9; }
+        .alert { padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 14px; font-size: 13px; font-weight: 500; }
+        .alert-success { background: var(--success-light); color: #065f46; border-left: 4px solid var(--success); }
+        .alert-error { background: var(--danger-light); color: #991b1b; border-left: 4px solid var(--danger); }
+        .alert-warning { background: var(--warning-light); color: #92400e; border-left: 4px solid var(--warning); }
+        .empty { text-align: center; padding: 48px 20px; color: var(--gray-400); }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: white; border-radius: var(--radius-lg); padding: 24px; width: 90%; max-width: 420px; box-shadow: var(--shadow-lg); }
+        .modal-box h3 { color: var(--gray-800); margin-bottom: 12px; }
+        .modal-box textarea, .modal-box input { width: 100%; padding: 10px; border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm); font-size: 13px; }
+        .flex { display: flex; }
+        .gap-2 { gap: 8px; }
+        .flex-wrap { flex-wrap: wrap; }
+        .text-sm { font-size: 12px; }
+        .text-gray { color: var(--gray-500); }
+        @media (max-width: 768px) { .tab-btn { padding: 8px 14px; font-size: 12px; } .stats { grid-template-columns: repeat(2, 1fr); } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>BPF BBM System</h1>
+        <div class="nav-links">
+            <a href="/admin" class="active">Dashboard</a>
+            <a href="/admin/rekap">Rekap</a>
+            <a href="/admin/analytics">Analytics</a>
+            <a href="/admin/settings">Settings</a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message|safe }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="stats">
+            <a href="?tab=ga_queue" class="stat-card {% if stats.tab == 'ga_queue' %}active-tab{% endif %}">
+                <div class="number">{{ stats.pending }}</div>
+                <div class="label">Antrean GA</div>
+            </a>
+            <a href="?tab=finance" class="stat-card {% if stats.tab == 'finance' %}active-tab{% endif %}">
+                <div class="number">{{ stats.verified_ga }}</div>
+                <div class="label">Disburse Finance</div>
+            </a>
+            <a href="?tab=driver_confirm" class="stat-card {% if stats.tab == 'driver_confirm' %}active-tab{% endif %}">
+                <div class="number">{{ stats.os_finance }}</div>
+                <div class="label">Konfirmasi Driver</div>
+            </a>
+            <a href="?tab=archive" class="stat-card {% if stats.tab == 'archive' %}active-tab{% endif %}">
+                <div class="number">{{ stats.archived }}</div>
+                <div class="label">Arsip</div>
+            </a>
+        </div>
+        
+        <div class="tab-nav">
+            <button class="tab-btn {% if stats.tab == 'ga_queue' %}active{% endif %}" onclick="switchTab('ga_queue')">Antrean GA ({{ stats.pending }})</button>
+            <button class="tab-btn {% if stats.tab == 'finance' %}active{% endif %}" onclick="switchTab('finance')">Disburse Finance ({{ stats.verified_ga }})</button>
+            <button class="tab-btn {% if stats.tab == 'driver_confirm' %}active{% endif %}" onclick="switchTab('driver_confirm')">Konfirmasi Driver ({{ stats.os_finance }})</button>
+            <button class="tab-btn {% if stats.tab == 'archive' %}active{% endif %}" onclick="switchTab('archive')">Arsip ({{ stats.archived }})</button>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <span>
+                    {% if stats.tab == 'ga_queue' %}Antrean Persetujuan GA{% elif stats.tab == 'finance' %}Disburse Dana - Finance{% elif stats.tab == 'driver_confirm' %}Menunggu TTD Driver{% else %}Arsip Transaksi{% endif %}
+                </span>
+                <span class="text-sm text-gray">{{ transactions|length }} transaksi</span>
+            </div>
+            <div class="card-body">
+                {% if transactions %}
+                    {% for tx in transactions %}
+                    <div class="tx-item">
+                        <div class="tx-header">
+                            <span>
+                                <span class="nopol">#{{ tx.id }} &middot; {{ tx.nopol }}</span>
+                                <span class="text-sm text-gray">({{ tx.vehicle_type or 'AVANZA' }})</span>
+                            </span>
+                            <span class="badge {% if tx.status == 'pending' %}badge-pending{% elif tx.status == 'verified_ga' %}badge-ga{% elif tx.status == 'os_finance' %}badge-finance{% elif tx.status == 'archived' %}badge-archive{% elif tx.status == 'rejected' %}badge-reject{% else %}badge-pending{% endif %}">
+                                {{ tx.status|replace('_', ' ')|upper }}
+                            </span>
+                        </div>
+                        
+                        <div class="tx-detail">
+                            <span><strong>{{ tx.driver_name }}</strong></span>
+                            <span>{{ tx.created_at.strftime('%d/%m/%Y %H:%M') if tx.created_at else '-' }}</span>
+                            <span>Rp {{ "{:,.0f}".format(tx.nominal) if tx.nominal else 0 }}</span>
+                            <span>{{ tx.bbm_type or 'PERTALITE' }} &middot; {{ tx.liter }}L</span>
+                            <span>ODO: {{ tx.odo_km }} km</span>
+                            <span>Appt: {{ tx.jumlah_appointment or 0 }}x</span>
+                        </div>
+                        
+                        <div class="workflow-indicator">
+                            <span class="workflow-step {% if tx.status in ['verified_ga','os_finance','archived'] %}done{% elif tx.status == 'pending' %}current{% else %}next{% endif %}">GA</span>
+                            <span class="workflow-arrow">&rarr;</span>
+                            <span class="workflow-step {% if tx.status in ['os_finance','archived'] %}done{% elif tx.status == 'verified_ga' %}current{% else %}next{% endif %}">Finance</span>
+                            <span class="workflow-arrow">&rarr;</span>
+                            <span class="workflow-step {% if tx.status == 'archived' %}done{% elif tx.status == 'os_finance' %}current{% else %}next{% endif %}">Driver TTD</span>
+                            <span class="workflow-arrow">&rarr;</span>
+                            <span class="workflow-step {% if tx.status == 'archived' %}done{% else %}next{% endif %}">Arsip</span>
+                        </div>
+                        
+                        <div class="photo-gallery">
+                            {% for field in ['foto_odo_sebelum','foto_nota_odo_sesudah','foto_struk','foto_struk_dispenser'] %}
+                                {% if tx[field] %}
+                                <a href="/uploads/{{ tx[field] }}" target="_blank">
+                                    <img src="/uploads/{{ tx[field] }}" class="photo-thumb" loading="lazy">
+                                </a>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- ACTION BUTTONS - PAKAI requirePin (BUKAN showPinModal) -->
+                        <div class="flex gap-2 flex-wrap" style="margin-top:10px;">
+                            {% if tx.status in ['pending', 'modified'] %}
+                                <button type="button" class="btn btn-success" onclick="requirePin('approve', {{ tx.id }}, 'GA')">Approve (GA)</button>
+                                <button type="button" class="btn btn-danger" onclick="showRejectModal({{ tx.id }})">Tolak</button>
+                            {% elif tx.status == 'verified_ga' %}
+                                <button type="button" class="btn btn-info" onclick="requirePin('payout', {{ tx.id }}, 'Finance')">Keluarkan Dana</button>
+                                <button type="button" class="btn btn-danger" onclick="showRejectModal({{ tx.id }})">Tolak</button>
+                            {% elif tx.status == 'os_finance' %}
+                                <button type="button" class="btn btn-success" onclick="requirePin('archive', {{ tx.id }}, 'Finance')">Driver TTD & Arsip</button>
+                            {% elif tx.status == 'archived' %}
+                                <a href="/finance/download-archive/{{ tx.id }}" class="btn btn-outline">Download ZIP</a>
+                                <a href="/admin/report/{{ tx.id }}" class="btn btn-secondary">PDF</a>
+                            {% elif tx.status == 'rejected' %}
+                                <span style="color:var(--danger);font-size:12px;">Ditolak: {{ tx.rejection_reason or '-' }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty"><p>Tidak ada transaksi di tab ini.</p></div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- REJECT MODAL -->
+    <div class="modal-overlay" id="rejectModal">
+        <div class="modal-box">
+            <h3>Tolak Transaksi</h3>
+            <form id="rejectForm" method="POST">
+                <input type="hidden" name="rejected_by" value="Admin">
+                <label style="font-size:13px;font-weight:600;color:var(--gray-700);">Alasan Penolakan:</label>
+                <textarea name="rejection_reason" placeholder="Tulis alasan..." required style="margin-top:6px;min-height:80px;"></textarea>
+                <div class="flex gap-2" style="justify-content:flex-end;margin-top:12px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeRejectModal()">Batal</button>
+                    <button type="submit" class="btn btn-danger">Tolak</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- PIN MODAL -->
+    <div class="modal-overlay" id="pinModal">
+        <div class="modal-box">
+            <h3 id="pinModalTitle">Verifikasi PIN</h3>
+            <p style="font-size:13px;color:var(--gray-500);margin-bottom:12px;" id="pinModalMsg">Masukkan PIN 6-digit</p>
+            <input type="password" id="pinInput" class="form-control" placeholder="••••••" maxlength="6" inputmode="numeric" pattern="[0-9]*" style="font-size:24px;text-align:center;letter-spacing:8px;width:150px;margin:0 auto;display:block;">
+            <p id="pinError" style="color:var(--danger);font-size:12px;text-align:center;margin-top:8px;display:none;"></p>
+            <div class="flex gap-2" style="justify-content:center;margin-top:16px;">
+                <button type="button" class="btn btn-secondary" onclick="closePinModal()">Batal</button>
+                <button type="button" class="btn btn-primary" id="pinSubmitBtn" onclick="submitPin()">Verifikasi</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // ============================================================
+        // TAB SWITCHING
+        // ============================================================
+        function switchTab(tab) { window.location.href = '/admin?tab=' + tab; }
+        
+        // ============================================================
+        // REJECT MODAL
+        // ============================================================
+        function showRejectModal(txId) {
+            document.getElementById('rejectForm').action = '/admin/reject/' + txId;
+            document.getElementById('rejectModal').classList.add('active');
+        }
+        function closeRejectModal() { document.getElementById('rejectModal').classList.remove('active'); }
+        
+        // ============================================================
+        // PIN MODAL
+        // ============================================================
+        let pendingAction = null;
+        let pendingTxId = null;
+        
+        function requirePin(action, txId, role) {
+            console.log('requirePin called:', action, txId, role);
+            pendingAction = action;
+            pendingTxId = txId;
+            document.getElementById('pinModalTitle').textContent = 'Verifikasi ' + role.toUpperCase();
+            document.getElementById('pinModalMsg').textContent = 'Masukkan PIN 6-digit ' + role + ' untuk melanjutkan';
+            document.getElementById('pinInput').value = '';
+            document.getElementById('pinError').style.display = 'none';
+            document.getElementById('pinSubmitBtn').disabled = false;
+            document.getElementById('pinSubmitBtn').textContent = 'Verifikasi';
+            document.getElementById('pinModal').classList.add('active');
+            setTimeout(function() { document.getElementById('pinInput').focus(); }, 200);
+        }
+        
+        function closePinModal() {
+            document.getElementById('pinModal').classList.remove('active');
+            pendingAction = null;
+            pendingTxId = null;
+        }
+        
+        async function submitPin() {
+            var pin = document.getElementById('pinInput').value;
+            console.log('submitPin:', pin, 'action:', pendingAction, 'txId:', pendingTxId);
+            
+            if (pin.length !== 6 || !/^\d{6}$/.test(pin)) {
+                document.getElementById('pinError').textContent = 'PIN harus 6 digit angka';
+                document.getElementById('pinError').style.display = 'block';
+                return;
+            }
+            
+            var submitBtn = document.getElementById('pinSubmitBtn');
+            submitBtn.textContent = '...';
+            submitBtn.disabled = true;
+            document.getElementById('pinError').style.display = 'none';
+            
+            try {
+                var username = (pendingAction === 'payout' || pendingAction === 'archive') ? 'finance_officer' : 'ga_officer';
+                
+                var res = await fetch('/api/verify-pin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username, pin: pin })
+                });
+                var data = await res.json();
+                console.log('PIN response:', data);
+                
+                if (data.status === 'success') {
+                    closePinModal();
+                    var adminName = encodeURIComponent(data.user.full_name);
+                    
+                    if (pendingAction === 'approve') {
+                        if (confirm('Setujui klaim #' + pendingTxId + '?')) {
+                            window.location.href = '/ga/approve/' + pendingTxId + '?admin=' + adminName;
+                        }
+                    } else if (pendingAction === 'payout') {
+                        if (confirm('Konfirmasi dana sudah dikeluarkan untuk #' + pendingTxId + '?')) {
+                            window.location.href = '/finance/payout/' + pendingTxId + '?admin=' + adminName;
+                        }
+                    } else if (pendingAction === 'archive') {
+                        if (confirm('Driver sudah TTD? Arsipkan klaim #' + pendingTxId + '?')) {
+                            window.location.href = '/finance/archive/' + pendingTxId + '?admin=' + adminName;
+                        }
+                    }
+                } else {
+                    document.getElementById('pinError').textContent = 'PIN salah! Coba lagi.';
+                    document.getElementById('pinError').style.display = 'block';
+                    document.getElementById('pinInput').value = '';
+                    document.getElementById('pinInput').focus();
+                }
+            } catch (e) {
+                console.error('PIN error:', e);
+                document.getElementById('pinError').textContent = 'Error koneksi. Coba lagi.';
+                document.getElementById('pinError').style.display = 'block';
+            } finally {
+                submitBtn.textContent = 'Verifikasi';
+                submitBtn.disabled = false;
+            }
+        }
+        
+        // Close modals
+        document.getElementById('pinModal').addEventListener('click', function(e) { if (e.target === this) closePinModal(); });
+        document.getElementById('rejectModal').addEventListener('click', function(e) { if (e.target === this) closeRejectModal(); });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') { closePinModal(); closeRejectModal(); }
+        });
+        document.getElementById('pinInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') submitPin();
+        });
+    </script>
+</body>
+</html>

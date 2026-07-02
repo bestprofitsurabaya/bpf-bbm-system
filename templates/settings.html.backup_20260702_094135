@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - BPF BBM System</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1d4ed8">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #dbeafe;
+            --success: #059669;
+            --success-light: #d1fae5;
+            --warning: #d97706;
+            --warning-light: #fef3c7;
+            --danger: #dc2626;
+            --danger-light: #fee2e2;
+            --info: #0891b2;
+            --info-light: #cffafe;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --white: #ffffff;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --radius-lg: 14px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif; background: var(--gray-50); color: var(--gray-800); line-height: 1.6; }
+        
+        /* Navbar */
+        .navbar { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: var(--shadow-md); position: sticky; top: 0; z-index: 100; }
+        .navbar h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+        .navbar .nav-links { display: flex; gap: 4px; flex-wrap: wrap; }
+        .navbar .nav-links a { color: rgba(255,255,255,0.85); text-decoration: none; padding: 7px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; transition: all 0.2s; }
+        .navbar .nav-links a:hover { background: rgba(255,255,255,0.12); color: white; }
+        .navbar .nav-links a.active { background: rgba(255,255,255,0.2); color: white; font-weight: 600; }
+        
+        /* Container */
+        .container { max-width: 1400px; margin: 0 auto; padding: 24px 20px; }
+        
+        /* Cards */
+        .card { background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow); border: 1px solid var(--gray-200); overflow: hidden; margin-bottom: 20px; }
+        .card-header { padding: 16px 22px; border-bottom: 1px solid var(--gray-200); font-weight: 600; font-size: 15px; color: var(--gray-800); background: var(--gray-50); display: flex; justify-content: space-between; align-items: center; }
+        .card-body { padding: 20px 22px; }
+        
+        /* Stats */
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 22px; }
+        .stat-card { background: var(--white); padding: 18px 20px; border-radius: var(--radius); box-shadow: var(--shadow-sm); border: 1px solid var(--gray-200); border-left: 4px solid var(--primary); cursor: pointer; text-decoration: none; color: inherit; display: block; transition: all 0.2s; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .stat-card .number { font-size: 28px; font-weight: 700; color: var(--gray-900); }
+        .stat-card .label { font-size: 12px; color: var(--gray-500); margin-top: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card.active-tab { background: var(--primary-light); border-color: var(--primary); }
+        
+        /* Tabs */
+        .tab-nav { display: flex; gap: 2px; margin-bottom: 18px; background: var(--gray-100); border-radius: var(--radius); padding: 4px; overflow-x: auto; }
+        .tab-btn { padding: 10px 22px; border: none; background: transparent; border-radius: var(--radius-sm); cursor: pointer; font-weight: 500; font-size: 13px; white-space: nowrap; color: var(--gray-600); transition: all 0.2s; }
+        .tab-btn:hover { color: var(--gray-900); }
+        .tab-btn.active { background: var(--white); color: var(--primary); font-weight: 600; box-shadow: var(--shadow-sm); }
+        
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { background: var(--gray-100); color: var(--gray-700); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 12px; text-align: left; border-bottom: 2px solid var(--gray-200); white-space: nowrap; }
+        td { padding: 10px 12px; border-bottom: 1px solid var(--gray-100); color: var(--gray-700); }
+        tr:hover td { background: var(--gray-50); }
+        
+        /* Badges */
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
+        .badge-pending { background: var(--warning-light); color: var(--warning); }
+        .badge-ga { background: var(--info-light); color: var(--info); }
+        .badge-finance { background: var(--success-light); color: var(--success); }
+        .badge-archive { background: var(--gray-100); color: var(--gray-500); }
+        .badge-reject { background: var(--danger-light); color: var(--danger); }
+        .badge-good { background: var(--success-light); color: var(--success); }
+        .badge-warning { background: var(--warning-light); color: var(--warning); }
+        .badge-danger { background: var(--danger-light); color: var(--danger); }
+        
+        /* Buttons */
+        .btn { padding: 7px 16px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; letter-spacing: 0.3px; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #047857; }
+        .btn-info { background: var(--info); color: white; }
+        .btn-info:hover { background: #0e7490; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-warning:hover { background: #b45309; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-secondary { background: var(--gray-500); color: white; }
+        .btn-secondary:hover { background: var(--gray-600); }
+        .btn-outline { background: white; color: var(--primary); border: 1.5px solid var(--primary); }
+        .btn-outline:hover { background: var(--primary-light); }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-sm { padding: 4px 10px; font-size: 11px; }
+        
+        /* Forms */
+        .form-control { width: 100%; padding: 9px 13px; border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm); font-size: 13px; color: var(--gray-800); background: var(--white); transition: border-color 0.2s; }
+        .form-control:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .form-control[readonly] { background: var(--gray-100); color: var(--gray-600); }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-weight: 600; font-size: 13px; color: var(--gray-700); margin-bottom: 5px; }
+        .form-group label .required { color: var(--danger); }
+        
+        /* Alerts */
+        .alert { padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 14px; font-size: 13px; font-weight: 500; }
+        .alert-success { background: var(--success-light); color: #065f46; border-left: 4px solid var(--success); }
+        .alert-error { background: var(--danger-light); color: #991b1b; border-left: 4px solid var(--danger); }
+        .alert-warning { background: var(--warning-light); color: #92400e; border-left: 4px solid var(--warning); }
+        
+        /* Empty state */
+        .empty { text-align: center; padding: 48px 20px; color: var(--gray-400); }
+        .empty-icon { font-size: 48px; margin-bottom: 12px; }
+        
+        /* Misc */
+        .note { font-size: 12px; color: var(--gray-500); margin-top: 4px; }
+        .divider { border-top: 1.5px dashed var(--gray-200); margin: 22px 0; }
+        .text-sm { font-size: 12px; }
+        .text-gray { color: var(--gray-500); }
+        .font-bold { font-weight: 700; }
+        .mt-2 { margin-top: 8px; }
+        .mt-4 { margin-top: 16px; }
+        .mb-4 { margin-bottom: 16px; }
+        .flex { display: flex; }
+        .gap-2 { gap: 8px; }
+        .flex-wrap { flex-wrap: wrap; }
+</style>
+    <style>
+        .row-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; align-items: end; }
+        .btn-add { background: var(--success); color: white; padding: 8px 16px; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 12px; font-weight: 600; margin-top: 10px; }
+        .btn-remove { background: var(--danger); color: white; padding: 5px 12px; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 11px; }
+        @media (max-width: 768px) { .row-4 { grid-template-columns: 1fr 1fr; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>BPF BBM System</h1>
+        <div class="nav-links">
+            <a href="/admin">Dashboard</a>
+            <a href="/admin/rekap">Rekap</a>
+            <a href="/admin/analytics">Analytics</a>
+            <a href="/admin/settings" class="active">Settings</a>
+        </div>
+    </nav>
+    
+    
+        <!-- PIN GATE untuk Settings -->
+        <div id="settingsGate" style="display:flex; justify-content:center; align-items:center; min-height:60vh;">
+            <div style="background:white; padding:40px; border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); text-align:center; max-width:380px; width:100%;">
+                <div style="font-size:48px; margin-bottom:12px;">&#128274;</div>
+                <h2 style="color:var(--gray-800); margin-bottom:8px;">Admin Access Only</h2>
+                <p style="color:var(--gray-500); font-size:14px; margin-bottom:20px;">Masukkan PIN Admin untuk mengakses Settings</p>
+                <input type="password" id="adminPinInput" class="form-control" placeholder="••••••" maxlength="6" inputmode="numeric" pattern="[0-9]*" style="font-size:24px;text-align:center;letter-spacing:8px;width:150px;margin:0 auto 12px;display:block;">
+                <p id="adminPinError" style="color:var(--danger);font-size:12px;margin-bottom:12px;display:none;"></p>
+                <button class="btn btn-primary" onclick="verifyAdminPin()" style="padding:10px 32px;">Buka Settings</button>
+            </div>
+        </div>
+        
+        <!-- MAIN CONTENT (hidden until verified) -->
+        <div id="settingsContent" style="display:none;">
+<div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message|safe }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <!-- DRIVER MANAGEMENT -->
+        <div class="card">
+            <div class="card-header">Manajemen Driver & Kendaraan</div>
+            <div class="card-body">
+                <p class="note mb-4">Data di sini menjadi acuan auto-fill form Driver. Setiap driver terikat ke 1 Nopol, 1 Kendaraan, 1 BBM.</p>
+                <table>
+                    <thead><tr><th>Nama Driver</th><th>No. Polisi</th><th>Tipe Kendaraan</th><th>Jenis BBM</th><th>Status</th><th>Aksi</th></tr></thead>
+                    <tbody id="driver-table">
+                        <tr><td colspan="6" style="text-align:center;color:var(--gray-400);">Loading...</td></tr>
+                    </tbody>
+                </table>
+                
+                <div style="margin-top:16px;padding:14px;background:var(--gray-50);border-radius:var(--radius);border:1px solid var(--gray-200);">
+                    <strong style="color:var(--gray-700);">Tambah/Update Driver:</strong>
+                    <div class="row-4" style="margin-top:8px;">
+                        <input type="text" id="newDriverName" class="form-control" placeholder="Nama Driver">
+                        <input type="text" id="newDriverNopol" class="form-control" placeholder="No. Polisi">
+                        <select id="newDriverVehicle" class="form-control">
+                            <option value="">Kendaraan</option>
+                            {% for v in vehicles %}<option value="{{ v.vehicle_type }}">{{ v.vehicle_type }}</option>{% endfor %}
+                        </select>
+                        <select id="newDriverBBM" class="form-control">
+                            <option value="">BBM</option>
+                            {% for b in bbm_types %}<option value="{{ b.name }}">{{ b.name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <button class="btn-add" onclick="syncDriver()">+ Simpan Driver</button>
+                    <span id="syncStatus" class="text-sm" style="margin-left:10px;"></span>
+                </div>
+            </div>
+        </div>
+        
+        
+        <!-- USER & PIN MANAGEMENT -->
+        <div class="card">
+            <div class="card-header">Manajemen User & PIN</div>
+            <div class="card-body">
+                <p class="note mb-4">Kelola user GA dan Finance beserta PIN 6-digit mereka. PIN digunakan untuk verifikasi setiap approval.</p>
+                <table>
+                    <thead><tr><th>Username</th><th>Nama Lengkap</th><th>Role</th><th>PIN</th><th>Status</th><th>Login Terakhir</th><th>Aksi</th></tr></thead>
+                    <tbody id="user-table">
+                        <tr><td colspan="7" style="text-align:center;color:var(--gray-400);">Loading...</td></tr>
+                    </tbody>
+                </table>
+                
+                <div style="margin-top:16px;padding:14px;background:var(--gray-50);border-radius:var(--radius);border:1px solid var(--gray-200);">
+                    <strong style="color:var(--gray-700);">Tambah/Update User:</strong>
+                    <div class="row-4" style="margin-top:8px;">
+                        <input type="text" id="newUsername" class="form-control" placeholder="Username">
+                        <input type="text" id="newFullName" class="form-control" placeholder="Nama Lengkap">
+                        <select id="newRole" class="form-control">
+                            <option value="ga">GA Officer</option>
+                            <option value="finance">Finance Officer</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                        <input type="text" id="newPin" class="form-control" placeholder="PIN 6-digit" maxlength="6" inputmode="numeric" pattern="[0-9]*">
+                    </div>
+                    <button class="btn-add" onclick="syncUser()">+ Simpan User</button>
+                    <span id="syncUserStatus" class="text-sm" style="margin-left:10px;"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SETTINGS FORM -->
+        <form method="POST">
+            <div class="card">
+                <div class="card-header">Tipe Kendaraan</div>
+                <div class="card-body">
+                    <table>
+                        <thead><tr><th>Tipe</th><th>Brand</th><th>Kapasitas (L)</th><th>Aktif</th><th></th></tr></thead>
+                        <tbody id="vehicle-table">
+                            {% for v in vehicles %}
+                            <tr>
+                                <td><input type="hidden" name="vehicle_id[]" value="{{ v.id }}"><input type="text" name="vehicle_name[]" class="form-control" value="{{ v.vehicle_type }}"></td>
+                                <td><input type="text" name="vehicle_brand[]" class="form-control" value="{{ v.brand }}"></td>
+                                <td><input type="number" name="vehicle_capacity[]" class="form-control" value="{{ v.fuel_capacity }}" style="width:80px;"></td>
+                                <td><input type="checkbox" name="vehicle_active[]" value="{{ loop.index0 }}" {% if v.is_active %}checked{% endif %}></td>
+                                <td><button type="button" class="btn-remove" onclick="this.closest('tr').remove()">Hapus</button></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <button type="button" class="btn-add" onclick="addVehicleRow()">+ Tambah</button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">Jenis BBM</div>
+                <div class="card-body">
+                    <table>
+                        <thead><tr><th>Nama BBM</th><th>Harga/Liter (Rp)</th><th>Aktif</th><th></th></tr></thead>
+                        <tbody id="bbm-table">
+                            {% for b in bbm_types %}
+                            <tr>
+                                <td><input type="hidden" name="bbm_id[]" value="{{ b.id }}"><input type="text" name="bbm_name[]" class="form-control" value="{{ b.name }}"></td>
+                                <td><input type="number" name="bbm_price[]" class="form-control" value="{{ b.price_per_liter }}" style="width:120px;"></td>
+                                <td><input type="checkbox" name="bbm_active[]" value="{{ loop.index0 }}" {% if b.is_active %}checked{% endif %}></td>
+                                <td><button type="button" class="btn-remove" onclick="this.closest('tr').remove()">Hapus</button></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <button type="button" class="btn-add" onclick="addBBMRow()">+ Tambah</button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">Batas Konsumsi</div>
+                <div class="card-body">
+                    <table>
+                        <thead><tr><th>Kendaraan</th><th>BBM</th><th>Baik</th><th>Warning</th><th>Min</th><th>Max</th><th>Default</th></tr></thead>
+                        <tbody>
+                            {% for limit in vehicle_limits %}
+                            <tr>
+                                <td><input type="hidden" name="limit_id[]" value="{{ limit.id }}"><strong>{{ limit.vehicle_type }}</strong></td>
+                                <td><strong>{{ limit.bbm_type }}</strong></td>
+                                <td><input type="number" name="limit_good[]" class="form-control" value="{{ limit.good_km_per_liter }}" step="0.5" style="width:70px;"></td>
+                                <td><input type="number" name="limit_warning[]" class="form-control" value="{{ limit.warning_km_per_liter }}" step="0.5" style="width:70px;"></td>
+                                <td><input type="number" name="limit_min[]" class="form-control" value="{{ limit.min_km_per_liter }}" step="0.5" style="width:70px;"></td>
+                                <td><input type="number" name="limit_max[]" class="form-control" value="{{ limit.max_km_per_liter }}" step="0.5" style="width:70px;"></td>
+                                <td><input type="checkbox" name="limit_default[]" value="{{ loop.index0 }}" {% if limit.is_default %}checked{% endif %}></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div style="text-align:center;margin-top:20px;">
+                <button type="submit" class="btn btn-primary" style="padding:12px 48px;font-size:15px;">Simpan Semua Settings</button>
+            </div>
+        </form>
+    </div>
+    
+    <script>
+        async function loadDriverTable() {
+            try {
+                const res = await fetch('/api/drivers');
+                const drivers = await res.json();
+                const tbody = document.getElementById('driver-table');
+                if (!drivers.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--gray-400);">Belum ada driver</td></tr>'; return; }
+                tbody.innerHTML = drivers.map(d => `<tr><td><strong>${d.name}</strong></td><td>${d.nopol}</td><td>${d.vehicle_type}</td><td>${d.bbm_type}</td><td><span class="badge badge-good">Aktif</span></td><td><button class="btn-remove" onclick="deactivateDriver('${d.name}')">Nonaktifkan</button></td></tr>`).join('');
+            } catch(e) {}
+        }
+        async function syncDriver() {
+            const name = document.getElementById('newDriverName').value.trim().toUpperCase();
+            const nopol = document.getElementById('newDriverNopol').value.trim().toUpperCase();
+            const vehicle = document.getElementById('newDriverVehicle').value;
+            const bbm = document.getElementById('newDriverBBM').value;
+            const status = document.getElementById('syncStatus');
+            if (!name || !nopol) { status.textContent = 'Nama dan Nopol wajib!'; status.style.color = 'var(--danger)'; return; }
+            status.textContent = 'Menyimpan...';
+            const res = await fetch('/api/drivers/sync', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({driver_name:name, nopol, vehicle_type:vehicle||'AVANZA', bbm_type:bbm||'PERTALITE'}) });
+            const data = await res.json();
+            status.textContent = data.status === 'success' ? 'Berhasil!' : 'Gagal: ' + data.msg;
+            status.style.color = data.status === 'success' ? 'var(--success)' : 'var(--danger)';
+            if (data.status === 'success') { document.getElementById('newDriverName').value = ''; document.getElementById('newDriverNopol').value = ''; loadDriverTable();
+    // ============================================================
+    // USER MANAGEMENT
+    // ============================================================
+    async function loadUserTable() {
+        try {
+            const res = await fetch('/api/users');
+            const users = await res.json();
+            const tbody = document.getElementById('user-table');
+            if (!users.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--gray-400);">Belum ada user</td></tr>'; return; }
+            tbody.innerHTML = users.map(u => 
+                `<tr>
+                    <td><strong>${u.username}</strong></td>
+                    <td>${u.full_name}</td>
+                    <td><span class="badge badge-${u.role === 'admin' ? 'danger' : u.role === 'finance' ? 'finance' : 'ga'}">${u.role.toUpperCase()}</span></td>
+                    <td><code>${'*'.repeat(6)}</code></td>
+                    <td><span class="badge ${u.is_active ? 'badge-good' : 'badge-danger'}">${u.is_active ? 'Aktif' : 'Nonaktif'}</span></td>
+                    <td class="text-sm text-gray">${u.last_login ? new Date(u.last_login).toLocaleString('id-ID') : '-'}</td>
+                    <td><button class="btn-remove" onclick="toggleUser('${u.username}', ${u.is_active})">${u.is_active ? 'Nonaktifkan' : 'Aktifkan'}</button></td>
+                </tr>`
+            ).join('');
+        } catch(e) {}
+    }
+
+    async function syncUser() {
+        const username = document.getElementById('newUsername').value.trim();
+        const fullName = document.getElementById('newFullName').value.trim();
+        const role = document.getElementById('newRole').value;
+        const pin = document.getElementById('newPin').value.trim();
+        const status = document.getElementById('syncUserStatus');
+        
+        if (!username || !fullName || !pin) { status.textContent = 'Semua field wajib!'; status.style.color = 'var(--danger)'; return; }
+        if (pin.length !== 6 || !/^\d{6}$/.test(pin)) { status.textContent = 'PIN harus 6 digit angka!'; status.style.color = 'var(--danger)'; return; }
+        
+        status.textContent = 'Menyimpan...';
+        const res = await fetch('/api/users/sync', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ username, full_name: fullName, role, pin, is_active: true })
+        });
+        const data = await res.json();
+        status.textContent = data.status === 'success' ? 'Berhasil!' : 'Gagal: ' + data.msg;
+        status.style.color = data.status === 'success' ? 'var(--success)' : 'var(--danger)';
+        if (data.status === 'success') { 
+            document.getElementById('newUsername').value = '';
+            document.getElementById('newFullName').value = '';
+            document.getElementById('newPin').value = '';
+            loadUserTable(); 
+        }
+    }
+
+    async function toggleUser(username, currentActive) {
+        const action = currentActive ? 'nonaktifkan' : 'aktifkan';
+        if (!confirm('Yakin ' + action + ' user ' + username + '?')) return;
+        await fetch('/api/users/sync', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ username, full_name: username, role: 'ga', pin: '000000', is_active: !currentActive })
+        });
+        loadUserTable();
+    }
+
+    loadUserTable();
+ }
+        }
+        async function deactivateDriver(name) { if (!confirm('Nonaktifkan ' + name + '?')) return; await fetch('/api/drivers/' + encodeURIComponent(name) + '/deactivate', { method:'POST' }); loadDriverTable();
+    // ============================================================
+    // USER MANAGEMENT
+    // ============================================================
+    async function loadUserTable() {
+        try {
+            const res = await fetch('/api/users');
+            const users = await res.json();
+            const tbody = document.getElementById('user-table');
+            if (!users.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--gray-400);">Belum ada user</td></tr>'; return; }
+            tbody.innerHTML = users.map(u => 
+                `<tr>
+                    <td><strong>${u.username}</strong></td>
+                    <td>${u.full_name}</td>
+                    <td><span class="badge badge-${u.role === 'admin' ? 'danger' : u.role === 'finance' ? 'finance' : 'ga'}">${u.role.toUpperCase()}</span></td>
+                    <td><code>${'*'.repeat(6)}</code></td>
+                    <td><span class="badge ${u.is_active ? 'badge-good' : 'badge-danger'}">${u.is_active ? 'Aktif' : 'Nonaktif'}</span></td>
+                    <td class="text-sm text-gray">${u.last_login ? new Date(u.last_login).toLocaleString('id-ID') : '-'}</td>
+                    <td><button class="btn-remove" onclick="toggleUser('${u.username}', ${u.is_active})">${u.is_active ? 'Nonaktifkan' : 'Aktifkan'}</button></td>
+                </tr>`
+            ).join('');
+        } catch(e) {}
+    }
+
+    async function syncUser() {
+        const username = document.getElementById('newUsername').value.trim();
+        const fullName = document.getElementById('newFullName').value.trim();
+        const role = document.getElementById('newRole').value;
+        const pin = document.getElementById('newPin').value.trim();
+        const status = document.getElementById('syncUserStatus');
+        
+        if (!username || !fullName || !pin) { status.textContent = 'Semua field wajib!'; status.style.color = 'var(--danger)'; return; }
+        if (pin.length !== 6 || !/^\d{6}$/.test(pin)) { status.textContent = 'PIN harus 6 digit angka!'; status.style.color = 'var(--danger)'; return; }
+        
+        status.textContent = 'Menyimpan...';
+        const res = await fetch('/api/users/sync', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ username, full_name: fullName, role, pin, is_active: true })
+        });
+        const data = await res.json();
+        status.textContent = data.status === 'success' ? 'Berhasil!' : 'Gagal: ' + data.msg;
+        status.style.color = data.status === 'success' ? 'var(--success)' : 'var(--danger)';
+        if (data.status === 'success') { 
+            document.getElementById('newUsername').value = '';
+            document.getElementById('newFullName').value = '';
+            document.getElementById('newPin').value = '';
+            loadUserTable(); 
+        }
+    }
+
+    async function toggleUser(username, currentActive) {
+        const action = currentActive ? 'nonaktifkan' : 'aktifkan';
+        if (!confirm('Yakin ' + action + ' user ' + username + '?')) return;
+        await fetch('/api/users/sync', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ username, full_name: username, role: 'ga', pin: '000000', is_active: !currentActive })
+        });
+        loadUserTable();
+    }
+
+    loadUserTable();
+ }
+        function addVehicleRow() {
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<td><input type="text" name="new_vehicle_name[]" class="form-control" placeholder="Tipe"></td><td><input type="text" name="new_vehicle_brand[]" class="form-control" value="Toyota"></td><td><input type="number" name="new_vehicle_capacity[]" class="form-control" value="45" style="width:80px;"></td><td><input type="checkbox" checked disabled></td><td><button type="button" class="btn-remove" onclick="this.closest(\'tr\').remove()">Hapus</button></td>';
+            document.getElementById('vehicle-table').appendChild(tr);
+        }
+        function addBBMRow() {
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<td><input type="text" name="new_bbm_name[]" class="form-control" placeholder="BBM"></td><td><input type="number" name="new_bbm_price[]" class="form-control" placeholder="Harga" style="width:120px;"></td><td><input type="checkbox" checked disabled></td><td><button type="button" class="btn-remove" onclick="this.closest(\'tr\').remove()">Hapus</button></td>';
+            document.getElementById('bbm-table').appendChild(tr);
+        }
+        loadDriverTable();
+    // ============================================================
+    // USER MANAGEMENT
+    // ============================================================
+    async function loadUserTable() {
+        try {
+            const res = await fetch('/api/users');
+            const users = await res.json();
+            const tbody = document.getElementById('user-table');
+            if (!users.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--gray-400);">Belum ada user</td></tr>'; return; }
+            tbody.innerHTML = users.map(u => 
+                `<tr>
+                    <td><strong>${u.username}</strong></td>
+                    <td>${u.full_name}</td>
+                    <td><span class="badge badge-${u.role === 'admin' ? 'danger' : u.role === 'finance' ? 'finance' : 'ga'}">${u.role.toUpperCase()}</span></td>
+                    <td><code>${'*'.repeat(6)}</code></td>
+                    <td><span class="badge ${u.is_active ? 'badge-good' : 'badge-danger'}">${u.is_active ? 'Aktif' : 'Nonaktif'}</span></td>
+                    <td class="text-sm text-gray">${u.last_login ? new Date(u.last_login).toLocaleString('id-ID') : '-'}</td>
+                    <td><button class="btn-remove" onclick="toggleUser('${u.username}', ${u.is_active})">${u.is_active ? 'Nonaktifkan' : 'Aktifkan'}</button></td>
+                </tr>`
+            ).join('');
+        } catch(e) {}
+    }
+
+    async function syncUser() {
+        const username = document.getElementById('newUsername').value.trim();
+        const fullName = document.getElementById('newFullName').value.trim();
+        const role = document.getElementById('newRole').value;
+        const pin = document.getElementById('newPin').value.trim();
+        const status = document.getElementById('syncUserStatus');
+        
+        if (!username || !fullName || !pin) { status.textContent = 'Semua field wajib!'; status.style.color = 'var(--danger)'; return; }
+        if (pin.length !== 6 || !/^\d{6}$/.test(pin)) { status.textContent = 'PIN harus 6 digit angka!'; status.style.color = 'var(--danger)'; return; }
+        
+        status.textContent = 'Menyimpan...';
+        const res = await fetch('/api/users/sync', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ username, full_name: fullName, role, pin, is_active: true })
+        });
+        const data = await res.json();
+        status.textContent = data.status === 'success' ? 'Berhasil!' : 'Gagal: ' + data.msg;
+        status.style.color = data.status === 'success' ? 'var(--success)' : 'var(--danger)';
+        if (data.status === 'success') { 
+            document.getElementById('newUsername').value = '';
+            document.getElementById('newFullName').value = '';
+            document.getElementById('newPin').value = '';
+            loadUserTable(); 
+        }
+    }
+
+    async function toggleUser(username, currentActive) {
+        const action = currentActive ? 'nonaktifkan' : 'aktifkan';
+        if (!confirm('Yakin ' + action + ' user ' + username + '?')) return;
+        await fetch('/api/users/sync', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ username, full_name: username, role: 'ga', pin: '000000', is_active: !currentActive })
+        });
+        loadUserTable();
+    }
+
+    loadUserTable();
+
+    </script>
+
+    <script>
+        // ============================================================
+        // ADMIN PIN GATE
+        // ============================================================
+        async function verifyAdminPin() {
+            var pin = document.getElementById('adminPinInput').value;
+            var errorEl = document.getElementById('adminPinError');
+            
+            if (pin.length !== 6 || !/^\d{6}$/.test(pin)) {
+                errorEl.textContent = 'PIN harus 6 digit angka';
+                errorEl.style.display = 'block';
+                return;
+            }
+            
+            errorEl.style.display = 'none';
+            
+            try {
+                var res = await fetch('/api/verify-pin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', pin: pin })
+                });
+                var data = await res.json();
+                
+                if (data.status === 'success') {
+                    // Tampilkan konten
+                    document.getElementById('settingsGate').style.display = 'none';
+                    document.getElementById('settingsContent').style.display = 'block';
+                    // Trigger load tabel
+                    if (typeof loadDriverTable === 'function') loadDriverTable();
+                    if (typeof loadUserTable === 'function') loadUserTable();
+                } else {
+                    errorEl.textContent = 'PIN salah! Akses ditolak.';
+                    errorEl.style.display = 'block';
+                    document.getElementById('adminPinInput').value = '';
+                    document.getElementById('adminPinInput').focus();
+                }
+            } catch(e) {
+                errorEl.textContent = 'Error koneksi';
+                errorEl.style.display = 'block';
+            }
+        }
+        
+        document.getElementById('adminPinInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') verifyAdminPin();
+        });
+    </script>
+
+
+        </div><!-- end settingsContent -->
+</body>
+</html>

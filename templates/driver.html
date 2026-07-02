@@ -5,67 +5,89 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Klaim BBM - Driver</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#1a237e">
+    <meta name="theme-color" content="#1d4ed8">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { max-width:750px; width:100%; background:#fff; border-radius:16px; box-shadow:0 8px 30px rgba(0,0,0,0.12); padding:30px; margin-bottom:20px; }
-        .header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:25px; padding-bottom:15px; border-bottom:2px solid #e9ecef; }
-        .header h1 { font-size:24px; color:#1a237e; }
-        .alert { padding:12px 16px; border-radius:8px; margin-bottom:20px; font-weight:500; }
-        .alert-success { background:#d4edda; color:#155724; border-left:4px solid #28a745; }
-        .alert-error { background:#f8d7da; color:#721c24; border-left:4px solid #dc3545; }
-        .alert-warning { background:#fff3cd; color:#856404; border-left:4px solid #ffc107; }
-        .form-group { margin-bottom:18px; }
-        .form-group label { display:block; font-weight:600; font-size:14px; color:#333; margin-bottom:5px; }
-        .form-group label .required { color:#dc3545; }
-        .form-control { width:100%; padding:10px 14px; border:2px solid #dee2e6; border-radius:8px; font-size:14px; background:#f8f9fa; }
-        .form-control:focus { border-color:#1a237e; outline:none; background:#fff; }
-        .form-control-file { display:none; }
-        .row { display:grid; grid-template-columns:1fr 1fr; gap:15px; }
-        .divider { border-top:2px dashed #dee2e6; margin:25px 0; }
-        .btn-submit { width:100%; padding:14px; background:#1a237e; color:white; border:none; border-radius:8px; font-size:16px; font-weight:600; cursor:pointer; }
-        .btn-submit:hover { background:#0d1a5e; }
-        .btn-submit:disabled { background:#6c757d; cursor:not-allowed; }
-        .hidden { display:none !important; }
-        .note { font-size:12px; color:#6c757d; margin-top:4px; }
-        .gps-status { font-size:12px; font-weight:bold; padding:6px 12px; border-radius:6px; background:#f1f3f5; display:flex; align-items:center; gap:6px; }
-        .gps-status.active { background:#d4edda; color:#155724; }
-        .gps-status.inactive { background:#f8d7da; color:#721c24; }
-        .auto-calc { background:#e9ecef; padding:8px 12px; border-radius:6px; font-size:13px; color:#495057; }
-        .upload-btn { padding:10px 16px; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; flex:1; min-width:120px; }
-        .upload-btn-camera { background:#28a745; color:white; }
-        .upload-btn-gallery { background:#6c757d; color:white; }
-        .upload-btn-remove { background:#dc3545; color:white; padding:6px 12px; font-size:12px; flex:0.3; }
-        .preview-container { position:relative; display:inline-block; margin-top:8px; }
-        .preview-img { max-width:100%; max-height:180px; border-radius:8px; border:2px solid #dee2e6; }
-        .preview-remove { position:absolute; top:-8px; right:-8px; background:#dc3545; color:white; border:none; border-radius:50%; width:24px; height:24px; cursor:pointer; font-size:14px; font-weight:bold; display:flex; align-items:center; justify-content:center; }
-        .file-name { font-size:12px; color:#6c757d; margin-top:4px; word-break:break-all; }
-        .upload-row { display:flex; gap:10px; flex-wrap:wrap; }
-        .upload-group { display:flex; flex-direction:column; gap:8px; }
-        
-        /* Success Toast */
-        .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#28a745; color:white; padding:14px 24px; border-radius:10px; font-weight:bold; z-index:10001; box-shadow:0 4px 15px rgba(0,0,0,0.3); max-width:90%; text-align:center; animation:fadeInUp 0.3s ease; }
-        .toast.error { background:#dc3545; }
-        @keyframes fadeInUp { from { opacity:0; transform:translateX(-50%) translateY(20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
-        
-        /* Insight Modal */
-        #insightModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; justify-content:center; align-items:center; }
-        #insightModal .modal-content { background:white; width:90%; max-width:420px; border-radius:15px; padding:25px; position:relative; box-shadow:0 10px 40px rgba(0,0,0,0.5); }
-        
-        @media (max-width:600px) {
-            .row { grid-template-columns:1fr; }
-            .container { padding:20px; }
+        :root {
+            --primary: #2563eb; --primary-dark: #1d4ed8; --primary-light: #dbeafe;
+            --success: #059669; --success-light: #d1fae5;
+            --warning: #d97706; --warning-light: #fef3c7;
+            --danger: #dc2626; --danger-light: #fee2e2;
+            --info: #0891b2; --info-light: #cffafe;
+            --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb;
+            --gray-300: #d1d5db; --gray-400: #9ca3af; --gray-500: #6b7280;
+            --gray-600: #4b5563; --gray-700: #374151; --gray-800: #1f2937; --gray-900: #111827;
+            --white: #ffffff;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+            --radius: 10px; --radius-sm: 6px; --radius-lg: 14px;
         }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif; background: var(--gray-50); padding: 20px; display: flex; flex-direction: column; align-items: center; color: var(--gray-800); }
+        .container { max-width: 700px; width: 100%; background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); padding: 28px; }
+        .header { margin-bottom: 24px; padding-bottom: 14px; border-bottom: 2px solid var(--gray-100); }
+        .header h1 { font-size: 22px; color: var(--gray-900); font-weight: 700; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-weight: 600; font-size: 13px; color: var(--gray-700); margin-bottom: 5px; }
+        .form-group label .required { color: var(--danger); }
+        .form-control { width: 100%; padding: 9px 13px; border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm); font-size: 13px; color: var(--gray-800); background: var(--white); }
+        .form-control:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .form-control[readonly] { background: var(--gray-100); color: var(--gray-600); }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .divider { border-top: 1.5px dashed var(--gray-200); margin: 22px 0; }
+        .btn-submit { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; cursor: pointer; letter-spacing: 0.3px; }
+        .btn-submit:hover { background: var(--primary-dark); }
+        .btn-submit:disabled { background: var(--gray-400); cursor: not-allowed; }
+        .note { font-size: 12px; color: var(--gray-500); margin-top: 4px; }
+        
+        /* GPS Indicator */
+        .gps-box { background: var(--gray-50); border: 1.5px solid var(--gray-200); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 18px; }
+        .gps-box.active { background: var(--success-light); border-color: var(--success); }
+        .gps-box.loading { background: var(--warning-light); border-color: var(--warning); }
+        .gps-box.error { background: var(--danger-light); border-color: var(--danger); }
+        .gps-box .gps-title { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+        .gps-box .gps-coords { font-size: 11px; color: var(--gray-500); font-family: monospace; }
+        .gps-box .gps-address { font-size: 14px; font-weight: 600; color: var(--gray-800); margin-top: 6px; line-height: 1.4; }
+        .gps-box .gps-spbu { font-size: 12px; color: var(--info); margin-top: 4px; padding: 4px 8px; background: var(--info-light); border-radius: var(--radius-sm); display: inline-block; }
+        
+        .auto-fill-info { background: var(--info-light); padding: 12px 16px; border-radius: var(--radius-sm); font-size: 13px; color: var(--info); margin-top: 10px; border-left: 4px solid var(--info); display: none; }
+        .auto-fill-info.show { display: block; }
+        
+        /* Upload */
+        .upload-btn { padding: 10px 16px; border: none; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; cursor: pointer; flex: 1; min-width: 90px; }
+        .upload-btn-camera { background: var(--success); color: white; }
+        .upload-btn-gallery { background: var(--gray-500); color: white; }
+        .upload-btn-remove { background: var(--danger); color: white; padding: 6px 12px; font-size: 11px; flex: 0.3; }
+        .upload-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .preview-container { position: relative; display: inline-block; margin-top: 8px; width: 100%; }
+        .preview-img { width: 100%; max-height: 220px; object-fit: contain; border-radius: var(--radius-sm); border: 2px solid var(--gray-200); background: #000; }
+        .file-name { font-size: 11px; color: var(--gray-500); margin-top: 4px; word-break: break-all; }
+        .watermark-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; margin-top: 4px; }
+        .watermark-badge.active { background: var(--success-light); color: var(--success); }
+        .form-control-file { display: none; }
+        .hidden { display: none !important; }
+        
+        .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--success); color: white; padding: 14px 24px; border-radius: var(--radius); font-weight: 600; z-index: 10001; box-shadow: var(--shadow-lg); animation: fadeInUp 0.3s ease; }
+        .toast.error { background: var(--danger); }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        
+        @media (max-width: 600px) { .row { grid-template-columns: 1fr; } .container { padding: 20px; } }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>Klaim BBM</h1>
-            <div id="gps-indicator" class="gps-status inactive">
-                <span id="gps-text">Mendapatkan lokasi...</span>
-            </div>
+        </div>
+        
+        <!-- GPS STATUS BOX -->
+        <div class="gps-box loading" id="gpsBox">
+            <div class="gps-title" id="gpsTitle">Mendeteksi lokasi...</div>
+            <div class="gps-coords" id="gpsCoords"></div>
+            <div class="gps-address" id="gpsAddress"></div>
+            <div class="gps-spbu" id="gpsSpbu" style="display:none;"></div>
         </div>
         
         <div id="alert-area"></div>
@@ -75,55 +97,36 @@
             <input type="hidden" name="gps_lon" id="gps_lon">
             <input type="hidden" name="gps_address" id="gps_address">
             
-            <div class="row">
-                <div class="form-group">
-                    <label>Nama Driver <span class="required">*</span></label>
-                    <input type="text" name="driver_name" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label>No. Polisi <span class="required">*</span></label>
-                    <input type="text" name="nopol" class="form-control" placeholder="Contoh: L 1234 ABC" required>
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="form-group">
-                    <label>Tipe Kendaraan <span class="required">*</span></label>
-                    <select name="vehicle_type" id="vehicle_type" class="form-control" required onchange="loadBBMOptions()">
-                        <option value="">-- Pilih Kendaraan --</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Jenis BBM <span class="required">*</span></label>
-                    <select name="bbm_type" id="bbm_type" class="form-control" required onchange="updatePrice()">
-                        <option value="">-- Pilih BBM --</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="form-group">
-                    <label>Nominal (Rp) <span class="required">*</span></label>
-                    <input type="number" name="nominal" id="nominal" class="form-control" required oninput="calculateLiter()">
-                </div>
-                <div class="form-group">
-                    <label>Volume (Liter) <span class="required">*</span></label>
-                    <input type="number" name="liter" id="liter" class="form-control" step="0.01" required readonly style="background:#e9ecef;">
-                    <input type="hidden" name="price_per_liter" id="price_per_liter" value="10000">
-                    <div class="auto-calc" id="literDisplay">Volume = 0.00 Liter</div>
-                </div>
-            </div>
-            
             <div class="form-group">
-                <label>Jumlah Appointment Marketing <span class="required">*</span></label>
-                <input type="number" name="jumlah_appointment" id="jumlah_appointment" class="form-control" placeholder="Contoh: 3 (Isi 0 jika tidak ada)" required min="0" value="0">
-                <div class="note">Masukkan 0 jika tidak ada janji temu hari ini</div>
+                <label>Nama Driver <span class="required">*</span></label>
+                <select name="driver_name" id="driver_name" class="form-control" required onchange="autoFillDriver()">
+                    <option value="">-- Pilih Nama Anda --</option>
+                </select>
+                <div class="note">Pilih nama, data kendaraan otomatis terisi</div>
             </div>
             
-            <div class="form-group">
-                <label>Odometer (KM) <span class="required">*</span></label>
-                <input type="number" name="odo_km" id="odo_km" class="form-control" required>
+            <div class="auto-fill-info" id="autoFillInfo">
+                <strong>Data Kendaraan:</strong><br>
+                <span id="infoNopol"></span> &middot; <span id="infoVehicle"></span> &middot; <span id="infoBBM"></span>
             </div>
+            
+            <div class="row">
+                <div class="form-group"><label>No. Polisi</label><input type="text" name="nopol" id="nopol" class="form-control" readonly></div>
+                <div class="form-group"><label>Tipe Kendaraan</label><input type="text" name="vehicle_type" id="vehicle_type" class="form-control" readonly></div>
+            </div>
+            
+            <div class="row">
+                <div class="form-group"><label>Jenis BBM</label><input type="text" name="bbm_type" id="bbm_type" class="form-control" readonly></div>
+                <div class="form-group"><label>Harga/Liter (Rp)</label><input type="number" name="price_per_liter" id="price_per_liter" class="form-control" value="10000" readonly></div>
+            </div>
+            
+            <div class="row">
+                <div class="form-group"><label>Nominal (Rp) <span class="required">*</span></label><input type="number" name="nominal" id="nominal" class="form-control" required oninput="calculateLiter()" placeholder="Masukkan nominal"></div>
+                <div class="form-group"><label>Volume (Liter)</label><input type="number" name="liter" id="liter" class="form-control" step="0.01" readonly><div class="note" id="literDisplay">Volume = 0.00 Liter</div></div>
+            </div>
+            
+            <div class="form-group"><label>Jumlah Appointment <span class="required">*</span></label><input type="number" name="jumlah_appointment" id="jumlah_appointment" class="form-control" required min="0" value="0" placeholder="Isi 0 jika tidak ada"></div>
+            <div class="form-group"><label>Odometer (KM) <span class="required">*</span></label><input type="number" name="odo_km" id="odo_km" class="form-control" required placeholder="KM saat ini"></div>
             
             <div class="form-group">
                 <label>Jenis SPBU <span class="required">*</span></label>
@@ -135,75 +138,67 @@
             
             <div class="divider"></div>
             
-            <!-- Foto 1: ODO Sebelum -->
+            <!-- FOTO 1 -->
             <div class="form-group">
                 <label>1. Foto ODO Sebelum Isi <span class="required">*</span></label>
-                <div class="upload-group">
-                    <div class="upload-row">
-                        <button type="button" class="upload-btn upload-btn-camera" onclick="capturePhoto('foto_odo_sebelum')">Kamera</button>
-                        <button type="button" class="upload-btn upload-btn-gallery" onclick="choosePhoto('foto_odo_sebelum')">Galeri</button>
-                        <button type="button" class="upload-btn upload-btn-remove" onclick="removePhoto('foto_odo_sebelum')">X</button>
-                    </div>
-                    <input type="file" name="foto_odo_sebelum" id="foto_odo_sebelum" class="form-control-file" accept="image/*" required>
-                    <div id="preview_container_foto_odo_sebelum" class="preview-container hidden">
-                        <img id="preview_foto_odo_sebelum" class="preview-img">
-                        <button type="button" class="preview-remove" onclick="removePhoto('foto_odo_sebelum')">X</button>
-                        <div id="file_info_foto_odo_sebelum" class="file-name"></div>
-                    </div>
+                <div class="upload-row">
+                    <button type="button" class="upload-btn upload-btn-camera" onclick="capturePhoto('foto_odo_sebelum')">Kamera</button>
+                    <button type="button" class="upload-btn upload-btn-gallery" onclick="choosePhoto('foto_odo_sebelum')">Galeri</button>
+                    <button type="button" class="upload-btn upload-btn-remove" onclick="removePhoto('foto_odo_sebelum')">X</button>
+                </div>
+                <input type="file" name="foto_odo_sebelum" id="foto_odo_sebelum" class="form-control-file" accept="image/*" required>
+                <div id="preview_container_foto_odo_sebelum" class="preview-container hidden">
+                    <img id="preview_foto_odo_sebelum" class="preview-img">
+                    <div id="file_info_foto_odo_sebelum" class="file-name"></div>
+                    <span class="watermark-badge active" id="wm_foto_odo_sebelum">Lokasi + Waktu</span>
                 </div>
             </div>
             
-            <!-- Foto 2: ODO + Struk -->
+            <!-- FOTO 2 -->
             <div class="form-group">
                 <label>2. Foto ODO + Struk/Nota <span class="required">*</span></label>
-                <div class="upload-group">
-                    <div class="upload-row">
-                        <button type="button" class="upload-btn upload-btn-camera" onclick="capturePhoto('foto_nota_odo_sesudah')">Kamera</button>
-                        <button type="button" class="upload-btn upload-btn-gallery" onclick="choosePhoto('foto_nota_odo_sesudah')">Galeri</button>
-                        <button type="button" class="upload-btn upload-btn-remove" onclick="removePhoto('foto_nota_odo_sesudah')">X</button>
-                    </div>
-                    <input type="file" name="foto_nota_odo_sesudah" id="foto_nota_odo_sesudah" class="form-control-file" accept="image/*" required>
-                    <div id="preview_container_foto_nota_odo_sesudah" class="preview-container hidden">
-                        <img id="preview_foto_nota_odo_sesudah" class="preview-img">
-                        <button type="button" class="preview-remove" onclick="removePhoto('foto_nota_odo_sesudah')">X</button>
-                        <div id="file_info_foto_nota_odo_sesudah" class="file-name"></div>
-                    </div>
+                <div class="upload-row">
+                    <button type="button" class="upload-btn upload-btn-camera" onclick="capturePhoto('foto_nota_odo_sesudah')">Kamera</button>
+                    <button type="button" class="upload-btn upload-btn-gallery" onclick="choosePhoto('foto_nota_odo_sesudah')">Galeri</button>
+                    <button type="button" class="upload-btn upload-btn-remove" onclick="removePhoto('foto_nota_odo_sesudah')">X</button>
+                </div>
+                <input type="file" name="foto_nota_odo_sesudah" id="foto_nota_odo_sesudah" class="form-control-file" accept="image/*" required>
+                <div id="preview_container_foto_nota_odo_sesudah" class="preview-container hidden">
+                    <img id="preview_foto_nota_odo_sesudah" class="preview-img">
+                    <div id="file_info_foto_nota_odo_sesudah" class="file-name"></div>
+                    <span class="watermark-badge active" id="wm_foto_nota_odo_sesudah">Lokasi + Waktu</span>
                 </div>
             </div>
             
-            <!-- Foto 3: Struk Fisik -->
+            <!-- FOTO 3 -->
             <div class="form-group">
                 <label>3. Foto Struk Fisik <span class="required">*</span></label>
-                <div class="upload-group">
-                    <div class="upload-row">
-                        <button type="button" class="upload-btn upload-btn-camera" onclick="capturePhoto('foto_struk')">Kamera</button>
-                        <button type="button" class="upload-btn upload-btn-gallery" onclick="choosePhoto('foto_struk')">Galeri</button>
-                        <button type="button" class="upload-btn upload-btn-remove" onclick="removePhoto('foto_struk')">X</button>
-                    </div>
-                    <input type="file" name="foto_struk" id="foto_struk" class="form-control-file" accept="image/*" required>
-                    <div id="preview_container_foto_struk" class="preview-container hidden">
-                        <img id="preview_foto_struk" class="preview-img">
-                        <button type="button" class="preview-remove" onclick="removePhoto('foto_struk')">X</button>
-                        <div id="file_info_foto_struk" class="file-name"></div>
-                    </div>
+                <div class="upload-row">
+                    <button type="button" class="upload-btn upload-btn-camera" onclick="capturePhoto('foto_struk')">Kamera</button>
+                    <button type="button" class="upload-btn upload-btn-gallery" onclick="choosePhoto('foto_struk')">Galeri</button>
+                    <button type="button" class="upload-btn upload-btn-remove" onclick="removePhoto('foto_struk')">X</button>
+                </div>
+                <input type="file" name="foto_struk" id="foto_struk" class="form-control-file" accept="image/*" required>
+                <div id="preview_container_foto_struk" class="preview-container hidden">
+                    <img id="preview_foto_struk" class="preview-img">
+                    <div id="file_info_foto_struk" class="file-name"></div>
+                    <span class="watermark-badge active" id="wm_foto_struk">Lokasi + Waktu</span>
                 </div>
             </div>
             
-            <!-- Foto 4: Dispenser (non-rekanan only) -->
+            <!-- FOTO 4 (Dispenser) -->
             <div id="dispenser_div" class="form-group hidden">
                 <label>4. Foto Struk di Dispenser <span class="required">*</span></label>
-                <div class="upload-group">
-                    <div class="upload-row">
-                        <button type="button" class="upload-btn upload-btn-camera" onclick="capturePhoto('foto_struk_dispenser')">Kamera</button>
-                        <button type="button" class="upload-btn upload-btn-gallery" onclick="choosePhoto('foto_struk_dispenser')">Galeri</button>
-                        <button type="button" class="upload-btn upload-btn-remove" onclick="removePhoto('foto_struk_dispenser')">X</button>
-                    </div>
-                    <input type="file" name="foto_struk_dispenser" id="foto_struk_dispenser" class="form-control-file" accept="image/*">
-                    <div id="preview_container_foto_struk_dispenser" class="preview-container hidden">
-                        <img id="preview_foto_struk_dispenser" class="preview-img">
-                        <button type="button" class="preview-remove" onclick="removePhoto('foto_struk_dispenser')">X</button>
-                        <div id="file_info_foto_struk_dispenser" class="file-name"></div>
-                    </div>
+                <div class="upload-row">
+                    <button type="button" class="upload-btn upload-btn-camera" onclick="capturePhoto('foto_struk_dispenser')">Kamera</button>
+                    <button type="button" class="upload-btn upload-btn-gallery" onclick="choosePhoto('foto_struk_dispenser')">Galeri</button>
+                    <button type="button" class="upload-btn upload-btn-remove" onclick="removePhoto('foto_struk_dispenser')">X</button>
+                </div>
+                <input type="file" name="foto_struk_dispenser" id="foto_struk_dispenser" class="form-control-file" accept="image/*">
+                <div id="preview_container_foto_struk_dispenser" class="preview-container hidden">
+                    <img id="preview_foto_struk_dispenser" class="preview-img">
+                    <div id="file_info_foto_struk_dispenser" class="file-name"></div>
+                    <span class="watermark-badge active" id="wm_foto_struk_dispenser">Lokasi + Waktu</span>
                 </div>
             </div>
             
@@ -211,279 +206,403 @@
         </form>
     </div>
     
-    <!-- INSIGHT MODAL -->
-    <div id="insightModal">
-        <div class="modal-content">
-            <button onclick="closeInsightModal()" style="position:absolute; top:12px; right:12px; border:none; background:#eee; border-radius:50%; width:32px; height:32px; font-size:18px; cursor:pointer;">X</button>
-            <h3 style="color:#004085; text-align:center; margin-bottom:20px;">Performance Insight</h3>
-            <div id="insightContent" style="text-align:center; min-height:100px;"></div>
-            <button onclick="closeInsightModal()" style="width:100%; padding:12px; background:#007bff; color:white; border:none; border-radius:10px; font-size:16px; margin-top:20px; font-weight:bold; cursor:pointer;">Input Klaim Baru</button>
-        </div>
-    </div>
-
-    <!-- SINGLE AJAX SUBMIT SCRIPT -->
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.1/dist/browser-image-compression.js"></script>
     <script>
     // ============================================================
-    // LOAD VEHICLES & BBM
+    // GLOBAL STATE
     // ============================================================
-    async function loadVehicles() {
-        try {
-            const response = await fetch('/api/vehicles');
-            const vehicles = await response.json();
-            const select = document.getElementById('vehicle_type');
-            select.innerHTML = '<option value="">-- Pilih Kendaraan --</option>';
-            vehicles.forEach(v => {
-                const opt = document.createElement('option');
-                opt.value = v.vehicle_type;
-                opt.textContent = v.vehicle_type + ' (' + v.brand + ') - ' + v.fuel_capacity + 'L';
-                select.appendChild(opt);
-            });
-        } catch(e) { console.error('Error loading vehicles:', e); }
-    }
-
-    async function loadBBMOptions() {
-        const vehicleType = document.getElementById('vehicle_type').value;
-        const bbmSelect = document.getElementById('bbm_type');
-        bbmSelect.innerHTML = '<option value="">-- Pilih BBM --</option>';
-        if (!vehicleType) return;
-        try {
-            const response = await fetch('/api/vehicle_bbm/' + vehicleType);
-            const bbmList = await response.json();
-            bbmList.forEach(item => {
-                const opt = document.createElement('option');
-                opt.value = item.bbm_type;
-                opt.dataset.price = item.price_per_liter;
-                opt.textContent = item.bbm_type + ' - Rp ' + item.price_per_liter.toLocaleString() + '/L' + (item.is_default ? ' (Default)' : '');
-                bbmSelect.appendChild(opt);
-                if (item.is_default) bbmSelect.value = item.bbm_type;
-            });
-            if (bbmSelect.value) updatePrice();
-        } catch(e) { console.error('Error loading BBM:', e); }
-    }
-
-    function updatePrice() {
-        const select = document.getElementById('bbm_type');
-        const selected = select.options[select.selectedIndex];
-        if (selected && selected.dataset.price) {
-            document.getElementById('price_per_liter').value = selected.dataset.price;
-            calculateLiter();
+    let gpsData = {
+        lat: null, lon: null, address: '', displayName: '',
+        road: '', suburb: '', city: '', county: '', state: '', country: '',
+        spbuNearby: ''
+    };
+    let driversData = [];
+    
+    // ============================================================
+    // GPS - Reverse Geocoding + SPBU Finder
+    // ============================================================
+    function updateGpsUI() {
+        const box = document.getElementById('gpsBox');
+        const title = document.getElementById('gpsTitle');
+        const coords = document.getElementById('gpsCoords');
+        const addr = document.getElementById('gpsAddress');
+        const spbu = document.getElementById('gpsSpbu');
+        
+        if (gpsData.lat && gpsData.lon) {
+            box.className = 'gps-box active';
+            title.textContent = '📍 Lokasi Terdeteksi';
+            coords.textContent = gpsData.lat.toFixed(6) + ', ' + gpsData.lon.toFixed(6);
+            
+            // Format alamat administratif
+            let addressParts = [];
+            if (gpsData.road) addressParts.push(gpsData.road);
+            if (gpsData.suburb) addressParts.push(gpsData.suburb);
+            if (gpsData.city) addressParts.push(gpsData.city);
+            if (gpsData.county) addressParts.push(gpsData.county);
+            if (gpsData.state) addressParts.push(gpsData.state);
+            
+            gpsData.displayName = addressParts.join(', ') || gpsData.address;
+            addr.textContent = gpsData.displayName;
+            
+            // Tampilkan SPBU terdekat
+            if (gpsData.spbuNearby) {
+                spbu.textContent = '⛽ ' + gpsData.spbuNearby;
+                spbu.style.display = 'inline-block';
+            }
+            
+            // Simpan ke hidden input
+            document.getElementById('gps_lat').value = gpsData.lat;
+            document.getElementById('gps_lon').value = gpsData.lon;
+            document.getElementById('gps_address').value = gpsData.displayName;
+            
+        } else {
+            box.className = 'gps-box error';
+            title.textContent = '⚠️ GPS Tidak Aktif';
+            addr.textContent = 'Mohon izinkan akses lokasi di browser Anda';
         }
     }
-
+    
+    async function reverseGeocode(lat, lon) {
+        try {
+            const res = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=18&addressdetails=1&accept-language=id`,
+                { headers: { 'User-Agent': 'BPF-BBM-System/1.0' } }
+            );
+            const data = await res.json();
+            if (data && data.address) {
+                const a = data.address;
+                gpsData.road = a.road || '';
+                gpsData.suburb = a.suburb || a.village || a.neighbourhood || '';
+                gpsData.city = a.city || a.town || a.municipality || '';
+                gpsData.county = a.county || a.district || '';
+                gpsData.state = a.state || a.province || '';
+                gpsData.country = a.country || '';
+                gpsData.address = data.display_name || '';
+            }
+        } catch(e) { console.log('Geocode error:', e); }
+    }
+    
+    async function findNearbySPBU(lat, lon) {
+        try {
+            const res = await fetch(
+                `https://nominatim.openstreetmap.org/search?q=SPBU&format=json&limit=3&lat=${lat}&lon=${lon}&bounded=1&addressdetails=1&accept-language=id`,
+                { headers: { 'User-Agent': 'BPF-BBM-System/1.0' } }
+            );
+            const data = await res.json();
+            if (data && data.length > 0) {
+                // Cari yang paling dekat (ada jarak)
+                const names = data.slice(0, 2).map(d => {
+                    const dist = d.dist ? parseFloat(d.dist).toFixed(0) + 'm' : '';
+                    const name = d.display_name.split(',')[0].trim();
+                    return name + (dist ? ' (' + dist + ')' : '');
+                });
+                gpsData.spbuNearby = names.join(' | ');
+            }
+        } catch(e) { console.log('SPBU search error:', e); }
+    }
+    
+    function initGPS() {
+        if (!navigator.geolocation) {
+            gpsData.lat = null;
+            updateGpsUI();
+            return;
+        }
+        
+        document.getElementById('gpsBox').className = 'gps-box loading';
+        document.getElementById('gpsTitle').textContent = '🔍 Mencari lokasi...';
+        
+        navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+                gpsData.lat = pos.coords.latitude;
+                gpsData.lon = pos.coords.longitude;
+                
+                // Jalankan geocoding dan SPBU search bersamaan
+                await Promise.all([
+                    reverseGeocode(gpsData.lat, gpsData.lon),
+                    findNearbySPBU(gpsData.lat, gpsData.lon)
+                ]);
+                
+                updateGpsUI();
+            },
+            (err) => {
+                console.log('GPS error:', err);
+                gpsData.lat = null;
+                updateGpsUI();
+            },
+            { enableHighAccuracy: true, timeout: 20000, maximumAge: 300000 }
+        );
+    }
+    
+    // ============================================================
+    // WATERMARK - Tambahkan ke foto sebelum upload
+    // ============================================================
+    function addWatermark(imageElement, inputId) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const w = img.width;
+                const h = img.height;
+                canvas.width = w;
+                canvas.height = h;
+                
+                // Gambar foto asli
+                ctx.drawImage(img, 0, 0, w, h);
+                
+                // Watermark - semi transparent bar di bawah
+                const barHeight = Math.min(h * 0.12, 80);
+                const fontSize = Math.max(w * 0.025, 14);
+                const fontSizeSmall = Math.max(w * 0.018, 10);
+                
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+                ctx.fillRect(0, h - barHeight, w, barHeight);
+                
+                // Teks watermark
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
+                const timeStr = now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
+                const locStr = gpsData.displayName || gpsData.address || 'Lokasi tidak tersedia';
+                
+                // Baris 1: Tanggal & Waktu (putih)
+                ctx.fillStyle = '#FFD700';
+                ctx.font = `bold ${fontSize}px Inter, Arial, sans-serif`;
+                ctx.textBaseline = 'bottom';
+                const pad = fontSize * 0.6;
+                ctx.fillText(dateStr + ' ' + timeStr, pad, h - barHeight + fontSize + 4);
+                
+                // Baris 2: Lokasi (putih)
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = `${fontSizeSmall}px Inter, Arial, sans-serif`;
+                const maxWidth = w - pad * 2;
+                let locText = locStr;
+                if (ctx.measureText(locText).width > maxWidth) {
+                    while (ctx.measureText(locText + '...').width > maxWidth && locText.length > 20) {
+                        locText = locText.slice(0, -1);
+                    }
+                    locText += '...';
+                }
+                ctx.fillText(locText, pad, h - barHeight + fontSize + fontSizeSmall + 6);
+                
+                // Logo
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.font = `${fontSizeSmall * 0.85}px Inter, Arial, sans-serif`;
+                ctx.textBaseline = 'top';
+                ctx.fillText('BPF BBM System', pad, pad);
+                
+                // Convert ke Blob
+                canvas.toBlob((blob) => {
+                    resolve(blob);
+                }, 'image/jpeg', 0.88);
+            };
+            img.src = imageElement.src;
+        });
+    }
+    
+    // ============================================================
+    // PHOTO HANDLING
+    // ============================================================
+    let photoBlobs = {};  // Simpan blob hasil watermark
+    
+    document.addEventListener('change', async function(e) {
+        if (e.target.classList.contains('form-control-file') && e.target.files[0]) {
+            const file = e.target.files[0];
+            const inputId = e.target.id;
+            
+            if (!file.type.startsWith('image/')) {
+                e.target.value = '';
+                return;
+            }
+            
+            const container = document.getElementById('preview_container_' + inputId);
+            const preview = document.getElementById('preview_' + inputId);
+            const fileInfo = document.getElementById('file_info_' + inputId);
+            const wmBadge = document.getElementById('wm_' + inputId);
+            
+            const reader = new FileReader();
+            reader.onload = async function(ev) {
+                // Tampilkan preview dulu
+                preview.src = ev.target.result;
+                container.classList.remove('hidden');
+                fileInfo.textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+                
+                // Proses watermark
+                if (wmBadge) {
+                    wmBadge.textContent = '⏳ Memproses...';
+                    wmBadge.className = 'watermark-badge';
+                }
+                
+                try {
+                    const watermarkedBlob = await addWatermark(preview, inputId);
+                    photoBlobs[inputId] = watermarkedBlob;
+                    preview.src = URL.createObjectURL(watermarkedBlob);
+                    if (wmBadge) {
+                        wmBadge.textContent = '✓ Lokasi + Waktu';
+                        wmBadge.className = 'watermark-badge active';
+                    }
+                    fileInfo.textContent = file.name + ' (' + (watermarkedBlob.size / 1024).toFixed(0) + ' KB) - Watermarked';
+                } catch(err) {
+                    console.log('Watermark error:', err);
+                    if (wmBadge) {
+                        wmBadge.textContent = '⚠ Tanpa Watermark';
+                        wmBadge.className = 'watermark-badge';
+                    }
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    function capturePhoto(id) { 
+        const el = document.getElementById(id); 
+        el.setAttribute('capture', 'environment'); 
+        el.click(); 
+    }
+    function choosePhoto(id) { 
+        const el = document.getElementById(id); 
+        el.removeAttribute('capture'); 
+        el.click(); 
+    }
+    function removePhoto(id) {
+        document.getElementById(id).value = '';
+        const c = document.getElementById('preview_container_' + id);
+        if (c) c.classList.add('hidden');
+        delete photoBlobs[id];
+    }
+    
+    // ============================================================
+    // DRIVER AUTO-FILL
+    // ============================================================
+    async function loadDrivers() {
+        try {
+            const res = await fetch('/api/drivers');
+            driversData = await res.json();
+            const select = document.getElementById('driver_name');
+            driversData.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.name; opt.textContent = d.name;
+                opt.dataset.nopol = d.nopol; opt.dataset.vehicle = d.vehicle_type; opt.dataset.bbm = d.bbm_type;
+                select.appendChild(opt);
+            });
+        } catch(e) {}
+    }
+    
+    function autoFillDriver() {
+        const select = document.getElementById('driver_name');
+        const selected = select.options[select.selectedIndex];
+        const info = document.getElementById('autoFillInfo');
+        if (selected && selected.dataset.nopol) {
+            document.getElementById('nopol').value = selected.dataset.nopol;
+            document.getElementById('vehicle_type').value = selected.dataset.vehicle;
+            document.getElementById('bbm_type').value = selected.dataset.bbm;
+            document.getElementById('infoNopol').textContent = 'Nopol: ' + selected.dataset.nopol;
+            document.getElementById('infoVehicle').textContent = 'Kendaraan: ' + selected.dataset.vehicle;
+            document.getElementById('infoBBM').textContent = 'BBM: ' + selected.dataset.bbm;
+            info.classList.add('show');
+            updateBBMPrice(selected.dataset.bbm);
+        } else { info.classList.remove('show'); }
+    }
+    
+    async function updateBBMPrice(bbmType) {
+        try {
+            const res = await fetch('/api/bbm_types');
+            const bbmList = await res.json();
+            const match = bbmList.find(b => b.name === bbmType);
+            if (match) { document.getElementById('price_per_liter').value = match.price_per_liter; calculateLiter(); }
+        } catch(e) {}
+    }
+    
     function calculateLiter() {
         const nom = document.getElementById('nominal').value;
         const price = document.getElementById('price_per_liter').value || 10000;
         if (nom > 0 && price > 0) {
             const liter = nom / price;
             document.getElementById('liter').value = liter.toFixed(2);
-            document.getElementById('literDisplay').innerHTML = 'Volume = ' + liter.toFixed(2) + ' Liter';
-        } else {
-            document.getElementById('liter').value = '';
-            document.getElementById('literDisplay').innerHTML = 'Volume = 0.00 Liter';
+            document.getElementById('literDisplay').textContent = 'Volume = ' + liter.toFixed(2) + ' Liter';
         }
     }
-
-    // ============================================================
-    // UPLOAD PHOTO HELPERS
-    // ============================================================
-    function capturePhoto(inputId) {
-        const input = document.getElementById(inputId);
-        if (input) { input.setAttribute('capture', 'environment'); input.click(); }
-    }
-    function choosePhoto(inputId) {
-        const input = document.getElementById(inputId);
-        if (input) { input.removeAttribute('capture'); input.click(); }
-    }
-    function removePhoto(inputId) {
-        const input = document.getElementById(inputId);
-        const container = document.getElementById('preview_container_' + inputId);
-        const preview = document.getElementById('preview_' + inputId);
-        const fileInfo = document.getElementById('file_info_' + inputId);
-        if (input) input.value = '';
-        if (container) container.classList.add('hidden');
-        if (preview) preview.src = '';
-        if (fileInfo) fileInfo.textContent = '';
-    }
-
-    // Preview handler untuk semua file input
-    document.addEventListener('change', function(e) {
-        if (e.target.classList.contains('form-control-file') && e.target.files[0]) {
-            const input = e.target;
-            const inputId = input.id;
-            const file = input.files[0];
-            const container = document.getElementById('preview_container_' + inputId);
-            const preview = document.getElementById('preview_' + inputId);
-            const fileInfo = document.getElementById('file_info_' + inputId);
-            
-            if (!file.type.startsWith('image/')) { input.value = ''; return; }
-            
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                if (preview) preview.src = event.target.result;
-                if (container) container.classList.remove('hidden');
-                if (fileInfo) fileInfo.textContent = file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-
+    
     // SPBU toggle
     document.getElementById('spbu_type').addEventListener('change', function() {
         const disp = document.getElementById('dispenser_div');
         const inp = document.getElementById('foto_struk_dispenser');
-        if (this.value === 'non_rekanan') { disp.classList.remove('hidden'); inp.setAttribute('required', 'required'); }
+        if (this.value === 'non_rekanan') { disp.classList.remove('hidden'); inp.setAttribute('required','required'); }
         else { disp.classList.add('hidden'); inp.removeAttribute('required'); }
     });
-
-    // GPS
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            pos => {
-                document.getElementById('gps_lat').value = pos.coords.latitude;
-                document.getElementById('gps_lon').value = pos.coords.longitude;
-                document.getElementById('gps-text').textContent = 'GPS: ' + pos.coords.latitude.toFixed(6) + ', ' + pos.coords.longitude.toFixed(6);
-                document.getElementById('gps-indicator').className = 'gps-status active';
-                
-                fetch('https://nominatim.openstreetmap.org/reverse?lat=' + pos.coords.latitude + '&lon=' + pos.coords.longitude + '&format=json&zoom=18', {
-                    headers: { 'User-Agent': 'BPF-BBM-System' }
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data && data.display_name) {
-                        document.getElementById('gps_address').value = data.display_name;
-                    }
-                }).catch(() => {});
-            },
-            () => {
-                document.getElementById('gps-text').textContent = 'GPS tidak aktif';
-                document.getElementById('gps-indicator').className = 'gps-status inactive';
-            },
-            { enableHighAccuracy: true, timeout: 15000 }
-        );
-    }
-
+    
     // ============================================================
-    // SINGLE AJAX FORM SUBMIT - NO CONFLICTS
+    // FORM SUBMIT - Gunakan watermarked blob
     // ============================================================
     document.getElementById('bbmForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        
         const submitBtn = document.getElementById('submitBtn');
-        const originalText = submitBtn.innerHTML;
-        submitBtn.innerHTML = 'Memproses...';
+        const orig = submitBtn.innerHTML;
+        submitBtn.innerHTML = '⏳ Memproses...';
         submitBtn.disabled = true;
-
+        
         try {
             const formData = new FormData(this);
             
-            // Kompresi gambar jika ukuran > 1MB
-            const fileInputs = this.querySelectorAll('input[type="file"]');
-            for (const fileInput of fileInputs) {
-                if (fileInput.files[0] && fileInput.files[0].size > 1024 * 1024) {
-                    if (typeof browserImageCompression !== 'undefined') {
-                        try {
-                            const compressed = await browserImageCompression(fileInput.files[0], {
-                                maxSizeMB: 1.5,
-                                maxWidthOrHeight: 1920,
-                                useWebWorker: true
-                            });
-                            formData.set(fileInput.name, compressed, compressed.name);
-                        } catch(compErr) {
-                            console.log('Compression skipped:', compErr);
-                        }
-                    }
+            // Ganti file input dengan versi watermarked
+            for (const inputId of ['foto_odo_sebelum', 'foto_nota_odo_sesudah', 'foto_struk', 'foto_struk_dispenser']) {
+                if (photoBlobs[inputId]) {
+                    const fileInput = document.getElementById(inputId);
+                    const originalName = fileInput.files[0] ? fileInput.files[0].name : inputId + '.jpg';
+                    const watermarkedFile = new File([photoBlobs[inputId]], originalName, { type: 'image/jpeg' });
+                    formData.set(inputId, watermarkedFile, originalName);
                 }
             }
-
-            // POST dengan Accept: application/json
-            const response = await fetch('/driver', {
-                method: 'POST',
-                body: formData,
-                headers: { 'Accept': 'application/json' }
-            });
             
-            const contentType = response.headers.get('content-type');
-            
-            if (contentType && contentType.includes('application/json')) {
-                const result = await response.json();
-                
-                if (response.ok && result.status === 'success') {
-                    submitBtn.innerHTML = 'Menganalisis...';
-                    
-                    // Fetch performance insight
-                    let insightData = { nopol: result.nopol, status: 'BELUM CUKUP DATA', avg_kml: 0, total_appointment: 0 };
+            // Kompresi tambahan jika > 1.5MB
+            for (const [key, value] of formData.entries()) {
+                if (value instanceof File && value.size > 1.5 * 1024 * 1024 && typeof browserImageCompression !== 'undefined') {
                     try {
-                        const insightRes = await fetch('/api/get-performance/' + result.nopol);
-                        insightData = await insightRes.json();
+                        const comp = await browserImageCompression(value, { maxSizeMB: 1.5, maxWidthOrHeight: 1920, useWebWorker: true });
+                        formData.set(key, comp, comp.name);
                     } catch(e) {}
-                    
-                    showInsightModal(insightData);
-                    this.reset();
-                    
-                    // Reset default values
-                    const aptField = document.getElementById('jumlah_appointment');
-                    if (aptField) aptField.value = '0';
-                    
-                    showToast('Klaim berhasil dikirim!', 'success');
-                } else {
-                    showToast('Gagal: ' + (result.error || result.msg || 'Unknown error'), 'error');
                 }
-            } else {
-                // Fallback: jika server merespon redirect
-                if (response.redirected) {
-                    window.location.href = response.url;
-                    return;
-                }
-                showToast('Server merespon tidak valid. Silakan coba lagi.', 'error');
             }
-        } catch (error) {
-            console.error('Submit error:', error);
-            showToast('Terjadi kesalahan koneksi. Silakan coba lagi.', 'error');
+            
+            const resp = await fetch('/driver', { method:'POST', body: formData, headers:{'Accept':'application/json'} });
+            const ct = resp.headers.get('content-type');
+            
+            if (ct && ct.includes('application/json')) {
+                const result = await resp.json();
+                if (resp.ok && result.status === 'success') {
+                    showToast('✅ Klaim berhasil!', 'success');
+                    this.reset();
+                    document.getElementById('jumlah_appointment').value = '0';
+                    document.querySelectorAll('.preview-container').forEach(el => el.classList.add('hidden'));
+                    photoBlobs = {};
+                } else {
+                    showToast('❌ ' + (result.error || 'Gagal'), 'error');
+                }
+            } else if (resp.redirected) {
+                window.location.href = resp.url;
+            }
+        } catch(err) {
+            console.error(err);
+            showToast('❌ Error koneksi', 'error');
         } finally {
-            submitBtn.innerHTML = originalText;
+            submitBtn.innerHTML = orig;
             submitBtn.disabled = false;
         }
     });
-
+    
+    function showToast(msg, type) {
+        const t = document.createElement('div');
+        t.className = 'toast' + (type==='error'?' error':'');
+        t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity 0.5s'; setTimeout(()=>t.remove(),500); }, 4000);
+    }
+    
     // ============================================================
-    // INSIGHT MODAL
+    // INIT
     // ============================================================
-    function showInsightModal(data) {
-        const content = document.getElementById('insightContent');
-        if (!content) return;
-        
-        let color = '#ffc107';
-        if (data.status && data.status.indexOf('BAIK') >= 0) color = '#28a745';
-        else if (data.status && data.status.indexOf('BOROS') >= 0) color = '#dc3545';
-        
-        content.innerHTML = 
-            '<h2 style="color:' + color + '; margin-bottom:5px;">' + (data.status || 'Analisis') + '</h2>' +
-            '<p style="font-size:18px;">Kendaraan: <strong>' + ((data.nopol || '').toUpperCase()) + '</strong></p>' +
-            '<hr style="border:0.5px solid #ddd; margin:15px 0;">' +
-            '<div style="display:flex; justify-content:space-around;">' +
-            '<div><p style="margin:0;font-size:12px;color:#666;">Konsumsi (1 Bln)</p><h3 style="margin:5px 0;color:#333;">' + (data.avg_kml || 0) + ' <span style="font-size:14px;">KM/L</span></h3></div>' +
-            '<div><p style="margin:0;font-size:12px;color:#666;">Total Appointment</p><h3 style="margin:5px 0;color:#333;">' + (data.total_appointment || 0) + ' <span style="font-size:14px;">Kali</span></h3></div>' +
-            '</div>';
-        
-        document.getElementById('insightModal').style.display = 'flex';
-    }
-
-    function closeInsightModal() {
-        document.getElementById('insightModal').style.display = 'none';
-    }
-
-    // Toast notification
-    function showToast(message, type) {
-        const toast = document.createElement('div');
-        toast.className = 'toast' + (type === 'error' ? ' error' : '');
-        toast.textContent = message;
-        document.body.appendChild(toast);
-        setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(() => toast.remove(), 500); }, 4000);
-    }
-
-    // Init
-    loadVehicles();
+    initGPS();
+    loadDrivers();
     </script>
 </body>
 </html>

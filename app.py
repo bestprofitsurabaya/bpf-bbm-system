@@ -134,6 +134,31 @@ def api_bbm_types():
         print(f"API Error: {e}")
         return jsonify({'error': str(e)}), 500
 
+
+@app.route('/api/driver-assignments', methods=['GET'])
+def api_driver_assignments():
+    """Return list of active driver-vehicle assignments"""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'error': 'Database error'}), 500
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT da.*, bt.price_per_liter 
+            FROM driver_assignments da
+            LEFT JOIN bbm_types bt ON da.bbm_type = bt.name
+            WHERE da.is_active = TRUE 
+            ORDER BY da.driver_name
+        """)
+        assignments = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return jsonify(assignments)
+    except Exception as e:
+        print(f"API Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/vehicle_bbm/<vehicle_type>')
 def api_vehicle_bbm(vehicle_type):
     try:
@@ -157,6 +182,31 @@ def api_vehicle_bbm(vehicle_type):
     except Exception as e:
         print(f"API Error: {e}")
         return jsonify({'error': str(e)}), 500
+
+# ============================================================
+# API - DRIVERS LIST (untuk auto-fill form)
+# ============================================================
+@app.route('/api/drivers')
+def api_drivers():
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'error': 'Database error'}), 500
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT name, nopol, vehicle_type, bbm_type 
+            FROM drivers 
+            WHERE is_active = TRUE 
+            ORDER BY name
+        """)
+        drivers = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return jsonify(drivers)
+    except Exception as e:
+        print(f"API Drivers error: {e}")
+        return jsonify({'error': str(e)}), 500
+
 
 # ============================================================
 # VALIDATION ENGINE
@@ -385,7 +435,7 @@ def get_performance(plat_nomor):
         cursor.execute('''
             SELECT km_per_liter, jumlah_appointment 
             FROM transactions 
-            WHERE nopol=%s AND status='verified' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
+            WHERE nopol=%s AND status IN ('archived', 'os_finance', 'verified_ga') AND created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
         ''', (plat_nomor,))
         data = cursor.fetchall()
         cursor.close()
@@ -421,25 +471,27 @@ def get_rekap_data(start_date=None, end_date=None, nopol=None, driver=None):
         cursor = conn.cursor(dictionary=True)
         
         query = """
-            SELECT * FROM transactions 
-            WHERE status = 'verified'
+            SELECT t.*, d.vehicle_type as master_vehicle, d.bbm_type as master_bbm
+            FROM transactions t
+            LEFT JOIN drivers d ON t.driver_name = d.name
+            WHERE t.status IN ('archived', 'os_finance', 'verified_ga')
         """
         params = []
         
         if start_date:
-            query += " AND DATE(created_at) >= %s"
+            query += " AND DATE(t.created_at) >= %s"
             params.append(start_date)
         if end_date:
-            query += " AND DATE(created_at) <= %s"
+            query += " AND DATE(t.created_at) <= %s"
             params.append(end_date)
         if nopol:
-            query += " AND nopol LIKE %s"
+            query += " AND t.nopol LIKE %s"
             params.append(f"%{nopol}%")
         if driver:
-            query += " AND driver_name LIKE %s"
+            query += " AND t.driver_name LIKE %s"
             params.append(f"%{driver}%")
         
-        query += " ORDER BY nopol ASC, created_at ASC"
+        query += " ORDER BY t.nopol ASC, t.created_at ASC"
         
         cursor.execute(query, params)
         all_tx = cursor.fetchall()
@@ -472,180 +524,252 @@ def get_rekap_data(start_date=None, end_date=None, nopol=None, driver=None):
 # ============================================================
 
 class PDFReportCompact(FPDF):
-    """PDF Report compact - 1 halaman (tanpa emoji)"""
+    """PDF Report - Professional single page, narrow margins, humanistic"""
     
     def __init__(self):
         super().__init__(orientation='P', unit='mm', format='A4')
-        self.set_auto_page_break(auto=True, margin=10)
-        self.set_font('helvetica', '', 8)
-        # Gunakan font standar, hindari emoji
+        self.set_auto_page_break(auto=True, margin=8)
+        self.set_margins(8, 8, 8)
     
     def clean_text(self, text):
-        """Hapus karakter yang tidak didukung oleh font helvetica"""
         if not text:
             return ""
-        # Hapus emoji dan karakter unicode yang bermasalah
         import re
-        # Hapus emoji (range emoji umum)
-        emoji_pattern = re.compile(
-            "[\U0001F600-\U0001F64F"  # emoticons
-            "\U0001F300-\U0001F5FF"  # symbols & pictographs
-            "\U0001F680-\U0001F6FF"  # transport & map
-            "\U0001F700-\U0001F77F"  # alchemical
-            "\U0001F780-\U0001F7FF"  # Geometric Shapes
-            "\U0001F800-\U0001F8FF"  # Supplemental Arrows-C
-            "\U0001F900-\U0001F9FF"  # Supplemental Symbols and Pictographs
-            "\U0001FA00-\U0001FA6F"  # Chess Symbols
-            "\U0001FA70-\U0001FAFF"  # Symbols and Pictographs Extended-A
-            "\U00002702-\U000027B0"  # Dingbats
-            "\U000024C2-\U0001F251" 
-            "]+", 
-            flags=re.UNICODE
-        )
-        text = emoji_pattern.sub('', text)
-        # Hapus karakter kontrol
-        text = ''.join(char for char in text if ord(char) >= 32 or char in '\n\r\t')
+        text = re.sub(r'[^\x20-\x7E\n\r\t]', '', str(text))
         return text.strip()
     
     def header(self):
-        self.set_font('helvetica', 'B', 12)
-        self.set_text_color(0, 51, 102)
-        self.cell(0, 6, "LAPORAN VERIFIKASI KLAIM BBM", align="C", new_x="LMARGIN", new_y="NEXT")
-        self.set_font('helvetica', 'B', 10)
-        self.cell(0, 5, "PT. BESTPROFIT SURABAYA", align="C", new_x="LMARGIN", new_y="NEXT")
-        self.set_draw_color(200, 200, 200)
-        self.line(10, 18, 200, 18)
-        self.ln(3)
-
+        self.set_font('helvetica', 'B', 14)
+        self.set_text_color(30, 64, 175)
+        self.cell(0, 7, 'LAPORAN VERIFIKASI KLAIM BBM', align="C", new_x="LMARGIN", new_y="NEXT")
+        self.set_font('helvetica', 'B', 9)
+        self.set_text_color(71, 85, 105)
+        self.cell(0, 5, 'PT. BESTPROFIT SURABAYA', align="C", new_x="LMARGIN", new_y="NEXT")
+        self.set_draw_color(226, 232, 240)
+        self.set_line_width(0.5)
+        self.line(self.l_margin, self.get_y()+1, self.w - self.r_margin, self.get_y()+1)
+        self.ln(4)
+    
     def footer(self):
-        self.set_y(-10)
-        self.set_font('helvetica', 'I', 6)
-        self.set_text_color(128)
-        self.cell(0, 5, f"Generated: {datetime.now().strftime('%d-%m-%Y %H:%M')}", align="L")
-        self.cell(0, 5, f"Halaman {self.page_no()}", align="R")
+        self.set_y(-8)
+        self.set_font('helvetica', 'I', 5)
+        self.set_text_color(148, 163, 184)
+        self.cell(0, 3, f'Generated: {datetime.now().strftime("%d-%m-%Y %H:%M")} | Page {self.page_no()}', align="C")
+    
+    def section_title(self, title):
+        self.set_font('helvetica', 'B', 9)
+        self.set_fill_color(241, 245, 249)
+        self.set_text_color(30, 64, 175)
+        self.cell(0, 6, '  ' + title, border=0, fill=True, new_x="LMARGIN", new_y="NEXT")
+        self.set_draw_color(203, 213, 225)
+        self.line(self.l_margin, self.get_y(), self.w - self.r_margin, self.get_y())
+        self.ln(3)
+    
+    def info_row(self, label, value, x, y, w_label, w_value):
+        self.set_xy(x, y)
+        self.set_font('helvetica', 'B', 7)
+        self.set_text_color(71, 85, 105)
+        self.cell(w_label, 5, label, border=0)
+        self.set_font('helvetica', '', 7)
+        self.set_text_color(15, 23, 42)
+        self.cell(w_value, 5, str(value), border=0)
     
     def generate_compact_report(self, tx):
-        """Generate report compact dalam 1 halaman (tanpa tanda tangan)"""
+        # ===== TRANSACTION HEADER =====
+        self.set_font('helvetica', 'B', 11)
+        self.set_text_color(15, 23, 42)
+        nopol_text = self.clean_text(str(tx.get('nopol', '-')).upper())
+        self.cell(0, 7, f'TRANSAKSI #{tx["id"]} - {nopol_text}', align="L", new_x="LMARGIN", new_y="NEXT")
+        self.ln(2)
         
-        # ===== DATA TRANSAKSI =====
-        self.set_font('helvetica', 'B', 9)
-        self.set_fill_color(240, 240, 240)
+        # ===== INFO GRID (2 columns) =====
+        self.section_title('INFORMASI TRANSAKSI')
         
-        # Layout data dalam 2 kolom
-        data_items = [
-            ("ID Transaksi", f"#{tx['id']}"),
-            ("Nopol", tx['nopol'].upper()),
-            ("Driver", tx['driver_name']),
-            ("Tipe Kendaraan", tx['vehicle_type']),
-            ("Jenis BBM", tx.get('bbm_type', 'PERTALITE')),
-            ("Tanggal", tx['created_at'].strftime('%d-%m-%Y %H:%M') if tx.get('created_at') else '-'),
-            ("Nominal", f"Rp {tx['nominal']:,.0f}"),
-            ("Volume", f"{tx['liter']} L"),
-            ("Harga/Liter", f"Rp {tx.get('price_per_liter', 10000):,}"),
-            ("ODO KM", f"{tx['odo_km']:,}"),
-            ("SPBU", str(tx['spbu_type']).replace('_', ' ').title()),
-            ("GPS", (tx.get('gps_address', '') or 'Tidak terdeteksi')[:30])
+        col1_x = self.l_margin
+        col2_x = self.w / 2 + 5
+        row_h = 5.5
+        label_w = 30
+        value_w = 50
+        
+        rows = [
+            [('ID Transaksi', f'#{tx["id"]}'), ('Tanggal', tx['created_at'].strftime('%d-%m-%Y %H:%M') if tx.get('created_at') else '-')],
+            [('Nopol', nopol_text), ('Driver', self.clean_text(str(tx.get('driver_name', '-')).upper()))],
+            [('Kendaraan', self.clean_text(str(tx.get('vehicle_type', '-')))), ('Jenis BBM', self.clean_text(str(tx.get('bbm_type', '-'))))],
+            [('Nominal', f'Rp {tx["nominal"]:,.0f}'), ('Volume', f'{tx["liter"]} Liter')],
+            [('Harga/Liter', f'Rp {tx.get("price_per_liter", 0):,.0f}'), ('ODO KM', f'{tx["odo_km"]:,} km')],
+            [('SPBU', self.clean_text(str(tx.get('spbu_type', '-')).replace('_', ' ').title())), ('Appointment', f'{tx.get("jumlah_appointment", 0)}x')],
         ]
         
-        col1_width = 55
-        col2_width = 55
-        row_height = 6
+        y_start = self.get_y()
+        for i, row in enumerate(rows):
+            y_pos = y_start + (i * row_h)
+            self.info_row(row[0][0], row[0][1], col1_x, y_pos, label_w, value_w)
+            self.info_row(row[1][0], row[1][1], col2_x, y_pos, label_w, value_w)
         
-        for i in range(0, len(data_items), 2):
-            x_pos = 12
-            self.set_xy(x_pos, self.get_y())
-            self.set_font('helvetica', 'B', 7)
-            self.set_fill_color(240, 240, 240)
-            label1 = self.clean_text(data_items[i][0])
-            value1 = self.clean_text(data_items[i][1])
-            self.cell(col1_width * 0.35, row_height, label1, border=1, fill=True)
-            self.set_font('helvetica', '', 7)
-            self.cell(col1_width * 0.65, row_height, value1, border=1, new_x="RIGHT")
-            
-            if i + 1 < len(data_items):
-                self.set_font('helvetica', 'B', 7)
-                self.set_fill_color(240, 240, 240)
-                label2 = self.clean_text(data_items[i+1][0])
-                value2 = self.clean_text(data_items[i+1][1])
-                self.cell(col2_width * 0.35, row_height, label2, border=1, fill=True)
-                self.set_font('helvetica', '', 7)
-                self.cell(col2_width * 0.65, row_height, value2, border=1, new_x="LMARGIN")
+        self.set_y(y_start + len(rows) * row_h + 2)
+        
+        # ===== LOCATION =====
+        gps_addr = self.clean_text(str(tx.get('gps_address', '') or 'Tidak tersedia'))
+        self.set_font('helvetica', 'I', 6)
+        self.set_text_color(100, 116, 139)
+        self.cell(0, 4, f'Lokasi: {gps_addr[:120]}', new_x="LMARGIN", new_y="NEXT")
+        self.ln(2)
+        
+        # ===== KRONOLOGIS (Humanistic Narrative) =====
+        self.section_title('KRONOLOGIS VERIFIKASI')
+        
+        driver_name = self.clean_text(str(tx.get('driver_name', 'Driver')).upper())
+        nopol_short = nopol_text
+        tgl = tx['created_at'].strftime('%d %B %Y pukul %H:%M') if tx.get('created_at') else '-'
+        nominal_str = f'Rp {tx["nominal"]:,.0f}'
+        liter_str = f'{tx["liter"]} Liter'
+        odo_str = f'{tx["odo_km"]:,} km'
+        spbu_str = self.clean_text(str(tx.get('spbu_type', '-')).replace('_', ' ').title())
+        bbm_str = self.clean_text(str(tx.get('bbm_type', '-')))
+        appt = tx.get('jumlah_appointment', 0) or 0
+        gps_str = self.clean_text(str(tx.get('gps_address', '') or 'lokasi terdeteksi'))
+        
+        # Build narrative
+        narrative = (
+            f'Pada hari {tgl}, Bapak/Ibu {driver_name} selaku driver kendaraan {nopol_short} '
+            f'melakukan pengisian bahan bakar {bbm_str} sebanyak {liter_str} dengan total biaya sebesar {nominal_str} '
+            f'di SPBU {spbu_str}. Pengisian dilakukan pada saat odometer kendaraan menunjukkan angka {odo_str}. '
+        )
+        
+        if appt > 0:
+            narrative += (
+                f'Pada hari yang sama, driver memiliki {appt} janji temu (appointment) marketing yang harus dipenuhi. '
+            )
+        
+        narrative += (
+            f'Lokasi pengisian terdeteksi di {gps_str}. '
+        )
+        
+        # GA/Finance info
+        ga_by = self.clean_text(str(tx.get('ga_approved_by', '') or tx.get('approved_by_user', '') or '-'))
+        ga_at = tx.get('ga_approved_at')
+        fin_by = self.clean_text(str(tx.get('finance_payout_by', '') or tx.get('payout_by_user', '') or '-'))
+        fin_at = tx.get('finance_payout_at')
+        arc_by = self.clean_text(str(tx.get('archived_by', '') or tx.get('archived_by_user', '') or '-'))
+        arc_at = tx.get('archived_at')
+        
+        if ga_by != '-':
+            narrative += f'Klaim ini telah diverifikasi dan disetujui oleh GA ({ga_by})'
+            if ga_at: narrative += f' pada {ga_at.strftime("%d %B %Y %H:%M")}'
+            narrative += '. '
+        
+        if fin_by != '-':
+            narrative += f'Dana telah dicairkan oleh Finance ({fin_by})'
+            if fin_at: narrative += f' pada {fin_at.strftime("%d %B %Y %H:%M")}'
+            narrative += '. '
+        
+        if arc_by != '-':
+            narrative += f'Dokumen telah ditandatangani oleh Driver dan diarsipkan oleh Finance ({arc_by})'
+            if arc_at: narrative += f' pada {arc_at.strftime("%d %B %Y %H:%M")}'
+            narrative += '. '
+        
+        narrative += (
+            f'Seluruh bukti berupa foto ODO, struk, dan dokumen pendukung telah dilampirkan dan diverifikasi. '
+            f'Klaim BBM ini dinyatakan SAH dan telah melalui seluruh tahapan persetujuan sesuai prosedur yang berlaku '
+            f'di PT. Bestprofit Surabaya.'
+        )
+        
+        self.set_font('helvetica', '', 7)
+        self.set_text_color(51, 65, 85)
+        self.multi_cell(0, 4, narrative, align='J')
+        self.ln(2)
+        
+        # ===== WORKFLOW STATUS BAR =====
+        self.section_title('STATUS PERSETUJUAN')
+        
+        statuses = [
+            ('GA APPROVAL', ga_by if ga_by != '-' else None, ga_at),
+            ('FINANCE PAYOUT', fin_by if fin_by != '-' else None, fin_at),
+            ('DRIVER TTD', 'Driver' if arc_by != '-' else None, None),
+            ('ARCHIVED', arc_by if arc_by != '-' else None, arc_at),
+        ]
+        
+        bar_w = (self.w - self.l_margin - self.r_margin - 12) / 4
+        bar_h = 4
+        x = self.l_margin
+        y = self.get_y() + 2
+        
+        for i, (label, who, when) in enumerate(statuses):
+            if who:
+                self.set_fill_color(34, 197, 94)
+                self.set_text_color(255, 255, 255)
             else:
-                self.cell(col2_width, row_height, "", border=1, new_x="LMARGIN")
-            self.ln(row_height)
+                self.set_fill_color(226, 232, 240)
+                self.set_text_color(148, 163, 184)
+            
+            self.set_xy(x, y)
+            self.set_font('helvetica', 'B', 5)
+            self.cell(bar_w, bar_h, label, border=0, fill=True, align='C')
+            
+            if who:
+                self.set_xy(x, y + bar_h + 1)
+                self.set_font('helvetica', '', 4)
+                self.set_text_color(100, 116, 139)
+                self.cell(bar_w, 3, f'{who}', align='C')
+            
+            x += bar_w + 4
         
-        # ===== KRONOLOGIS =====
-        if tx.get('kronologis_text'):
-            self.ln(2)
-            self.set_font('helvetica', 'B', 8)
-            self.set_fill_color(255, 243, 205)
-            self.set_text_color(133, 100, 4)
-            self.cell(0, 5, "CATATAN KRONOLOGIS", border=1, fill=True, new_x="LMARGIN", new_y="NEXT")
-            self.set_font('helvetica', '', 7)
-            self.set_text_color(0, 0, 0)
-            krono_text = self.clean_text(tx['kronologis_text'])
-            self.multi_cell(0, 4, krono_text, border=1)
-            self.ln(2)
+        self.set_y(y + bar_h + 6)
         
-        # ===== FOTO BUKTI =====
-        self.set_font('helvetica', 'B', 8)
-        self.set_fill_color(200, 200, 200)
-        self.cell(0, 5, "BUKTI VISUAL", border=1, fill=True, new_x="LMARGIN", new_y="NEXT")
-        
+        # ===== PHOTOS =====
         photos = [
             ('ODO Sebelum', tx.get('foto_odo_sebelum')),
             ('ODO + Nota', tx.get('foto_nota_odo_sesudah')),
             ('Struk BBM', tx.get('foto_struk')),
             ('Dispenser', tx.get('foto_struk_dispenser')),
-            ('MyPertamina', tx.get('foto_mypertamina_admin'))
+            ('MyPertamina', tx.get('foto_mypertamina_admin')),
         ]
         
-        existing_photos = [(label, path) for label, path in photos if path]
+        existing = [(l, p) for l, p in photos if p]
         
-        if existing_photos:
-            img_width = 55
-            img_height = 45
-            gap = 4
-            total_width = (img_width * 3) + (gap * 2)
-            start_x = (210 - total_width) / 2
+        if existing:
+            self.section_title('BUKTI VISUAL')
             
-            for i in range(0, len(existing_photos), 3):
-                row_photos = existing_photos[i:i+3]
+            img_w = 55
+            img_h = 42
+            gap = 3
+            
+            for i in range(0, len(existing), 3):
+                row = existing[i:i+3]
+                x = self.l_margin
+                y = self.get_y()
                 
-                if self.get_y() > 240:
+                if y > 245:
                     self.add_page()
-                    self.set_font('helvetica', 'B', 8)
-                    self.cell(0, 5, "BUKTI VISUAL (lanjutan)", border=1, fill=True, new_x="LMARGIN", new_y="NEXT")
+                    y = self.get_y()
                 
-                x_pos = start_x
-                for idx, (label, path) in enumerate(row_photos):
-                    self.set_xy(x_pos, self.get_y())
-                    
-                    self.set_fill_color(245, 245, 245)
-                    self.set_draw_color(200, 200, 200)
-                    self.rect(x_pos, self.get_y(), img_width, img_height + 10)
+                for label, path in row:
+                    self.set_xy(x, y)
+                    self.set_fill_color(248, 250, 252)
+                    self.set_draw_color(203, 213, 225)
+                    self.rect(x, y, img_w, img_h + 8)
                     
                     self.set_font('helvetica', 'B', 5)
-                    self.set_xy(x_pos + 2, self.get_y() + 2)
-                    clean_label = self.clean_text(label)
-                    self.cell(img_width - 4, 4, clean_label, align='C')
+                    self.set_xy(x + 1, y + 1)
+                    self.cell(img_w - 2, 3, self.clean_text(label), align='C')
                     
                     try:
                         filepath = os.path.join(app.config['UPLOAD_FOLDER'], path)
                         if os.path.exists(filepath):
-                            self.image(filepath, x=x_pos + 2, y=self.get_y() + 6, w=img_width - 4, h=img_height - 8)
-                    except Exception as e:
+                            self.image(filepath, x=x+2, y=y+4, w=img_w-4, h=img_h-6)
+                    except:
                         self.set_font('helvetica', 'I', 6)
-                        self.set_xy(x_pos + 2, self.get_y() + 15)
-                        self.cell(img_width - 4, 5, "[Gambar tidak tersedia]", align='C')
+                        self.set_xy(x+2, y+15)
+                        self.cell(img_w-4, 5, '[File tidak tersedia]', align='C')
                     
-                    x_pos += img_width + gap
+                    x += img_w + gap
                 
-                self.set_y(self.get_y() + img_height + 12)
+                self.set_y(y + img_h + 10)
         else:
+            self.ln(3)
             self.set_font('helvetica', 'I', 7)
-            self.set_text_color(128)
-            self.cell(0, 8, "Tidak ada foto bukti yang dilampirkan", align='C', new_x="LMARGIN", new_y="NEXT")
+            self.set_text_color(148, 163, 184)
+            self.cell(0, 5, 'Tidak ada foto bukti dilampirkan.', align='C')
 
 class BBMReportPDF(FPDF):
     """PDF Rekap - dengan tanda tangan dan ukuran proporsional"""
@@ -752,13 +876,34 @@ def driver_form():
             gps_lon = request.form.get('gps_lon')
             gps_address = request.form.get('gps_address', '')
             
+            # Validasi: ambil data driver dari database
+            conn = get_db_connection()
+            if not conn:
+                flash('Database error!', 'error')
+                return render_template('driver.html')
+            
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM drivers WHERE name = %s AND is_active = TRUE", (driver_name,))
+            driver_data = cursor.fetchone()
+            
+            if driver_data:
+                # Override dengan data master
+                nopol = driver_data['nopol']
+                vehicle_type = driver_data['vehicle_type']
+                bbm_type = driver_data['bbm_type']
+            
+            # Validasi BBM untuk kendaraan
             validation = validate_bbm_for_vehicle(vehicle_type, bbm_type)
             if not validation['valid']:
-                flash(f'❌ {validation["error"]}', 'error')
+                flash('BBM ' + bbm_type + ' tidak tersedia untuk ' + vehicle_type, 'error')
+                cursor.close()
+                conn.close()
                 return render_template('driver.html')
             
             if not driver_name or not nopol or nominal <= 0 or odo_km <= 0:
                 flash('Semua field harus diisi dengan benar!', 'error')
+                cursor.close()
+                conn.close()
                 return render_template('driver.html')
             
             foto_odo_sebelum = save_file(request.files.get('foto_odo_sebelum'), 'ODO1', nopol)
@@ -766,15 +911,9 @@ def driver_form():
             foto_struk = save_file(request.files.get('foto_struk'), 'STRUK', nopol)
             foto_struk_dispenser = save_file(request.files.get('foto_struk_dispenser'), 'DISP', nopol) if spbu_type == 'non_rekanan' else None
             
-            conn = get_db_connection()
-            if not conn:
-                flash('Database error!', 'error')
-                return render_template('driver.html')
-            
-            cursor = conn.cursor(dictionary=True)
             cursor.execute("""
                 SELECT odo_km FROM transactions 
-                WHERE nopol = %s AND status = 'verified' 
+                WHERE nopol = %s AND status = 'verified_ga' 
                 ORDER BY created_at DESC LIMIT 1
             """, (nopol,))
             previous = cursor.fetchone()
@@ -806,16 +945,14 @@ def driver_form():
             cursor.close()
             conn.close()
             
-            if analysis['is_anomaly']:
-                flash(f"⚠️ {analysis['status']}: {analysis['message']}", 'warning')
-            else:
-                flash(f"✅ Klaim berhasil dikirim! {analysis['message']}", 'success')
-            
+            flash('Klaim #' + str(transaction_id) + ' berhasil! ' + analysis['message'], 'success')
             return redirect(url_for('driver_form'))
             
         except Exception as e:
             print(f"Driver form error: {e}")
-            flash(f'Error: {str(e)}', 'error')
+            import traceback
+            traceback.print_exc()
+            flash('Error: ' + str(e), 'error')
             return render_template('driver.html')
     
     return render_template('driver.html')
@@ -927,14 +1064,31 @@ def admin_dashboard():
             return "Database tidak tersedia", 500
         
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM transactions WHERE status IN ('pending', 'modified') ORDER BY created_at ASC")
+        tab = request.args.get('tab', 'ga_queue')
+        if tab == 'finance':
+            cursor.execute("SELECT * FROM transactions WHERE status = 'verified_ga' ORDER BY created_at ASC")
+        elif tab == 'driver_confirm':
+            cursor.execute("SELECT * FROM transactions WHERE status = 'os_finance' ORDER BY created_at ASC")
+        elif tab == 'archive':
+            cursor.execute("SELECT * FROM transactions WHERE status = 'archived' ORDER BY created_at DESC")
+        else:
+            cursor.execute("SELECT * FROM transactions WHERE status IN ('pending', 'modified') ORDER BY created_at ASC")
         pending_txs = cursor.fetchall()
         
         cursor.execute("SELECT COUNT(*) as total FROM transactions")
         total = cursor.fetchone()
         
-        cursor.execute("SELECT COUNT(*) as verified FROM transactions WHERE status = 'verified'")
-        verified = cursor.fetchone()
+        cursor.execute("SELECT COUNT(*) as pending FROM transactions WHERE status IN ('pending', 'modified')")
+        pending_count = cursor.fetchone()
+        
+        cursor.execute("SELECT COUNT(*) as verified_ga FROM transactions WHERE status = 'verified_ga'")
+        verified_ga = cursor.fetchone()
+        
+        cursor.execute("SELECT COUNT(*) as os_finance FROM transactions WHERE status = 'os_finance'")
+        os_finance = cursor.fetchone()
+        
+        cursor.execute("SELECT COUNT(*) as archived FROM transactions WHERE status = 'archived'")
+        archived = cursor.fetchone()
         
         cursor.execute("SELECT COUNT(*) as anomaly FROM transactions WHERE ml_anomaly_flag = TRUE")
         anomaly = cursor.fetchone()
@@ -950,9 +1104,12 @@ def admin_dashboard():
         
         stats = {
             'total': total['total'] if total else 0,
-            'pending': len(pending_txs),
-            'verified': verified['verified'] if verified else 0,
-            'anomaly': anomaly['anomaly'] if anomaly else 0
+            'pending': pending_count['pending'] if pending_count else 0,
+            'verified_ga': verified_ga['verified_ga'] if verified_ga else 0,
+            'os_finance': os_finance['os_finance'] if os_finance else 0,
+            'archived': archived['archived'] if archived else 0,
+            'anomaly': anomaly['anomaly'] if anomaly else 0,
+            'tab': tab
         }
         
         return render_template('admin.html', 
@@ -969,17 +1126,7 @@ def admin_dashboard():
 # ============================================================
 @app.route('/admin/riwayat')
 def admin_riwayat():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM transactions WHERE status='verified' ORDER BY created_at DESC")
-        transactions = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return render_template('riwayat.html', transactions=transactions)
-    except Exception as e:
-        print(f"Riwayat error: {e}")
-        return f"Error: {str(e)}", 500
+    return redirect(url_for('admin_rekap'))
 
 @app.route('/admin/report/<int:tx_id>')
 def generate_report(tx_id):
@@ -1126,9 +1273,9 @@ def admin_analytics():
                    vba.good_km_per_liter, vba.warning_km_per_liter
             FROM transactions t
             JOIN vehicle_bbm_allowed vba ON t.vehicle_type = vba.vehicle_type AND t.bbm_type = vba.bbm_type
-            WHERE t.status = 'verified' AND t.km_per_liter > 0
+            WHERE t.status IN ('archived', 'os_finance', 'verified_ga')
             GROUP BY t.nopol, t.vehicle_type, t.bbm_type, vba.good_km_per_liter, vba.warning_km_per_liter
-            HAVING COUNT(*) >= 2
+            HAVING COUNT(*) >= 1
             ORDER BY avg_km_per_liter DESC
         """)
         vehicle_performance = cursor.fetchall()
@@ -1143,7 +1290,7 @@ def admin_analytics():
                        vba.good_km_per_liter, vba.warning_km_per_liter
                 FROM transactions t
                 JOIN vehicle_bbm_allowed vba ON t.vehicle_type = vba.vehicle_type AND t.bbm_type = vba.bbm_type
-                WHERE t.status = 'verified' AND t.km_per_liter > 0
+                WHERE t.status IN ('archived', 'os_finance', 'verified_ga')
                 GROUP BY t.nopol, t.vehicle_type, t.bbm_type, vba.good_km_per_liter, vba.warning_km_per_liter
                 ORDER BY avg_km_per_liter DESC
             """)
@@ -1154,7 +1301,7 @@ def admin_analytics():
                    AVG(km_per_liter) as avg_efficiency,
                    COUNT(*) as transactions
             FROM transactions 
-            WHERE status = 'verified' AND km_per_liter > 0
+            WHERE status IN ('archived', 'os_finance', 'verified_ga')
             GROUP BY DATE(created_at)
             ORDER BY date DESC LIMIT 30
         """)
@@ -1349,7 +1496,7 @@ def get_vehicle_feedback(nopol):
         cursor.execute(
             "SELECT odo_km, liter, km_per_liter, jumlah_appointment, created_at "
             "FROM transactions "
-            "WHERE nopol=%s AND status='verified' "
+            "WHERE nopol=%s AND status IN ('archived', 'os_finance', 'verified_ga') "
             "ORDER BY created_at DESC LIMIT 10",
             (nopol,)
         )
@@ -1395,6 +1542,447 @@ def get_vehicle_feedback(nopol):
         })
     except Exception as e:
         return jsonify({"status": "error", "msg": str(e)}), 500
+
+
+
+
+# ============================================================
+# ROUTES - GA APPROVAL
+# ============================================================
+@app.route('/ga/approve/<int:tx_id>')
+def ga_approve(tx_id):
+    try:
+        conn = get_db_connection()
+        if not conn:
+            flash('Database error!', 'error')
+            return redirect(url_for('admin_dashboard'))
+        
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM transactions WHERE id = %s AND status IN ('pending', 'modified')", (tx_id,))
+        tx = cursor.fetchone()
+        
+        if not tx:
+            flash('Transaksi tidak ditemukan atau sudah diproses!', 'error')
+            cursor.close()
+            conn.close()
+            return redirect(url_for('admin_dashboard'))
+        
+        admin_name = request.args.get('admin', 'GA Officer')
+        
+        cursor.execute(
+            "UPDATE transactions SET status = 'verified_ga', ga_approved_by = %s, ga_approved_at = NOW(), approved_by_user = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s",
+            (admin_name, admin_name, tx_id)
+        )
+        conn.commit()
+        
+        log_activity_async(tx_id, 'ga_approve', 'ga', admin_name, ip=request.remote_addr, ua=request.headers.get('User-Agent'))
+        
+        cursor.close()
+        conn.close()
+        
+        flash('Klaim #' + str(tx_id) + ' (' + tx['nopol'] + ') disetujui oleh GA! Siap diajukan ke Finance.', 'success')
+    except Exception as e:
+        print(f"GA Approve error: {e}")
+        flash('Error: ' + str(e), 'error')
+    
+    return redirect(url_for('admin_dashboard', tab='ga_queue'))
+
+
+# ============================================================
+# ROUTES - FINANCE PAYOUT
+# ============================================================
+@app.route('/finance/payout/<int:tx_id>')
+def finance_payout(tx_id):
+    try:
+        conn = get_db_connection()
+        if not conn:
+            flash('Database error!', 'error')
+            return redirect(url_for('admin_dashboard'))
+        
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM transactions WHERE id = %s AND status = 'verified_ga'", (tx_id,))
+        tx = cursor.fetchone()
+        
+        if not tx:
+            flash('Transaksi tidak ditemukan atau belum disetujui GA!', 'error')
+            cursor.close()
+            conn.close()
+            return redirect(url_for('admin_dashboard'))
+        
+        admin_name = request.args.get('admin', 'Finance Officer')
+        
+        cursor.execute(
+            "UPDATE transactions SET status = 'os_finance', finance_payout_by = %s, finance_payout_at = NOW(), payout_by_user = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s",
+            (admin_name, admin_name, tx_id)
+        )
+        conn.commit()
+        
+        log_activity_async(tx_id, 'finance_payout', 'finance', admin_name, ip=request.remote_addr, ua=request.headers.get('User-Agent'))
+        
+        cursor.close()
+        conn.close()
+        
+        flash('Dana klaim #' + str(tx_id) + ' (' + tx['nopol'] + ') sudah dikeluarkan! Menunggu tanda tangan Driver.', 'success')
+    except Exception as e:
+        print(f"Finance Payout error: {e}")
+        flash('Error: ' + str(e), 'error')
+    
+    return redirect(url_for('admin_dashboard', tab='finance'))
+
+
+# ============================================================
+# ROUTES - FINANCE ARCHIVE (Driver sudah TTD)
+# ============================================================
+@app.route('/finance/archive/<int:tx_id>')
+def finance_archive(tx_id):
+    try:
+        conn = get_db_connection()
+        if not conn:
+            flash('Database error!', 'error')
+            return redirect(url_for('admin_dashboard'))
+        
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM transactions WHERE id = %s AND status = 'os_finance'", (tx_id,))
+        tx = cursor.fetchone()
+        
+        if not tx:
+            flash('Transaksi tidak ditemukan atau belum dalam status OS!', 'error')
+            cursor.close()
+            conn.close()
+            return redirect(url_for('admin_dashboard'))
+        
+        admin_name = request.args.get('admin', 'Finance Officer')
+        
+        cursor.execute(
+            "UPDATE transactions SET status = 'archived', archived_by = %s, archived_at = NOW(), archived_by_user = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s",
+            (admin_name, admin_name, tx_id)
+        )
+        conn.commit()
+        
+        log_activity_async(tx_id, 'archive', 'finance', admin_name, ip=request.remote_addr, ua=request.headers.get('User-Agent'))
+        
+        cursor.close()
+        conn.close()
+        
+        flash('Klaim #' + str(tx_id) + ' (' + tx['nopol'] + ') sudah diarsipkan!', 'success')
+    except Exception as e:
+        print(f"Archive error: {e}")
+        flash('Error: ' + str(e), 'error')
+    
+    return redirect(url_for('admin_dashboard', tab='driver_confirm'))
+
+
+# ============================================================
+# ROUTES - REJECT
+# ============================================================
+@app.route('/admin/reject/<int:tx_id>', methods=['POST'])
+def reject_tx(tx_id):
+    try:
+        reason = request.form.get('rejection_reason', 'Tidak ada alasan')
+        rejected_by = request.form.get('rejected_by', 'Admin')
+        
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE transactions SET status = 'rejected', rejection_reason = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s",
+                (reason, tx_id)
+            )
+            conn.commit()
+            
+            log_activity_async(tx_id, 'reject', 'admin', rejected_by, new_data={'reason': reason}, ip=request.remote_addr, ua=request.headers.get('User-Agent'))
+            
+            cursor.close()
+            conn.close()
+            flash('Transaksi ditolak: ' + reason, 'warning')
+    except Exception as e:
+        print(f"Reject error: {e}")
+        flash('Error: ' + str(e), 'error')
+    
+    return redirect(url_for('admin_dashboard'))
+
+
+# ============================================================
+# ROUTES - DOWNLOAD ARCHIVE BUNDLE (ZIP)
+# ============================================================
+@app.route('/finance/download-archive/<int:tx_id>')
+def download_archive(tx_id):
+    try:
+        import zipfile
+        from io import BytesIO
+        
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM transactions WHERE id = %s", (tx_id,))
+        tx = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if not tx:
+            return "Transaksi tidak ditemukan", 404
+        
+        memory_file = BytesIO()
+        with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+            foto_fields = [
+                ('foto_odo_sebelum', '01_ODO_Sebelum'),
+                ('foto_nota_odo_sesudah', '02_ODO_Nota'),
+                ('foto_struk', '03_Struk_BBM'),
+                ('foto_struk_dispenser', '04_Struk_Dispenser'),
+                ('foto_mypertamina_admin', '05_MyPertamina'),
+            ]
+            
+            files_added = 0
+            for field, label in foto_fields:
+                filename = tx.get(field)
+                if filename:
+                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    if os.path.exists(filepath):
+                        ext = os.path.splitext(filename)[1]
+                        zf.write(filepath, label + '_' + str(tx['nopol']) + ext)
+                        files_added += 1
+            
+            info_text = "ARSIP KLAIM BBM #" + str(tx['id']) + "\n"
+            info_text += "===============================\n"
+            info_text += "Nopol: " + str(tx['nopol']) + "\n"
+            info_text += "Driver: " + str(tx['driver_name']) + "\n"
+            info_text += "Kendaraan: " + str(tx['vehicle_type']) + "\n"
+            info_text += "BBM: " + str(tx.get('bbm_type', '-')) + "\n"
+            info_text += "Nominal: Rp " + '{:,.0f}'.format(tx['nominal']) + "\n"
+            info_text += "Liter: " + str(tx['liter']) + " L\n"
+            info_text += "ODO: " + str(tx['odo_km']) + " km\n"
+            info_text += "SPBU: " + str(tx.get('spbu_type', '-')) + "\n"
+            info_text += "Tanggal: " + str(tx['created_at']) + "\n"
+            info_text += "GA Approved: " + str(tx.get('ga_approved_by', '-')) + "\n"
+            info_text += "Finance Payout: " + str(tx.get('finance_payout_by', '-')) + "\n"
+            info_text += "Archived: " + str(tx.get('archived_by', '-')) + "\n"
+            
+            zf.writestr('INFO_Transaksi_' + str(tx['nopol']) + '_' + str(tx['id']) + '.txt', info_text)
+            files_added += 1
+            
+            if files_added == 0:
+                return "Tidak ada file bukti untuk diarsipkan", 404
+        
+        memory_file.seek(0)
+        
+        response = make_response(memory_file.read())
+        response.headers['Content-Type'] = 'application/zip'
+        response.headers['Content-Disposition'] = 'attachment; filename=Archive_BBM_' + str(tx['nopol']) + '_' + str(tx['id']) + '.zip'
+        return response
+        
+    except Exception as e:
+        print(f"Download archive error: {e}")
+        import traceback
+        traceback.print_exc()
+        return "Error: " + str(e), 500
+
+
+
+# ============================================================
+# ROUTES - DRIVER ASSIGNMENTS MANAGEMENT
+# ============================================================
+@app.route('/admin/assignments', methods=['GET', 'POST'])
+def admin_assignments():
+    if request.method == 'POST':
+        try:
+            action = request.form.get('action', 'add')
+            conn = get_db_connection()
+            if not conn:
+                flash('Database error!', 'error')
+                return redirect(url_for('admin_assignments'))
+            
+            cursor = conn.cursor()
+            
+            if action == 'add':
+                driver_name = request.form.get('driver_name', '').strip().upper()
+                nopol = request.form.get('nopol', '').strip().upper()
+                vehicle_type = request.form.get('vehicle_type', 'AVANZA')
+                bbm_type = request.form.get('bbm_type', 'PERTALITE')
+                
+                if driver_name and nopol:
+                    cursor.execute("""
+                        INSERT INTO driver_assignments (driver_name, nopol, vehicle_type, bbm_type)
+                        VALUES (%s, %s, %s, %s)
+                        ON DUPLICATE KEY UPDATE vehicle_type=%s, bbm_type=%s, is_active=TRUE
+                    """, (driver_name, nopol, vehicle_type, bbm_type, vehicle_type, bbm_type))
+                    conn.commit()
+                    flash('Assignment berhasil ditambahkan!', 'success')
+            
+            elif action == 'toggle':
+                assign_id = request.form.get('assign_id')
+                is_active = request.form.get('is_active') == '1'
+                cursor.execute("UPDATE driver_assignments SET is_active = %s WHERE id = %s", (is_active, assign_id))
+                conn.commit()
+                flash('Status assignment diubah!', 'success')
+            
+            elif action == 'delete':
+                assign_id = request.form.get('assign_id')
+                cursor.execute("DELETE FROM driver_assignments WHERE id = %s", (assign_id,))
+                conn.commit()
+                flash('Assignment dihapus!', 'warning')
+            
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            print(f"Assignments error: {e}")
+            flash('Error: ' + str(e), 'error')
+        
+        return redirect(url_for('admin_assignments'))
+    
+    # GET
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM driver_assignments ORDER BY is_active DESC, driver_name")
+        assignments = cursor.fetchall()
+        
+        cursor.execute("SELECT vehicle_type FROM vehicles WHERE is_active = TRUE")
+        vehicles = cursor.fetchall()
+        
+        cursor.execute("SELECT name FROM bbm_types WHERE is_active = TRUE")
+        bbm_types = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        return render_template('assignments.html', assignments=assignments, vehicles=vehicles, bbm_types=bbm_types)
+    except Exception as e:
+        print(f"Assignments GET error: {e}")
+        return f"Error: {str(e)}", 500
+
+
+
+# ============================================================
+# API - SYNC DRIVER DATA
+# ============================================================
+@app.route('/api/drivers/sync', methods=['POST'])
+def sync_driver():
+    try:
+        data = request.get_json()
+        driver_name = data.get('driver_name', '').strip().upper()
+        nopol = data.get('nopol', '').strip().upper()
+        vehicle_type = data.get('vehicle_type', 'AVANZA')
+        bbm_type = data.get('bbm_type', 'PERTALITE')
+        
+        if not driver_name or not nopol:
+            return jsonify({'status': 'error', 'msg': 'Driver name and nopol required'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO drivers (name, nopol, vehicle_type, bbm_type)
+            VALUES (%s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE 
+                nopol = VALUES(nopol),
+                vehicle_type = VALUES(vehicle_type),
+                bbm_type = VALUES(bbm_type),
+                is_active = TRUE
+        """, (driver_name, nopol, vehicle_type, bbm_type))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return jsonify({'status': 'success', 'msg': 'Driver ' + driver_name + ' synced'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+@app.route('/api/drivers/<driver_name>/deactivate', methods=['POST'])
+def deactivate_driver(driver_name):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE drivers SET is_active = FALSE WHERE name = %s", (driver_name,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'status': 'success', 'msg': 'Driver ' + driver_name + ' deactivated'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+
+
+# ============================================================
+# API - VERIFY PIN (untuk GA/Finance approval)
+# ============================================================
+@app.route('/api/verify-pin', methods=['POST'])
+def verify_pin():
+    try:
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        pin = data.get('pin', '').strip()
+        
+        if not username or not pin:
+            return jsonify({'status': 'error', 'msg': 'Username dan PIN wajib diisi'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users WHERE username = %s AND pin = %s AND is_active = TRUE", (username, pin))
+        user = cursor.fetchone()
+        
+        if user:
+            # Update last_login
+            cursor.execute("UPDATE users SET last_login = NOW() WHERE id = %s", (user['id'],))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return jsonify({
+                'status': 'success',
+                'user': {'username': user['username'], 'full_name': user['full_name'], 'role': user['role']}
+            })
+        else:
+            cursor.close()
+            conn.close()
+            return jsonify({'status': 'error', 'msg': 'PIN salah atau user tidak aktif'}), 401
+    except Exception as e:
+        return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+# ============================================================
+# API - MANAGE USERS (untuk Settings)
+# ============================================================
+@app.route('/api/users', methods=['GET'])
+def api_users():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT id, username, full_name, role, is_active, last_login FROM users ORDER BY role, username")
+        users = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return jsonify(users)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/users/sync', methods=['POST'])
+def sync_user():
+    try:
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        full_name = data.get('full_name', '').strip()
+        role = data.get('role', 'ga')
+        pin = data.get('pin', '123456')
+        is_active = data.get('is_active', True)
+        
+        if not username or not full_name:
+            return jsonify({'status': 'error', 'msg': 'Username dan nama lengkap wajib'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO users (username, full_name, role, pin, is_active)
+            VALUES (%s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE 
+                full_name = VALUES(full_name),
+                role = VALUES(role),
+                pin = VALUES(pin),
+                is_active = VALUES(is_active)
+        """, (username, full_name, role, pin, is_active))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'status': 'success', 'msg': 'User ' + username + ' saved'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'msg': str(e)}), 500
 
 
 if __name__ == '__main__':

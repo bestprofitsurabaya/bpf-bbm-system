@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assignments - BPF BBM</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1a237e">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; }
+        .navbar { background: #1a237e; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar h1 { font-size: 20px; }
+        .navbar .nav-links { display: flex; gap: 10px; flex-wrap: wrap; }
+        .navbar .nav-links a { color: rgba(255,255,255,0.8); text-decoration: none; padding: 6px 14px; border-radius: 6px; font-size: 13px; }
+        .navbar .nav-links a:hover { background: rgba(255,255,255,0.15); }
+        .navbar .nav-links a.active { background: rgba(255,255,255,0.2); color: white; }
+        .container { max-width: 1000px; margin: 20px auto; padding: 0 20px; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow: hidden; margin-bottom: 20px; }
+        .card-header { padding: 14px 20px; border-bottom: 1px solid #e9ecef; font-weight: 600; background: #f8f9fa; }
+        .card-body { padding: 20px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e9ecef; }
+        th { background: #e9ecef; font-weight: 600; }
+        tr:hover { background: #f8f9fa; }
+        .btn { padding: 5px 12px; border: none; border-radius: 5px; font-weight: 600; cursor: pointer; font-size: 11px; text-decoration: none; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-info { background: #17a2b8; color: white; }
+        .badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .badge-active { background: #d4edda; color: #155724; }
+        .badge-inactive { background: #f8d7da; color: #721c24; }
+        .form-inline { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+        .form-inline select, .form-inline input { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 13px; }
+        .alert { padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; }
+        .alert-success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+        .alert-warning { background: #fff3cd; color: #856404; border-left: 4px solid #ffc107; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>BPF BBM System</h1>
+        <div class="nav-links">
+            <a href="/admin">Dashboard</a>
+            <a href="/admin/riwayat">Riwayat</a>
+            <a href="/admin/rekap">Rekap</a>
+            <a href="/admin/assignments" class="active">Assignments</a>
+            <a href="/admin/settings">Settings</a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message|safe }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <!-- ADD NEW -->
+        <div class="card">
+            <div class="card-header">Tambah Assignment Baru</div>
+            <div class="card-body">
+                <form method="POST" class="form-inline">
+                    <input type="hidden" name="action" value="add">
+                    <input type="text" name="driver_name" placeholder="Nama Driver" required style="width:180px;">
+                    <input type="text" name="nopol" placeholder="No. Polisi" required style="width:140px;">
+                    <select name="vehicle_type" required>
+                        <option value="">-- Kendaraan --</option>
+                        {% for v in vehicles %}
+                        <option value="{{ v.vehicle_type }}">{{ v.vehicle_type }}</option>
+                        {% endfor %}
+                    </select>
+                    <select name="bbm_type" required>
+                        <option value="">-- BBM --</option>
+                        {% for b in bbm_types %}
+                        <option value="{{ b.name }}">{{ b.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-success">+ Tambah</button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- LIST -->
+        <div class="card">
+            <div class="card-header">Daftar Assignment ({{ assignments|length }})</div>
+            <div class="card-body">
+                {% if assignments %}
+                <table>
+                    <thead>
+                        <tr><th>Driver</th><th>Nopol</th><th>Kendaraan</th><th>BBM</th><th>Status</th><th>Aksi</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for a in assignments %}
+                        <tr>
+                            <td><strong>{{ a.driver_name }}</strong></td>
+                            <td>{{ a.nopol }}</td>
+                            <td>{{ a.vehicle_type }}</td>
+                            <td>{{ a.bbm_type }}</td>
+                            <td>
+                                <span class="badge {% if a.is_active %}badge-active{% else %}badge-inactive{% endif %}">
+                                    {{ 'Aktif' if a.is_active else 'Nonaktif' }}
+                                </span>
+                            </td>
+                            <td>
+                                <form method="POST" style="display:inline;">
+                                    <input type="hidden" name="action" value="toggle">
+                                    <input type="hidden" name="assign_id" value="{{ a.id }}">
+                                    <input type="hidden" name="is_active" value="{{ '0' if a.is_active else '1' }}">
+                                    <button type="submit" class="btn btn-{{ 'warning' if a.is_active else 'info' }}">
+                                        {{ 'Nonaktifkan' if a.is_active else 'Aktifkan' }}
+                                    </button>
+                                </form>
+                                <form method="POST" style="display:inline;" onsubmit="return confirm('Hapus assignment ini?')">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="assign_id" value="{{ a.id }}">
+                                    <button type="submit" class="btn btn-danger">Hapus</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p style="color:#6c757d;text-align:center;padding:20px;">Belum ada assignment.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

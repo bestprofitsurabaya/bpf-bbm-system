@@ -3,100 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Verifikasi BBM</title>
+    <title>Dashboard - BPF BBM System</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#1a237e">
+    <meta name="theme-color" content="#1d4ed8">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root { --primary: #2563eb; --primary-dark: #1d4ed8; --primary-light: #dbeafe; --success: #059669; --success-light: #d1fae5; --warning: #d97706; --warning-light: #fef3c7; --danger: #dc2626; --danger-light: #fee2e2; --info: #0891b2; --info-light: #cffafe; --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-300: #d1d5db; --gray-400: #9ca3af; --gray-500: #6b7280; --gray-600: #4b5563; --gray-700: #374151; --gray-800: #1f2937; --gray-900: #111827; --white: #ffffff; --shadow: 0 1px 3px rgba(0,0,0,0.1); --shadow-md: 0 4px 6px rgba(0,0,0,0.07); --radius: 10px; --radius-sm: 6px; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; }
-        .navbar { background: #1a237e; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-        .navbar h1 { font-size: 20px; }
-        .navbar .nav-links { display: flex; gap: 10px; flex-wrap: wrap; }
-        .navbar .nav-links a { color: rgba(255,255,255,0.8); text-decoration: none; padding: 6px 14px; border-radius: 6px; transition: 0.2s; }
-        .navbar .nav-links a:hover { background: rgba(255,255,255,0.15); }
-        .navbar .nav-links a.active { background: rgba(255,255,255,0.2); color: white; }
-        .container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
-        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 25px; }
-        .stat-card { background: white; padding: 18px 22px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 4px solid #1a237e; }
-        .stat-card .number { font-size: 28px; font-weight: 700; color: #1a237e; }
-        .stat-card .label { font-size: 13px; color: #6c757d; margin-top: 2px; }
-        .card { background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow: hidden; margin-bottom: 20px; }
-        .card-header { padding: 16px 24px; border-bottom: 1px solid #e9ecef; font-weight: 600; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
-        .card-body { padding: 20px 24px; }
-        .tx-item { border: 1px solid #e9ecef; border-radius: 10px; padding: 16px 20px; margin-bottom: 15px; background: #fafbfc; transition: 0.2s; }
-        .tx-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .tx-item:last-child { margin-bottom: 0; }
-        .tx-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
-        .tx-header .nopol { font-weight: 700; font-size: 18px; color: #1a237e; }
-        .tx-header .status { padding: 2px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-        .tx-header .status.pending { background: #ffc107; color: #856404; }
-        .tx-header .status.modified { background: #17a2b8; color: white; }
-        .tx-detail { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px; font-size: 13px; color: #495057; margin: 8px 0; }
-        .tx-detail span { background: #f1f3f5; padding: 2px 10px; border-radius: 4px; white-space: nowrap; }
-        .gps-info { font-size: 11px; color: #6c757d; background: #e8f4fd; padding: 2px 8px; border-radius: 4px; grid-column: 1 / -1; }
-        
-        .photo-gallery { display: flex; gap: 12px; flex-wrap: wrap; margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef; }
-        .photo-item { position: relative; cursor: pointer; border-radius: 6px; overflow: hidden; border: 2px solid #dee2e6; transition: 0.2s; width: 120px; height: 90px; }
-        .photo-item:hover { border-color: #1a237e; transform: scale(1.02); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        .photo-item img { width: 100%; height: 100%; object-fit: cover; }
-        .photo-item .photo-label { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); color: white; font-size: 9px; padding: 2px 6px; text-align: center; font-weight: 600; }
-        .photo-empty { color: #6c757d; font-size: 13px; padding: 10px; text-align: center; width: 100%; }
-        .btn-review { background: #17a2b8; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600; }
-        .btn-review:hover { background: #138496; }
-        
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; padding: 20px; }
+        body { font-family: "Inter", "Segoe UI", sans-serif; background: var(--gray-50); color: var(--gray-800); }
+        .navbar { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: var(--shadow-md); position: sticky; top: 0; z-index: 100; }
+        .navbar h1 { font-size: 20px; font-weight: 700; }
+        .navbar .nav-links { display: flex; gap: 4px; flex-wrap: wrap; }
+        .navbar .nav-links a { color: rgba(255,255,255,0.85); text-decoration: none; padding: 7px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; }
+        .navbar .nav-links a:hover { background: rgba(255,255,255,0.12); color: white; }
+        .navbar .nav-links a.active { background: rgba(255,255,255,0.2); color: white; font-weight: 600; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 24px 20px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 22px; }
+        .stat-card { background: var(--white); padding: 18px 20px; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--gray-200); border-left: 4px solid var(--primary); cursor: pointer; text-decoration: none; color: inherit; display: block; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .stat-card .number { font-size: 28px; font-weight: 700; color: var(--gray-900); }
+        .stat-card .label { font-size: 12px; color: var(--gray-500); margin-top: 4px; text-transform: uppercase; }
+        .tab-nav { display: flex; gap: 2px; margin-bottom: 18px; background: var(--gray-100); border-radius: var(--radius); padding: 4px; overflow-x: auto; }
+        .tab-btn { padding: 10px 22px; border: none; background: transparent; border-radius: var(--radius-sm); cursor: pointer; font-weight: 500; font-size: 13px; white-space: nowrap; color: var(--gray-600); }
+        .tab-btn:hover { color: var(--gray-900); }
+        .tab-btn.active { background: var(--white); color: var(--primary); font-weight: 600; box-shadow: var(--shadow); }
+        .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--gray-200); overflow: hidden; margin-bottom: 20px; }
+        .card-header { padding: 16px 22px; border-bottom: 1px solid var(--gray-200); font-weight: 600; background: var(--gray-50); display: flex; justify-content: space-between; }
+        .card-body { padding: 20px 22px; }
+        .tx-item { border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 12px; }
+        .tx-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+        .tx-header .nopol { font-weight: 700; font-size: 17px; color: var(--gray-900); }
+        .tx-detail { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--gray-600); margin: 8px 0; }
+        .tx-detail span { background: var(--gray-100); padding: 3px 10px; border-radius: 20px; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .badge-pending { background: var(--warning-light); color: var(--warning); }
+        .badge-ga { background: var(--info-light); color: var(--info); }
+        .badge-finance { background: var(--success-light); color: var(--success); }
+        .badge-archive { background: var(--gray-100); color: var(--gray-500); }
+        .badge-reject { background: var(--danger-light); color: var(--danger); }
+        .workflow-indicator { display: flex; align-items: center; gap: 6px; font-size: 11px; margin: 10px 0; padding: 8px 12px; background: var(--gray-50); border-radius: var(--radius-sm); }
+        .workflow-step { padding: 3px 10px; border-radius: 20px; font-weight: 600; }
+        .workflow-step.done { background: var(--success-light); color: var(--success); }
+        .workflow-step.current { background: var(--warning-light); color: var(--warning); }
+        .workflow-step.next { background: var(--gray-100); color: var(--gray-400); }
+        .photo-gallery { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+        .photo-thumb { width: 56px; height: 42px; object-fit: cover; border-radius: var(--radius-sm); cursor: pointer; border: 1.5px solid var(--gray-200); }
+        .btn { padding: 7px 16px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: 12px; text-decoration: none; display: inline-block; margin: 2px; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-info { background: var(--info); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-secondary { background: var(--gray-500); color: white; }
+        .btn-outline { background: white; color: var(--primary); border: 1.5px solid var(--primary); }
+        .alert { padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 14px; font-size: 13px; }
+        .alert-success { background: var(--success-light); color: #065f46; border-left: 4px solid var(--success); }
+        .alert-error { background: var(--danger-light); color: #991b1b; border-left: 4px solid var(--danger); }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; }
         .modal-overlay.active { display: flex; }
-        .modal-content { background: white; border-radius: 16px; max-width: 95%; max-height: 95%; width: 900px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
-        .modal-header { padding: 16px 24px; border-bottom: 1px solid #e9ecef; display: flex; justify-content: space-between; align-items: center; background: #f8f9fa; flex-shrink: 0; }
-        .modal-header h2 { font-size: 18px; color: #1a237e; }
-        .modal-header .close-btn { background: none; border: none; font-size: 28px; cursor: pointer; color: #6c757d; padding: 0 8px; }
-        .modal-header .close-btn:hover { color: #dc3545; }
-        .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
-        .modal-photos { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
-        .modal-photo-item { background: #f8f9fa; border-radius: 8px; overflow: hidden; border: 1px solid #e9ecef; }
-        .modal-photo-item .modal-photo-img { width: 100%; max-height: 300px; object-fit: contain; background: #1a1a1a; cursor: zoom-in; }
-        .modal-photo-item .modal-photo-info { padding: 10px 14px; background: white; border-top: 1px solid #e9ecef; }
-        .modal-footer { padding: 12px 24px; border-top: 1px solid #e9ecef; background: #f8f9fa; display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0; }
-        .btn-close-modal { padding: 8px 24px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
-        
-        .tx-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; padding-top: 12px; border-top: 1px dashed #dee2e6; }
-        .tx-form .full { grid-column: 1 / -1; }
-        .tx-form label { font-size: 13px; font-weight: 500; display: block; margin-bottom: 2px; }
-        .tx-form input, .tx-form textarea, .tx-form select { width: 100%; padding: 6px 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 13px; }
-        .btn { padding: 6px 16px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; transition: 0.2s; }
-        .btn-success { background: #28a745; color: white; }
-        .btn-success:hover { background: #1e7e34; }
-        .btn-warning { background: #ffc107; color: #212529; }
-        .btn-warning:hover { background: #e0a800; }
-        .btn-info { background: #17a2b8; color: white; }
-        .btn-info:hover { background: #138496; }
-        .empty { text-align: center; padding: 40px; color: #6c757d; }
-        .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; }
-        .alert-success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
-        .alert-error { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
-        .edit-section { background: #f8f9fa; padding: 12px; border-radius: 6px; margin-top: 10px; border-left: 4px solid #17a2b8; }
-        .edit-section h4 { margin-bottom: 8px; color: #17a2b8; }
-        .edit-section .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 8px; }
-        .apt-badge { background: #e8f4fd; color: #004085; padding: 2px 10px; border-radius: 12px; font-weight: 600; font-size: 12px; }
-        
-        @media (max-width: 768px) { 
-            .tx-form { grid-template-columns: 1fr; } 
-            .edit-section .row { grid-template-columns: 1fr; }
-            .photo-item { width: 80px; height: 60px; }
-            .tx-detail { grid-template-columns: 1fr 1fr; }
-        }
+        .modal-box { background: white; border-radius: var(--radius); padding: 24px; width: 90%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .modal-box h3 { margin-bottom: 12px; }
+        .modal-box input, .modal-box textarea { width: 100%; padding: 10px; border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 8px; }
+        .empty { text-align: center; padding: 48px 20px; color: var(--gray-400); }
+        .flex { display: flex; } .gap-2 { gap: 8px; } .flex-wrap { flex-wrap: wrap; }
     </style>
 </head>
 <body>
     <nav class="navbar">
         <h1>BPF BBM System</h1>
         <div class="nav-links">
-            <a href="/admin" class="active">Verifikasi</a>
-            <a href="/admin/riwayat">Riwayat</a>
+            <a href="/admin" class="active">Dashboard</a>
             <a href="/admin/rekap">Rekap</a>
             <a href="/admin/analytics">Analytics</a>
             <a href="/admin/settings">Settings</a>
-            <a href="/driver" target="_blank">Driver</a>
         </div>
     </nav>
     
@@ -110,226 +87,196 @@
         {% endwith %}
         
         <div class="stats">
-            <div class="stat-card"><div class="number">{{ stats.total }}</div><div class="label">Total Transaksi</div></div>
-            <div class="stat-card"><div class="number">{{ stats.pending }}</div><div class="label">Pending</div></div>
-            <div class="stat-card"><div class="number">{{ stats.verified }}</div><div class="label">Terverifikasi</div></div>
-            <div class="stat-card" style="border-left-color:#dc3545;"><div class="number">{{ stats.anomaly }}</div><div class="label">Anomali ML</div></div>
+            <a href="?tab=ga_queue" class="stat-card"><div class="number">{{ stats.pending }}</div><div class="label">Antrean GA</div></a>
+            <a href="?tab=finance" class="stat-card"><div class="number">{{ stats.verified_ga }}</div><div class="label">Finance</div></a>
+            <a href="?tab=driver_confirm" class="stat-card"><div class="number">{{ stats.os_finance }}</div><div class="label">Driver TTD</div></a>
+            <a href="?tab=archive" class="stat-card"><div class="number">{{ stats.archived }}</div><div class="label">Arsip</div></a>
+        </div>
+        
+        <div class="tab-nav">
+            <button class="tab-btn {% if stats.tab == 'ga_queue' %}active{% endif %}" onclick="window.location='?tab=ga_queue'">Antrean GA ({{ stats.pending }})</button>
+            <button class="tab-btn {% if stats.tab == 'finance' %}active{% endif %}" onclick="window.location='?tab=finance'">Finance ({{ stats.verified_ga }})</button>
+            <button class="tab-btn {% if stats.tab == 'driver_confirm' %}active{% endif %}" onclick="window.location='?tab=driver_confirm'">Driver TTD ({{ stats.os_finance }})</button>
+            <button class="tab-btn {% if stats.tab == 'archive' %}active{% endif %}" onclick="window.location='?tab=archive'">Arsip ({{ stats.archived }})</button>
         </div>
         
         <div class="card">
             <div class="card-header">
-                <span>Klaim Menunggu Verifikasi ({{ transactions|length }})</span>
-                <span style="font-size:13px;color:#6c757d;font-weight:normal;">Klik foto untuk preview</span>
+                <span>{% if stats.tab == 'ga_queue' %}Antrean GA{% elif stats.tab == 'finance' %}Disburse Finance{% elif stats.tab == 'driver_confirm' %}Konfirmasi Driver{% else %}Arsip{% endif %}</span>
+                <span style="font-size:12px;color:var(--gray-500);">{{ transactions|length }} transaksi</span>
             </div>
             <div class="card-body">
                 {% if transactions %}
                     {% for tx in transactions %}
                     <div class="tx-item">
                         <div class="tx-header">
-                            <span class="nopol">{{ tx.nopol }} ({{ tx.vehicle_type or 'AVANZA' }})</span>
-                            <span class="status {% if tx.status == 'modified' %}modified{% else %}pending{% endif %}">
-                                {{ tx.status|upper }}
-                            </span>
+                            <span class="nopol">#{{ tx.id }} &middot; {{ tx.nopol }} <small style="color:var(--gray-500);">({{ tx.vehicle_type or 'AVANZA' }})</small></span>
+                            <span class="badge {% if tx.status == 'pending' %}badge-pending{% elif tx.status == 'verified_ga' %}badge-ga{% elif tx.status == 'os_finance' %}badge-finance{% elif tx.status == 'archived' %}badge-archive{% elif tx.status == 'rejected' %}badge-reject{% else %}badge-pending{% endif %}">{{ tx.status|replace('_',' ')|upper }}</span>
                         </div>
                         <div class="tx-detail">
-                            <span>Driver: <strong>{{ tx.driver_name }}</strong></span>
-                            <span>{{ tx.created_at.strftime('%d-%m-%Y %H:%M') if tx.created_at else '-' }}</span>
-                            <span>Rp {{ "{:,.0f}".format(tx.nominal) if tx.nominal else 0 }}</span>
-                            <span>{{ tx.bbm_type or 'PERTALITE' }} - {{ tx.liter }}L</span>
+                            <span><strong>{{ tx.driver_name }}</strong></span>
+                            <span>{{ tx.created_at.strftime('%d/%m/%Y %H:%M') if tx.created_at else '-' }}</span>
+                            <span>Rp {{ "{:,.0f}".format(tx.nominal) }}</span>
+                            <span>{{ tx.bbm_type or 'PERTALITE' }} &middot; {{ tx.liter }}L</span>
                             <span>ODO: {{ tx.odo_km }} km</span>
-                            <span>KM/L: {{ "%.1f"|format(tx.km_per_liter) if tx.km_per_liter else '-' }}</span>
-                            <span>Appointment: <strong class="apt-badge">{{ tx.jumlah_appointment or 0 }}x</strong></span>
-                            <span>SPBU: {{ tx.spbu_type|replace('_', ' ')|title if tx.spbu_type else '-' }}</span>
-                            {% if tx.ml_anomaly_flag %}
-                            <span style="background:#dc3545;color:white;">ANOMALI ML</span>
-                            {% endif %}
-                            {% if tx.gps_address %}
-                            <span class="gps-info">{{ tx.gps_address }}</span>
-                            {% endif %}
+                            <span>Appt: {{ tx.jumlah_appointment or 0 }}x</span>
                         </div>
-                        
-                        <div class="photo-gallery" id="gallery_{{ tx.id }}">
-                            {% set photos = [
-                                (tx.foto_odo_sebelum, 'ODO Sebelum'),
-                                (tx.foto_nota_odo_sesudah, 'ODO + Nota'),
-                                (tx.foto_struk, 'Struk BBM'),
-                                (tx.foto_struk_dispenser, 'Dispenser'),
-                                (tx.foto_mypertamina_admin, 'MyPertamina')
-                            ] %}
-                            {% set has_photo = false %}
-                            {% for photo, label in photos %}
-                                {% if photo %}
-                                {% set has_photo = true %}
-                                <div class="photo-item" onclick="openModal('{{ loop.index0 }}', 'gallery_{{ tx.id }}')">
-                                    <img src="/uploads/{{ photo }}" alt="{{ label }}" loading="lazy">
-                                    <span class="photo-label">{{ label }}</span>
-                                </div>
-                                {% endif %}
+                        <div class="workflow-indicator">
+                            <span class="workflow-step {% if tx.status in ['verified_ga','os_finance','archived'] %}done{% elif tx.status == 'pending' %}current{% else %}next{% endif %}">GA</span> &rarr;
+                            <span class="workflow-step {% if tx.status in ['os_finance','archived'] %}done{% elif tx.status == 'verified_ga' %}current{% else %}next{% endif %}">Finance</span> &rarr;
+                            <span class="workflow-step {% if tx.status == 'archived' %}done{% elif tx.status == 'os_finance' %}current{% else %}next{% endif %}">TTD</span> &rarr;
+                            <span class="workflow-step {% if tx.status == 'archived' %}done{% else %}next{% endif %}">Arsip</span>
+                        </div>
+                        <div class="photo-gallery">
+                            {% for f in ['foto_odo_sebelum','foto_nota_odo_sesudah','foto_struk','foto_struk_dispenser'] %}
+                                {% if tx[f] %}<a href="/uploads/{{ tx[f] }}" target="_blank"><img src="/uploads/{{ tx[f] }}" class="photo-thumb"></a>{% endif %}
                             {% endfor %}
-                            {% if not has_photo %}
-                            <div class="photo-empty">Belum ada foto</div>
-                            {% endif %}
-                            <button type="button" class="btn-review" onclick="openModalGallery('{{ tx.id }}')">
-                                Review Semua Foto
-                            </button>
                         </div>
-                        
-                        <form action="/admin" method="POST" enctype="multipart/form-data">
-                            <input type="hidden" name="action" value="verify">
-                            <input type="hidden" name="tx_id" value="{{ tx.id }}">
-                            <input type="hidden" name="nopol" value="{{ tx.nopol }}">
-                            <input type="hidden" name="nominal" value="{{ tx.nominal }}">
-                            
-                            <div class="tx-form">
-                                <div class="full">
-                                    <label>Upload Screenshot MyPertamina (Opsional)</label>
-                                    <input type="file" name="foto_mypertamina" accept="image/*">
-                                </div>
-                                <div class="full">
-                                    <label>
-                                        <input type="checkbox" name="mypertamina_error" id="error_{{ tx.id }}" style="width:auto;">
-                                        MyPertamina Error (Buat Kronologis Otomatis)
-                                    </label>
-                                </div>
-                                <div class="full" style="text-align:right;">
-                                    <button type="submit" class="btn btn-success">Verifikasi</button>
-                                </div>
-                            </div>
-                        </form>
-                        
-                        <div class="edit-section">
-                            <h4>Modifikasi Data (Sebelum Verifikasi)</h4>
-                            <form action="/admin" method="POST">
-                                <input type="hidden" name="action" value="modify">
-                                <input type="hidden" name="tx_id" value="{{ tx.id }}">
-                                
-                                <div class="row">
-                                    <div>
-                                        <label>Tipe Kendaraan</label>
-                                        <select name="edit_vehicle">
-                                            {% for v in vehicles %}
-                                            <option value="{{ v.vehicle_type }}" {% if v.vehicle_type == tx.vehicle_type %}selected{% endif %}>{{ v.vehicle_type }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label>Jenis BBM</label>
-                                        <select name="edit_bbm">
-                                            {% for b in bbm_types %}
-                                            <option value="{{ b.name }}" {% if b.name == tx.bbm_type %}selected{% endif %}>{{ b.name }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label>Nominal (Rp)</label>
-                                        <input type="number" name="edit_nominal" value="{{ tx.nominal }}">
-                                    </div>
-                                    <div>
-                                        <label>ODO KM</label>
-                                        <input type="number" name="edit_odo" value="{{ tx.odo_km }}">
-                                    </div>
-                                    <div>
-                                        <label>Tipe SPBU</label>
-                                        <select name="edit_spbu">
-                                            <option value="rekanan" {% if tx.spbu_type == 'rekanan' %}selected{% endif %}>Rekanan</option>
-                                            <option value="non_rekanan" {% if tx.spbu_type == 'non_rekanan' %}selected{% endif %}>Non-Rekanan</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label>Catatan</label>
-                                        <input type="text" name="modification_note" placeholder="Alasan perubahan...">
-                                    </div>
-                                </div>
-                                <button type="submit" class="btn btn-warning">Simpan Perubahan</button>
-                            </form>
+                        <div class="flex gap-2 flex-wrap" style="margin-top:10px;">
+                            {% if tx.status in ['pending','modified'] %}
+                                <button class="btn btn-success" onclick="requirePin('approve',{{ tx.id }},'GA')">Approve</button>
+                                <button class="btn btn-danger" onclick="showReject({{ tx.id }})">Tolak</button>
+                            {% elif tx.status == 'verified_ga' %}
+                                <button class="btn btn-info" onclick="requirePin('payout',{{ tx.id }},'Finance')">Keluarkan Dana</button>
+                                <button class="btn btn-danger" onclick="showReject({{ tx.id }})">Tolak</button>
+                            {% elif tx.status == 'os_finance' %}
+                                <button class="btn btn-success" onclick="requirePin('archive',{{ tx.id }},'Finance')">TTD & Arsip</button>
+                            {% elif tx.status == 'archived' %}
+                                <a href="/finance/download-archive/{{ tx.id }}" class="btn btn-outline">ZIP</a>
+                                <a href="/admin/report/{{ tx.id }}" class="btn btn-secondary">PDF</a>
+                            {% elif tx.status == 'rejected' %}
+                                <span style="color:var(--danger);font-size:12px;">Ditolak: {{ tx.rejection_reason or '-' }}</span>
+                            {% endif %}
                         </div>
                     </div>
                     {% endfor %}
                 {% else %}
-                    <div class="empty">Semua klaim sudah terverifikasi!</div>
+                    <div class="empty">Tidak ada transaksi.</div>
                 {% endif %}
             </div>
         </div>
     </div>
     
-    <div class="modal-overlay" id="photoModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalTitle">Review Foto</h2>
-                <button class="close-btn" onclick="closeModal()">&times;</button>
-            </div>
-            <div class="modal-body" id="modalBody"></div>
-            <div class="modal-footer">
-                <button class="btn-close-modal" onclick="closeModal()">Tutup</button>
+    <!-- PIN MODAL -->
+    <div class="modal-overlay" id="pinModal">
+        <div class="modal-box">
+            <h3 id="pinTitle">Verifikasi PIN</h3>
+            <p style="font-size:13px;color:var(--gray-500);" id="pinMsg">Masukkan PIN 6-digit</p>
+            <input type="password" id="pinInput" placeholder="••••••" maxlength="6" style="font-size:24px;text-align:center;letter-spacing:8px;width:150px;margin:0 auto;display:block;">
+            <p id="pinError" style="color:var(--danger);font-size:12px;text-align:center;margin-top:8px;display:none;"></p>
+            <div class="flex gap-2" style="justify-content:center;margin-top:16px;">
+                <button class="btn btn-secondary" onclick="closePin()">Batal</button>
+                <button class="btn btn-success" id="pinBtn" onclick="submitPin()">Verifikasi</button>
             </div>
         </div>
     </div>
     
-    <script>
-        // Store gallery data
-        const galleryData = {};
-        
-        // Init: collect photo data from all galleries
-        document.querySelectorAll('.photo-gallery').forEach(gallery => {
-            const txId = gallery.id.replace('gallery_', '');
-            const photos = [];
-            gallery.querySelectorAll('.photo-item').forEach(item => {
-                photos.push({
-                    src: item.querySelector('img').src,
-                    label: item.querySelector('.photo-label').textContent
-                });
-            });
-            galleryData[txId] = photos;
-        });
-        
-        function openModal(index, galleryId) {
-            const txId = galleryId.replace('gallery_', '');
-            const photos = galleryData[txId] || [];
-            const photo = photos[index];
-            if (!photo) return;
-            
-            document.getElementById('modalTitle').textContent = photo.label + ' - #' + txId;
-            document.getElementById('modalBody').innerHTML = `
-                <div style="text-align:center;background:#1a1a1a;border-radius:8px;padding:10px;">
-                    <img src="${photo.src}" style="max-width:100%;max-height:65vh;object-fit:contain;border-radius:4px;" onclick="window.open('${photo.src}')">
+    <!-- REJECT MODAL -->
+    <div class="modal-overlay" id="rejectModal">
+        <div class="modal-box">
+            <h3>Tolak Transaksi</h3>
+            <form id="rejectForm" method="POST">
+                <input type="hidden" name="rejected_by" value="Admin">
+                <textarea name="rejection_reason" placeholder="Alasan penolakan..." required style="min-height:80px;"></textarea>
+                <div class="flex gap-2" style="justify-content:flex-end;margin-top:12px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeReject()">Batal</button>
+                    <button type="submit" class="btn btn-danger">Tolak</button>
                 </div>
-                <p style="margin-top:12px;text-align:center;color:#6c757d;">Klik gambar untuk buka di tab baru</p>
-            `;
-            document.getElementById('photoModal').classList.add('active');
-            document.body.style.overflow = 'hidden';
+            </form>
+        </div>
+    </div>
+    
+    <script>
+    // ============================================================
+    // PIN SYSTEM
+    // ============================================================
+    var pendingAction = null;
+    var pendingTxId = null;
+    
+    function requirePin(action, txId, role) {
+        pendingAction = action;
+        pendingTxId = txId;
+        document.getElementById('pinTitle').textContent = 'Verifikasi ' + role;
+        document.getElementById('pinMsg').textContent = 'Masukkan PIN 6-digit ' + role;
+        document.getElementById('pinInput').value = '';
+        document.getElementById('pinError').style.display = 'none';
+        document.getElementById('pinBtn').disabled = false;
+        document.getElementById('pinBtn').textContent = 'Verifikasi';
+        document.getElementById('pinModal').classList.add('active');
+        setTimeout(function(){ document.getElementById('pinInput').focus(); }, 200);
+    }
+    
+    function closePin() {
+        document.getElementById('pinModal').classList.remove('active');
+    }
+    
+    async function submitPin() {
+        var pin = document.getElementById('pinInput').value;
+        if (pin.length !== 6 || !/^\d{6}$/.test(pin)) {
+            document.getElementById('pinError').textContent = 'PIN harus 6 digit angka!';
+            document.getElementById('pinError').style.display = 'block';
+            return;
         }
         
-        function openModalGallery(txId) {
-            const photos = galleryData[txId] || [];
-            document.getElementById('modalTitle').textContent = 'Semua Foto - #' + txId;
+        var btn = document.getElementById('pinBtn');
+        btn.textContent = '...';
+        btn.disabled = true;
+        document.getElementById('pinError').style.display = 'none';
+        
+        try {
+            var username = (pendingAction === 'payout' || pendingAction === 'archive') ? 'finance_officer' : 'ga_officer';
+            var res = await fetch('/api/verify-pin', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: username, pin: pin})
+            });
+            var data = await res.json();
             
-            let html = '<div class="modal-photos">';
-            if (photos.length === 0) {
-                html += '<div class="photo-empty">Tidak ada foto</div>';
+            if (data.status === 'success') {
+                closePin();
+                var name = encodeURIComponent(data.user.full_name);
+                if (pendingAction === 'approve' && confirm('Setujui klaim #' + pendingTxId + '?')) {
+                    window.location.href = '/ga/approve/' + pendingTxId + '?admin=' + name;
+                } else if (pendingAction === 'payout' && confirm('Dana sudah dikeluarkan?')) {
+                    window.location.href = '/finance/payout/' + pendingTxId + '?admin=' + name;
+                } else if (pendingAction === 'archive' && confirm('Driver sudah TTD?')) {
+                    window.location.href = '/finance/archive/' + pendingTxId + '?admin=' + name;
+                }
             } else {
-                photos.forEach(p => {
-                    html += `
-                        <div class="modal-photo-item">
-                            <img src="${p.src}" class="modal-photo-img" alt="${p.label}" onclick="window.open('${p.src}')">
-                            <div class="modal-photo-info">
-                                <strong>${p.label}</strong>
-                            </div>
-                        </div>`;
-                });
+                document.getElementById('pinError').textContent = 'PIN salah!';
+                document.getElementById('pinError').style.display = 'block';
+                document.getElementById('pinInput').value = '';
+                document.getElementById('pinInput').focus();
             }
-            html += '</div>';
-            document.getElementById('modalBody').innerHTML = html;
-            document.getElementById('photoModal').classList.add('active');
-            document.body.style.overflow = 'hidden';
+        } catch(e) {
+            document.getElementById('pinError').textContent = 'Error koneksi';
+            document.getElementById('pinError').style.display = 'block';
+        } finally {
+            btn.textContent = 'Verifikasi';
+            btn.disabled = false;
         }
-        
-        function closeModal() {
-            document.getElementById('photoModal').classList.remove('active');
-            document.body.style.overflow = 'auto';
-        }
-        
-        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-        document.getElementById('photoModal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+    }
+    
+    // ============================================================
+    // REJECT SYSTEM
+    // ============================================================
+    function showReject(txId) {
+        document.getElementById('rejectForm').action = '/admin/reject/' + txId;
+        document.getElementById('rejectModal').classList.add('active');
+    }
+    function closeReject() { document.getElementById('rejectModal').classList.remove('active'); }
+    
+    // ============================================================
+    // KEYBOARD + CLICK HANDLERS
+    // ============================================================
+    document.getElementById('pinModal').addEventListener('click', function(e){ if(e.target===this) closePin(); });
+    document.getElementById('rejectModal').addEventListener('click', function(e){ if(e.target===this) closeReject(); });
+    document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape') { closePin(); closeReject(); }
+    });
+    document.getElementById('pinInput').addEventListener('keydown', function(e){
+        if (e.key === 'Enter') submitPin();
+    });
     </script>
 </body>
 </html>

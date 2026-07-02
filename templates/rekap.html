@@ -3,57 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rekap & Manajemen</title>
+    <title>Rekap - BPF BBM System</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#1a237e">
-    <style>
+    <meta name="theme-color" content="#1d4ed8">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #dbeafe;
+            --success: #059669;
+            --success-light: #d1fae5;
+            --warning: #d97706;
+            --warning-light: #fef3c7;
+            --danger: #dc2626;
+            --danger-light: #fee2e2;
+            --info: #0891b2;
+            --info-light: #cffafe;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --white: #ffffff;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --radius-lg: 14px;
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; }
-        .navbar { background: #1a237e; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-        .navbar h1 { font-size: 20px; }
-        .navbar .nav-links { display: flex; gap: 10px; flex-wrap: wrap; }
-        .navbar .nav-links a { color: rgba(255,255,255,0.8); text-decoration: none; padding: 6px 14px; border-radius: 6px; transition: 0.2s; }
-        .navbar .nav-links a:hover { background: rgba(255,255,255,0.15); }
-        .navbar .nav-links a.active { background: rgba(255,255,255,0.2); color: white; }
-        .container { max-width: 1500px; margin: 20px auto; padding: 0 20px; }
-        .card { background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow: hidden; margin-bottom: 20px; }
-        .card-header { padding: 16px 24px; border-bottom: 1px solid #e9ecef; font-weight: 600; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
-        .card-body { padding: 20px 24px; }
-        .filter-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; background: #f8f9fa; padding: 16px; border-radius: 10px; margin-bottom: 20px; }
-        .filter-form label { font-size: 12px; font-weight: 600; color: #495057; display: block; margin-bottom: 2px; }
-        .filter-form input { width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 13px; }
-        .filter-form .btn-filter { padding: 8px 20px; background: #17a2b8; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; align-self: flex-end; }
-        .action-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
-        .btn { padding: 8px 18px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; text-decoration: none; display: inline-block; transition: 0.2s; }
-        .btn-preview { background: #007bff; color: white; }
-        .btn-download { background: #28a745; color: white; }
+        body { font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif; background: var(--gray-50); color: var(--gray-800); line-height: 1.6; }
+        
+        /* Navbar */
+        .navbar { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: var(--shadow-md); position: sticky; top: 0; z-index: 100; }
+        .navbar h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+        .navbar .nav-links { display: flex; gap: 4px; flex-wrap: wrap; }
+        .navbar .nav-links a { color: rgba(255,255,255,0.85); text-decoration: none; padding: 7px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; transition: all 0.2s; }
+        .navbar .nav-links a:hover { background: rgba(255,255,255,0.12); color: white; }
+        .navbar .nav-links a.active { background: rgba(255,255,255,0.2); color: white; font-weight: 600; }
+        
+        /* Container */
+        .container { max-width: 1400px; margin: 0 auto; padding: 24px 20px; }
+        
+        /* Cards */
+        .card { background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow); border: 1px solid var(--gray-200); overflow: hidden; margin-bottom: 20px; }
+        .card-header { padding: 16px 22px; border-bottom: 1px solid var(--gray-200); font-weight: 600; font-size: 15px; color: var(--gray-800); background: var(--gray-50); display: flex; justify-content: space-between; align-items: center; }
+        .card-body { padding: 20px 22px; }
+        
+        /* Stats */
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 22px; }
+        .stat-card { background: var(--white); padding: 18px 20px; border-radius: var(--radius); box-shadow: var(--shadow-sm); border: 1px solid var(--gray-200); border-left: 4px solid var(--primary); cursor: pointer; text-decoration: none; color: inherit; display: block; transition: all 0.2s; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .stat-card .number { font-size: 28px; font-weight: 700; color: var(--gray-900); }
+        .stat-card .label { font-size: 12px; color: var(--gray-500); margin-top: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card.active-tab { background: var(--primary-light); border-color: var(--primary); }
+        
+        /* Tabs */
+        .tab-nav { display: flex; gap: 2px; margin-bottom: 18px; background: var(--gray-100); border-radius: var(--radius); padding: 4px; overflow-x: auto; }
+        .tab-btn { padding: 10px 22px; border: none; background: transparent; border-radius: var(--radius-sm); cursor: pointer; font-weight: 500; font-size: 13px; white-space: nowrap; color: var(--gray-600); transition: all 0.2s; }
+        .tab-btn:hover { color: var(--gray-900); }
+        .tab-btn.active { background: var(--white); color: var(--primary); font-weight: 600; box-shadow: var(--shadow-sm); }
+        
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { background: var(--gray-100); color: var(--gray-700); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 12px; text-align: left; border-bottom: 2px solid var(--gray-200); white-space: nowrap; }
+        td { padding: 10px 12px; border-bottom: 1px solid var(--gray-100); color: var(--gray-700); }
+        tr:hover td { background: var(--gray-50); }
+        
+        /* Badges */
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
+        .badge-pending { background: var(--warning-light); color: var(--warning); }
+        .badge-ga { background: var(--info-light); color: var(--info); }
+        .badge-finance { background: var(--success-light); color: var(--success); }
+        .badge-archive { background: var(--gray-100); color: var(--gray-500); }
+        .badge-reject { background: var(--danger-light); color: var(--danger); }
+        .badge-good { background: var(--success-light); color: var(--success); }
+        .badge-warning { background: var(--warning-light); color: var(--warning); }
+        .badge-danger { background: var(--danger-light); color: var(--danger); }
+        
+        /* Buttons */
+        .btn { padding: 7px 16px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; letter-spacing: 0.3px; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #047857; }
+        .btn-info { background: var(--info); color: white; }
+        .btn-info:hover { background: #0e7490; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-warning:hover { background: #b45309; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-secondary { background: var(--gray-500); color: white; }
+        .btn-secondary:hover { background: var(--gray-600); }
+        .btn-outline { background: white; color: var(--primary); border: 1.5px solid var(--primary); }
+        .btn-outline:hover { background: var(--primary-light); }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
         .btn-sm { padding: 4px 10px; font-size: 11px; }
-        .btn-warning { background: #ffc107; color: #212529; }
-        .btn-danger { background: #dc3545; color: white; }
-        .btn-info { background: #17a2b8; color: white; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 1200px; }
-        th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e9ecef; white-space: nowrap; }
-        th { background: #e9ecef; font-weight: 600; position: sticky; top: 0; }
-        tr:hover { background: #f8f9fa; }
-        .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
-        .badge-success { background: #d4edda; color: #155724; }
-        .empty { text-align: center; padding: 40px; color: #6c757d; }
-        .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; }
-        .alert-success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
-        .alert-warning { background: #fff3cd; color: #856404; border-left: 4px solid #ffc107; }
-        @media (max-width: 768px) { .filter-form { grid-template-columns: 1fr; } table { font-size: 11px; } th, td { padding: 4px 6px; } }
+        
+        /* Forms */
+        .form-control { width: 100%; padding: 9px 13px; border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm); font-size: 13px; color: var(--gray-800); background: var(--white); transition: border-color 0.2s; }
+        .form-control:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .form-control[readonly] { background: var(--gray-100); color: var(--gray-600); }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-weight: 600; font-size: 13px; color: var(--gray-700); margin-bottom: 5px; }
+        .form-group label .required { color: var(--danger); }
+        
+        /* Alerts */
+        .alert { padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 14px; font-size: 13px; font-weight: 500; }
+        .alert-success { background: var(--success-light); color: #065f46; border-left: 4px solid var(--success); }
+        .alert-error { background: var(--danger-light); color: #991b1b; border-left: 4px solid var(--danger); }
+        .alert-warning { background: var(--warning-light); color: #92400e; border-left: 4px solid var(--warning); }
+        
+        /* Empty state */
+        .empty { text-align: center; padding: 48px 20px; color: var(--gray-400); }
+        .empty-icon { font-size: 48px; margin-bottom: 12px; }
+        
+        /* Misc */
+        .note { font-size: 12px; color: var(--gray-500); margin-top: 4px; }
+        .divider { border-top: 1.5px dashed var(--gray-200); margin: 22px 0; }
+        .text-sm { font-size: 12px; }
+        .text-gray { color: var(--gray-500); }
+        .font-bold { font-weight: 700; }
+        .mt-2 { margin-top: 8px; }
+        .mt-4 { margin-top: 16px; }
+        .mb-4 { margin-bottom: 16px; }
+        .flex { display: flex; }
+        .gap-2 { gap: 8px; }
+        .flex-wrap { flex-wrap: wrap; }
+</style>
+    <style>
+        .filter-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; background: var(--gray-50); padding: 16px; border-radius: var(--radius); margin-bottom: 18px; border: 1px solid var(--gray-200); }
+        .filter-form label { font-size: 12px; font-weight: 600; color: var(--gray-600); display: block; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .filter-form input { width: 100%; padding: 8px 12px; border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm); font-size: 13px; }
+        .filter-form .btn-filter { padding: 9px 20px; background: var(--primary); color: white; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: 13px; align-self: flex-end; }
+        .action-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+        table { min-width: 1100px; }
+        @media (max-width: 768px) { .filter-form { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
     <nav class="navbar">
         <h1>BPF BBM System</h1>
         <div class="nav-links">
-            <a href="/admin">Verifikasi</a>
-            <a href="/admin/riwayat">Riwayat</a>
+            <a href="/admin">Dashboard</a>
             <a href="/admin/rekap" class="active">Rekap</a>
             <a href="/admin/analytics">Analytics</a>
             <a href="/admin/settings">Settings</a>
-            <a href="/driver" target="_blank">Driver</a>
         </div>
     </nav>
     
@@ -68,8 +170,8 @@
         
         <div class="card">
             <div class="card-header">
-                <span>Rekapitulasi & Manajemen Transaksi</span>
-                <span style="font-size:13px;color:#6c757d;">Total: {{ transactions|length }} transaksi</span>
+                <span>Rekapitulasi Transaksi</span>
+                <span class="text-sm text-gray">{{ transactions|length }} transaksi</span>
             </div>
             <div class="card-body">
                 <form class="filter-form" method="GET" action="/admin/rekap">
@@ -81,8 +183,8 @@
                 </form>
                 
                 <div class="action-buttons">
-                    <a href="/admin/rekap/pdf?{{ request.query_string.decode('utf-8') }}" target="_blank" class="btn btn-preview">Preview PDF</a>
-                    <a href="/admin/rekap/pdf?dl=1&{{ request.query_string.decode('utf-8') }}" class="btn btn-download">Download PDF</a>
+                    <a href="/admin/rekap/pdf?{{ request.query_string.decode('utf-8') }}" target="_blank" class="btn btn-outline">Preview PDF</a>
+                    <a href="/admin/rekap/pdf?dl=1&{{ request.query_string.decode('utf-8') }}" class="btn btn-primary">Download PDF</a>
                 </div>
                 
                 {% if transactions %}
@@ -90,30 +192,18 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Tgl</th>
-                                <th>Driver</th>
-                                <th>Nopol</th>
-                                <th>Kendaraan</th>
-                                <th>BBM</th>
-                                <th>KM Awal</th>
-                                <th>KM Akhir</th>
-                                <th>Jarak</th>
-                                <th>Liter</th>
-                                <th>Rata-rata</th>
-                                <th>Appointment</th>
-                                <th>Nominal</th>
-                                <th>Laporan</th>
-                                <th>Manajemen</th>
+                                <th>ID</th><th>Tgl</th><th>Driver</th><th>Nopol</th><th>Kendaraan</th><th>BBM</th>
+                                <th>KM Awal</th><th>KM Akhir</th><th>Jarak</th><th>Liter</th><th>Rata-rata</th>
+                                <th>Appt</th><th>Nominal</th><th>Laporan</th><th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for tx in transactions %}
                             <tr>
-                                <td>#{{ tx.id }}</td>
-                                <td>{{ tx.created_at.strftime('%d-%m %H:%M') if tx.created_at else '-' }}</td>
+                                <td><strong>#{{ tx.id }}</strong></td>
+                                <td>{{ tx.created_at.strftime('%d/%m %H:%M') if tx.created_at else '-' }}</td>
                                 <td><strong>{{ tx.driver_name }}</strong></td>
-                                <td><span class="badge badge-success">{{ tx.nopol }}</span></td>
+                                <td><span class="badge badge-ga">{{ tx.nopol }}</span></td>
                                 <td>{{ tx.vehicle_type or 'AVANZA' }}</td>
                                 <td>{{ tx.bbm_type or 'PERTALITE' }}</td>
                                 <td>{{ tx.km_awal|int if tx.km_awal else 0 }}</td>
@@ -123,9 +213,7 @@
                                 <td>{{ "%.2f"|format(tx.rata_rata) if tx.rata_rata else '-' }}</td>
                                 <td><strong>{{ tx.jumlah_appointment or 0 }}</strong></td>
                                 <td>Rp {{ "{:,.0f}".format(tx.nominal) if tx.nominal else 0 }}</td>
-                                <td>
-                                    <a href="/admin/report/{{ tx.id }}" class="btn btn-info btn-sm">PDF</a>
-                                </td>
+                                <td><a href="/admin/report/{{ tx.id }}" class="btn btn-info btn-sm">PDF</a></td>
                                 <td>
                                     <a href="/admin/unverify/{{ tx.id }}" class="btn btn-warning btn-sm" onclick="return confirm('Kembalikan ke Pending?')">Unverify</a>
                                     <a href="/admin/delete/{{ tx.id }}" class="btn btn-danger btn-sm" onclick="return confirm('HAPUS PERMANEN?')">Hapus</a>
@@ -136,7 +224,10 @@
                     </table>
                 </div>
                 {% else %}
-                <div class="empty">Tidak ada data dengan filter yang dipilih</div>
+                <div class="empty">
+                    <div class="empty-icon">&#128202;</div>
+                    <p>Tidak ada data dengan filter yang dipilih.</p>
+                </div>
                 {% endif %}
             </div>
         </div>
