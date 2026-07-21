@@ -29,7 +29,7 @@ def register_report_routes(app):
             pdf_bytes = pdf_raw.encode('latin-1') if isinstance(pdf_raw, str) else bytes(pdf_raw)
             response = make_response(pdf_bytes)
             response.headers['Content-Type'] = 'application/pdf'
-            response.headers['Content-Disposition'] = f'attachment; filename=Report_BBM_{tx["nopol"]}_{tx["id"]}.pdf'
+            response.headers['Content-Disposition'] = f'attachment; filename=BPF_Report_{tx.get("display_id", tx["id"])}_{tx["nopol"]}_{tx.get("created_at", datetime.now()).strftime("%Y%m%d")}.pdf'
             return response
         except Exception as e:
             return f"Error: {str(e)}", 500
@@ -43,7 +43,7 @@ def register_report_routes(app):
             week_ago = (datetime.now() - timedelta(days=7)).date()
             sd = request.args.get('start_date', '').strip()
             ed = request.args.get('end_date', '').strip()
-            if not sd and not ed and not request.args.get('nopol') and not request.args.get('driver'):
+            if not sd and not ed and not request.args.get("nopol") and not request.args.get("driver"):
                 sq, eq = week_ago.strftime('%Y-%m-%d'), today.strftime('%Y-%m-%d')
                 default = True
             else:
@@ -93,7 +93,7 @@ def register_report_routes(app):
             pdf_bytes = pdf_raw.encode('latin-1') if isinstance(pdf_raw, str) else bytes(pdf_raw)
             response = make_response(pdf_bytes)
             response.headers['Content-Type'] = 'application/pdf'
-            response.headers['Content-Disposition'] = f'inline; filename=Rekap_BBM.pdf'
+            response.headers['Content-Disposition'] = f'inline; filename=BPF_Rekap_BBM_{datetime.now().strftime("%Y%m%d")}.pdf'
             return response
         except Exception as e:
             return f"Error: {str(e)}", 500
@@ -173,7 +173,7 @@ def register_report_routes(app):
             memory_file.seek(0)
             response = make_response(memory_file.read())
             response.headers['Content-Type'] = 'application/zip'
-            response.headers['Content-Disposition'] = f'attachment; filename=Archive_{tx["nopol"]}_{tx["id"]}.zip'
+            response.headers['Content-Disposition'] = f'attachment; filename=BPF_Archive_{tx.get("display_id", tx["id"])}_{tx["nopol"]}_{datetime.now().strftime("%Y%m%d")}.zip'
             return response
         except Exception as e:
             return f"Error: {str(e)}", 500

@@ -4,7 +4,77 @@ import re
 from datetime import datetime
 from fpdf import FPDF
 
-class PDFReportCompact(FPDF):
+
+class BPFBasePDF(FPDF):
+    '''Base PDF with standard BPF letterhead'''
+    
+    def _get_logo_path(self):
+        '''Cari logo di beberapa kemungkinan path'''
+        paths = [
+            os.path.join('static', 'icon-512.png'),
+            os.path.join(os.path.dirname(__file__), '..', 'static', 'icon-512.png'),
+            os.path.join(os.path.dirname(__file__), '..', 'static', 'icon-192.png'),
+        ]
+        for p in paths:
+            if os.path.exists(p):
+                return p
+        return None
+    
+    def header(self):
+        logo_path = self._get_logo_path()
+        if logo_path:
+            try:
+                self.image(logo_path, x=self.l_margin, y=5, w=13)
+            except:
+                pass
+        
+        self.set_x(self.l_margin + 16)
+        self.set_font('helvetica', 'B', 13)
+        self.set_text_color(30, 64, 175)
+        self.cell(0, 6, 'PT BESTPROFIT FUTURES', align="C", new_x="LMARGIN", new_y="NEXT")
+        self.set_font('helvetica', '', 8)
+        self.set_text_color(71, 85, 105)
+        self.cell(0, 4, 'Fleet & BBM Management System | Surabaya', align="C", new_x="LMARGIN", new_y="NEXT")
+        
+        # Divider
+        self.set_draw_color(37, 99, 235)
+        self.set_line_width(0.5)
+        self.line(self.l_margin, self.get_y()+2, self.w - self.r_margin, self.get_y()+2)
+        self.ln(6)
+        self.set_text_color(0, 0, 0)
+    
+    def footer(self):
+        self.set_y(-16)
+        self.set_draw_color(203, 213, 225)
+        self.set_line_width(0.3)
+        self.line(self.l_margin, self.get_y(), self.w - self.r_margin, self.get_y())
+        self.set_y(-13)
+        self.set_font('helvetica', 'I', 6)
+        self.set_text_color(148, 163, 184)
+        self.cell(0, 4, f'BPF Fleet & BBM System v1.1 | Generated: {datetime.now().strftime("%d-%m-%Y %H:%M")} | Page {self.page_no()}/{{nb}}', align="C")
+        self.set_text_color(0, 0, 0)
+    
+    def section_title(self, title):
+        self.set_font('helvetica', 'B', 9)
+        self.set_fill_color(37, 99, 235)
+        self.set_text_color(255, 255, 255)
+        self.cell(0, 6, '  ' + title, fill=True, new_x="LMARGIN", new_y="NEXT")
+        self.set_text_color(0, 0, 0)
+        self.ln(3)
+    
+    def info_row(self, label, value, x, y, w_label, w_value):
+        self.set_xy(x, y)
+        self.set_font('helvetica', '', 8)
+        self.set_text_color(100, 116, 139)
+        self.cell(w_label, 5, label + ':', align="R")
+        self.set_text_color(30, 41, 59)
+        self.set_font('helvetica', 'B', 8)
+        self.cell(w_value, 5, str(value) if value else '-')
+        self.set_text_color(0, 0, 0)
+
+
+
+class PDFReportCompact(BPFBasePDF):
     """Single transaction PDF report"""
     
     def __init__(self):
@@ -18,59 +88,17 @@ class PDFReportCompact(FPDF):
         text = re.sub(r'[^\x20-\x7E\n\r\t]', '', str(text))
         return text.strip()
     
-    def header(self):
-        # --- KOP SURAT: Logo Perusahaan ---
-        logo_path = os.path.join('static', 'icon-512.png')
-        if os.path.exists(logo_path):
-            try:
-                self.image(logo_path, x=self.l_margin, y=4, w=12)
-            except:
-                pass
-        
-        self.set_x(self.l_margin + 15)
-        self.set_font('helvetica', 'B', 14)
-        self.set_text_color(30, 64, 175)
-        self.cell(0, 7, 'LAPORAN VERIFIKASI KLAIM BBM', align="C", new_x="LMARGIN", new_y="NEXT")
-        self.set_x(self.l_margin + 15)
-        self.set_font('helvetica', 'B', 9)
-        self.set_text_color(71, 85, 105)
-        self.cell(0, 5, 'PT. BESTPROFIT FUTURES - CAB. SURABAYA', align="C", new_x="LMARGIN", new_y="NEXT")
-        self.set_draw_color(226, 232, 240)
-        self.set_line_width(0.5)
-        self.line(self.l_margin, self.get_y()+1, self.w - self.r_margin, self.get_y()+1)
-        self.ln(4)
-    
-    def footer(self):
-        self.set_y(-8)
-        self.set_font('helvetica', 'I', 5)
-        self.set_text_color(148, 163, 184)
-        self.cell(0, 3, f'Generated: {datetime.now().strftime("%d-%m-%Y %H:%M")} | Page {self.page_no()}', align="C")
-    
-    def section_title(self, title):
-        self.set_font('helvetica', 'B', 9)
-        self.set_fill_color(241, 245, 249)
-        self.set_text_color(30, 64, 175)
-        self.cell(0, 6, '  ' + title, border=0, fill=True, new_x="LMARGIN", new_y="NEXT")
-        self.set_draw_color(203, 213, 225)
-        self.line(self.l_margin, self.get_y(), self.w - self.r_margin, self.get_y())
-        self.ln(3)
-    
-    def info_row(self, label, value, x, y, w_label, w_value):
-        self.set_xy(x, y)
-        self.set_font('helvetica', 'B', 7)
-        self.set_text_color(71, 85, 105)
-        self.cell(w_label, 5, label, border=0)
-        self.set_font('helvetica', '', 7)
-        self.set_text_color(15, 23, 42)
-        self.cell(w_value, 5, str(value), border=0)
-    
+
+
+
+
     def generate_compact_report(self, tx, upload_folder='uploads'):
         """Generate complete single-page report"""
         # Header
         self.set_font('helvetica', 'B', 11)
         self.set_text_color(15, 23, 42)
         nopol_text = self.clean_text(str(tx.get('nopol', '-')).upper())
-        self.cell(0, 7, f'TRANSAKSI #{tx["id"]} - {nopol_text}', align="L", new_x="LMARGIN", new_y="NEXT")
+        self.cell(0, 7, f'TRANSAKSI {tx.get("display_id", "#"+str(tx["id"]))} | {nopol_text}', align="L", new_x="LMARGIN", new_y="NEXT")
         self.ln(2)
         
         # Info Grid
@@ -82,7 +110,7 @@ class PDFReportCompact(FPDF):
         value_w = 50
         
         rows = [
-            [('ID', f'#{tx["id"]}'), ('Tanggal', tx['created_at'].strftime('%d-%m-%Y %H:%M') if tx.get('created_at') else '-')],
+            [('ID', tx.get('display_id', f'#{tx["id"]}')), ('Tanggal', tx['created_at'].strftime('%d-%m-%Y %H:%M') if tx.get('created_at') else '-')],
             [('Nopol', nopol_text), ('Driver', self.clean_text(str(tx.get('driver_name', '-')).upper()))],
             [('Kendaraan', self.clean_text(str(tx.get('vehicle_type', '-')))), ('BBM', self.clean_text(str(tx.get('bbm_type', '-'))))],
             [('Nominal', f'Rp {tx["nominal"]:,.0f}'), ('Volume', f'{tx["liter"]} L')],
@@ -366,8 +394,16 @@ class PDFReportCompact(FPDF):
                 self.set_y(y + img_h + 10)
 
 
-class BBMReportPDF(FPDF):
+class BBMReportPDF(BPFBasePDF):
     """Multi-transaction rekap PDF"""
+
+    def header(self):
+        super().header()
+        self.set_font('helvetica', 'B', 11)
+        self.set_text_color(37, 99, 235)
+        self.cell(0, 6, self.clean_text(self.title), align="C", new_x="LMARGIN", new_y="NEXT")
+        self.set_text_color(0, 0, 0)
+        self.ln(3)
     
     def __init__(self, title="BBM VOUCHER PERIODE"):
         super().__init__(orientation='L', unit='mm', format='A4')
@@ -381,11 +417,7 @@ class BBMReportPDF(FPDF):
         text = re.sub(r'[^\x20-\x7E\n\r\t]', '', str(text))
         return text.strip()
     
-    def header(self):
-        self.set_font('helvetica', 'B', 14)
-        self.cell(0, 10, self.clean_text(self.title), align="C", new_x="LMARGIN", new_y="NEXT")
-        self.ln(2)
-    
+
     def generate_table(self, data):
         if not data:
             self.set_font('helvetica', 'I', 12)

@@ -76,7 +76,7 @@
             .nav-system { font-size: 9px; }
             .nav-toggle { display: block; }
             .nav-links { display: none; position: absolute; top: 60px; left: 0; right: 0; background: #fff; flex-direction: column; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-bottom: 1px solid #e2e8f0; }
-            .nav-links.show { display: flex; }
+            .nav-links { display: flex; } @media (max-width: 768px) { .nav-links { display: none; } }
             .nav-links a { width: 100%; padding: 12px 16px; font-size: 14px; }
             .footer-content { flex-direction: column; text-align: center; }
             .footer-text { text-align: center; }
@@ -208,7 +208,7 @@
                 <span class="nav-system">PT Bestprofit Futures</span>
             </div>
         </div>
-        <button class="nav-toggle" onclick="this.nextElementSibling.classList.toggle(\`show\`)">☰</button>
+        <button class="nav-toggle" id="navToggle">☰</button>
         <div class="nav-links">
             <a href="/admin">Dashboard</a>
             <a href="/ga/assignments">Assignments</a>
@@ -351,5 +351,45 @@
             </div>
         </div>
     </footer>
+<script>
+
+</script>
+<script>
+    var navToggle = document.getElementById('navToggle');
+    var navLinks = document.querySelector('.nav-links');
+    
+    // Default hidden di mobile
+    if (window.innerWidth <= 768) {
+        navLinks.style.display = 'none';
+    }
+    
+    // Toggle saat hamburger diklik
+    navToggle.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (navLinks.style.display === 'flex') {
+            navLinks.style.display = 'none';
+        } else {
+            navLinks.style.display = 'flex';
+        }
+    });
+    
+    // Tutup saat link diklik
+    navLinks.querySelectorAll('a').forEach(function(link) {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                navLinks.style.display = 'none';
+            }
+        });
+    });
+    
+    // Tutup saat klik di luar
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.nav-links') && !e.target.closest('.nav-toggle')) {
+            if (window.innerWidth <= 768) {
+                navLinks.style.display = 'none';
+            }
+        }
+    });
+</script>
 </body>
 </html>
