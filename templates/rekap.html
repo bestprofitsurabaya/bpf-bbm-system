@@ -20,12 +20,12 @@
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: "Inter", system-ui, sans-serif; background: #f1f5f9; color: var(--gray-700); }
-        .navbar { background: linear-gradient(135deg, #1e3a8a, var(--primary)); color: white; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
-        .navbar h1 { font-size: 18px; font-weight: 700; }
-        .navbar .nav-links { display: flex; gap: 6px; }
-        .navbar .nav-links a { color: #93c5fd; text-decoration: none; padding: 8px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; }
-        .navbar .nav-links a:hover { color: white; background: rgba(255,255,255,0.1); }
-        .navbar .nav-links a.active { background: rgba(255,255,255,0.2); color: white; font-weight: 600; }
+        
+        
+        
+        
+        
+        
         .container { max-width: 1440px; margin: 24px auto; padding: 0 20px; }
         .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--gray-200); overflow: hidden; }
         .card-header { padding: 18px 24px; border-bottom: 1px solid var(--gray-200); font-weight: 700; font-size: 16px; color: var(--gray-900); display: flex; justify-content: space-between; align-items: center; }
@@ -71,19 +71,177 @@
         .alert-success { background: var(--success-light); color: #065f46; border-left: 4px solid var(--success); }
         .alert-warning { background: var(--warning-light); color: #92400e; border-left: 4px solid var(--warning); }
         .alert-error { background: var(--danger-light); color: #991b1b; border-left: 4px solid var(--danger); }
+    
+        /* Navbar */
+        .navbar { background: #fff; color: #1e293b; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; z-index: 200; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border-bottom: 1px solid #e2e8f0; }
+        .nav-brand { display: flex; align-items: center; gap: 10px; }
+        .nav-logo { width: 36px; height: 36px; border-radius: 8px; }
+        .nav-company { font-size: 14px; font-weight: 700; color: #0f172a; letter-spacing: -0.2px; }
+        .nav-system { font-size: 11px; color: #64748b; font-weight: 400; display: block; margin-top: -1px; }
+        .nav-links { display: flex; align-items: center; gap: 4px; }
+        .nav-links a { color: #475569; text-decoration: none; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; transition: all 0.15s; }
+        .nav-links a:hover { background: #f1f5f9; color: #0f172a; }
+        .nav-links a.active { background: #2563eb; color: #fff !important; font-weight: 600; }
+        .nav-toggle { display: none; background: none; border: none; color: #1e293b; font-size: 24px; cursor: pointer; padding: 8px; }
+        
+        /* Footer */
+        .app-footer { background: #fff; border-top: 1px solid #e2e8f0; padding: 16px 24px; margin-top: 40px; }
+        .footer-content { display: flex; align-items: center; justify-content: center; gap: 10px; max-width: 1200px; margin: 0 auto; }
+        .footer-logo { width: 28px; height: 28px; border-radius: 6px; opacity: 0.6; }
+        .footer-text { text-align: left; }
+        .footer-company { font-size: 12px; font-weight: 700; color: #334155; }
+        .footer-info { font-size: 10px; color: #94a3b8; }
+        .footer-credit { font-size: 10px; color: #94a3b8; }
+        .footer-credit strong { color: #2563eb; font-weight: 600; }
+        
+        @media (max-width: 768px) {
+            .navbar { padding: 0 14px; height: 54px; }
+            .nav-logo { width: 30px; height: 30px; }
+            .nav-company { font-size: 12px; }
+            .nav-system { font-size: 9px; }
+            .nav-toggle { display: block; }
+            .nav-links { display: none; position: absolute; top: 60px; left: 0; right: 0; background: #fff; flex-direction: column; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-bottom: 1px solid #e2e8f0; }
+            .nav-links.show { display: flex; }
+            .nav-links a { width: 100%; padding: 12px 16px; font-size: 14px; }
+            .footer-content { flex-direction: column; text-align: center; }
+            .footer-text { text-align: center; }
+        }
+
+    
+        /* ============================================================ */
+        /* PREMIUM ENHANCEMENTS */
+        /* ============================================================ */
+        
+        /* Navbar - subtle gradient */
+        .navbar { 
+            background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+            border-bottom: 1px solid #e8ecf1;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.02);
+        }
+        
+        /* Navbar links - smooth hover */
+        .nav-links a {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        .nav-links a:hover {
+            background: linear-gradient(135deg, #eff6ff, #f0f9ff);
+            color: #1e40af;
+            transform: translateY(-1px);
+        }
+        .nav-links a.active {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+            box-shadow: 0 2px 8px rgba(37,99,235,0.3);
+        }
+        
+        /* Cards - elevated feel */
+        .card {
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+            border: 1px solid #e8ecf1;
+            transition: box-shadow 0.2s;
+        }
+        .card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.04);
+        }
+        .card-header {
+            background: linear-gradient(180deg, #fafbfc, #f8fafc);
+            border-bottom: 1px solid #edf2f7;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+        
+        /* Tables - cleaner */
+        th {
+            background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+            color: #475569;
+            letter-spacing: 0.3px;
+        }
+        tr:hover td {
+            background: linear-gradient(90deg, #f8fafc, #fff);
+        }
+        
+        /* Buttons - softer */
+        .btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .btn-primary { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+        .btn-success { background: linear-gradient(135deg, #059669, #047857); }
+        .btn-warning { background: linear-gradient(135deg, #d97706, #b45309); }
+        .btn-danger { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+        
+        /* Inputs - focus glow */
+        .form-control {
+            transition: all 0.2s;
+            border-color: #e2e8f0;
+        }
+        .form-control:focus {
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.08);
+        }
+        
+        /* Badges */
+        .badge {
+            letter-spacing: 0.2px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+        
+        /* Footer */
+        .app-footer {
+            background: linear-gradient(180deg, #fafbfc, #f1f5f9);
+            border-top: 1px solid #e8ecf1;
+        }
+        
+        /* Body background - subtle texture */
+        body {
+            background: #f8fafc;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(37,99,235,0.02) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(5,150,105,0.02) 0px, transparent 50%);
+        }
+        
+        /* PIN Gate - premium card */
+        #settingsGate > div {
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 8px 40px rgba(0,0,0,0.04);
+            border: 1px solid #e8ecf1;
+        }
+        
+        /* Smooth scrolling */
+        html { scroll-behavior: smooth; }
+        
+        /* Selection color */
+        ::selection { background: #dbeafe; color: #1e40af; }
+        
+        @media (max-width: 768px) {
+            .card { border-radius: 10px; }
+            .card-header { padding: 12px 16px; }
+            .card-body { padding: 14px 16px; }
+        }
+
     </style>
 </head>
 <body>
         <nav class="navbar">
-        <h1>🚛 BPF BBM System</h1>
+        <div class="nav-brand">
+            <img src="/static/icon-192.png" alt="BPF" class="nav-logo">
+            <div>
+                <span class="nav-company">BPF Fleet System</span>
+                <span class="nav-system">PT Bestprofit Futures</span>
+            </div>
+        </div>
+        <button class="nav-toggle" onclick="this.nextElementSibling.classList.toggle(\`show\`)">☰</button>
         <div class="nav-links">
-            <a href="/admin">📊 Dashboard</a>
-            <a href="/ga/assignments">🚛 Assignments</a>
-            <a href="/admin/rekap" class="active">📋 Rekap</a>
-            <a href="/admin/analytics">📈 Analytics</a>
-            <a href="/admin/trips">🗺️ Trips</a>
-            <a href="/admin/logs">📝 Audit Log</a>
-            <a href="/admin/settings">⚙️ Settings</a>
+            <a href="/admin">Dashboard</a>
+            <a href="/ga/assignments">Assignments</a>
+            <a href="/admin/rekap" class="active">Rekap</a>
+            <a href="/admin/analytics">Analytics</a>
+            <a href="/admin/trips">Trips</a>
+            <a href="/admin/logs">Logs</a>
+            <a href="/admin/settings">Settings</a>
         </div>
     </nav>
     
@@ -256,15 +414,13 @@
     <!-- ============================================================ -->
     <!-- PROFESSIONAL FOOTER - PT BESTPROFIT FUTURES -->
     <!-- ============================================================ -->
-        <footer style="margin-top:40px;background:linear-gradient(180deg,#ffffff,#f1f5f9);border-top:1px solid #e2e8f0;padding:20px;text-align:center;font-family:Inter,system-ui,sans-serif;">
-        <div style="max-width:1200px;margin:0 auto;">
-            <div style="display:flex;justify-content:center;align-items:center;gap:10px;margin-bottom:6px;">
-                <span style="font-weight:700;font-size:13px;color:#1e293b;">PT BESTPROFIT FUTURES</span>
-                <span style="color:#94a3b8;">|</span>
-                <span style="font-size:11px;color:#64748b;">Surabaya</span>
-            </div>
-            <div style="font-size:10px;color:#94a3b8;">
-                BPF BBM System v1.0 · Developed by <span style="color:#2563eb;font-weight:600;">IT BPF Surabaya</span> · © 2026
+        <footer class="app-footer">
+        <div class="footer-content">
+            <img src="/static/icon-192.png" alt="BPF" class="footer-logo">
+            <div class="footer-text">
+                <div class="footer-company">PT BESTPROFIT FUTURES</div>
+                <div class="footer-info">Fleet & BBM System v1.0 · Surabaya</div>
+                <div class="footer-credit">Developed by <strong>IT BPF Surabaya</strong> · © 2026</div>
             </div>
         </div>
     </footer>

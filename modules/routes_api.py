@@ -645,14 +645,13 @@ def register_api_routes(app):
             if not conn: return jsonify({'error': 'DB error'}), 500
             cursor = conn.cursor(dictionary=True)
             cursor.execute('''
-                SELECT d.nopol, d.vehicle_type, d.bbm_type
-                FROM drivers d
-                WHERE d.is_active = 1 AND d.nopol IS NOT NULL AND d.nopol != ''
-                AND d.nopol NOT IN (
+                SELECT v.nopol, v.vehicle_type, COALESCE(v.bbm_default, 'PERTALITE') as bbm_type
+                FROM vehicles v
+                WHERE v.is_active = 1 AND v.nopol IS NOT NULL AND v.nopol != ''
+                AND v.nopol NOT IN (
                     SELECT va.nopol FROM vehicle_assignments va WHERE va.is_current = 1
                 )
-                GROUP BY d.nopol, d.vehicle_type, d.bbm_type
-                ORDER BY d.nopol
+                ORDER BY v.nopol
             ''')
             data = cursor.fetchall()
             cursor.close(); conn.close()
@@ -894,3 +893,36 @@ def register_api_routes(app):
             })
         except Exception as e:
             return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/vehicles/with-nopol')
+    def api_vehicles_with_nopol():
+        try:
+            conn = get_db_connection()
+            if not conn: return jsonify({'error': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT nopol, vehicle_type, bbm_default FROM vehicles WHERE is_active=1 AND nopol IS NOT NULL AND nopol != '' ORDER BY nopol")
+            data = cursor.fetchall()
+            cursor.close(); conn.close()
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/vehicles/add', methods=['POST'])
+    def api_add_vehicle():
+        try:
+            data = request.get_json()
+            nopol = data.get('nopol', '').strip().upper()
+            vehicle_type = data.get('vehicle_type', 'AVANZA').strip().upper()
+            brand = data.get('brand', 'Toyota').strip()
+            bbm_default = data.get('bbm_default', 'PERTALITE').strip().upper()
+            if not nopol:
+                return jsonify({'status': 'error', 'msg': 'No. Polisi wajib'}), 400
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO vehicles (vehicle_type, nopol, brand, fuel_capacity, bbm_default, is_active) VALUES (%s, %s, %s, 45, %s, 1) ON DUPLICATE KEY UPDATE vehicle_type=VALUES(vehicle_type), brand=VALUES(brand), bbm_default=VALUES(bbm_default), is_active=1", (vehicle_type, nopol, brand, bbm_default))
+            conn.commit()
+            cursor.close(); conn.close()
+            log_activity_async(0, 'vehicle_add', 'admin', 'Admin', new_data={'nopol': nopol, 'type': vehicle_type})
+            return jsonify({'status': 'success', 'msg': f'Kendaraan {nopol} ({vehicle_type}) ditambahkan'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
