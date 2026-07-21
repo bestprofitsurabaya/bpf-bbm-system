@@ -143,6 +143,178 @@
         .assign-notif h4 { color: #92400e; margin-bottom: 6px; }
         .assign-notif button { padding: 8px 16px; background: #059669; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 6px; }
 
+    
+        /* ============================================================ */
+        /* PREMIUM DRIVER PWA ENHANCEMENTS */
+        /* ============================================================ */
+        
+        /* Body - soft gradient */
+        body {
+            background: linear-gradient(180deg, #f0f4ff 0%, #f8fafc 30%, #f1f5f9 100%);
+            background-attachment: fixed;
+        }
+        
+        /* Cards - glass effect */
+        .card { 
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226,232,240,0.8);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.03);
+        }
+        
+        /* Top status bar - animate */
+        .status-bar {
+            transition: all 0.3s ease;
+        }
+        .status-bar.online { background: linear-gradient(135deg, #d1fae5, #a7f3d0); }
+        .status-bar.offline { background: linear-gradient(135deg, #fef3c7, #fde68a); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.7; } }
+        
+        /* Brand header */
+        .brand-header {
+            background: linear-gradient(135deg, #1e3a5f, #2563eb);
+            color: white;
+            border-radius: 0 0 20px 20px;
+            padding: 20px 16px 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 20px rgba(37,99,235,0.2);
+        }
+        .brand-header img { border: 2px solid rgba(255,255,255,0.3); }
+        .brand-header h2 { color: white; font-size: 15px; }
+        .brand-header span { background: rgba(255,255,255,0.2); color: #fbbf24; }
+        
+        /* Form controls */
+        .form-control {
+            border-radius: 10px;
+            border: 1.5px solid #e2e8f0;
+            transition: all 0.2s;
+            background: #fafbfc;
+        }
+        .form-control:focus {
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.08);
+            background: #fff;
+        }
+        .form-control[readonly] {
+            background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+            color: #475569;
+            font-weight: 500;
+        }
+        
+        /* Buttons */
+        .btn-submit {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            box-shadow: 0 4px 14px rgba(37,99,235,0.3);
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+        .btn-submit:active { transform: scale(0.98); }
+        .btn-submit:disabled { background: #94a3b8; box-shadow: none; }
+        
+        .upload-btn {
+            border-radius: 10px;
+            transition: all 0.2s;
+        }
+        .upload-btn:active { transform: scale(0.95); }
+        
+        /* Bottom nav */
+        .bottom-nav {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(226,232,240,0.8);
+        }
+        .bottom-nav .nav-item.active { color: #2563eb; }
+        
+        /* Toast */
+        .toast {
+            background: linear-gradient(135deg, #1e293b, #334155);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            border-radius: 12px;
+        }
+        .toast.error { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+        .toast.warning { background: linear-gradient(135deg, #d97706, #b45309); }
+        
+        /* Success modal */
+        .modal-box {
+            background: linear-gradient(180deg, #ffffff, #f0fdf4);
+            border: 1px solid #d1fae5;
+        }
+        
+        /* GPS Box */
+        .gps-box {
+            background: linear-gradient(135deg, #f0fdf4, #dcfce7) !important;
+            border: 1.5px solid #86efac !important;
+            border-radius: 12px;
+        }
+        
+        /* Trip rows */
+        .trip-row {
+            background: linear-gradient(135deg, #fafbfc, #f8fafc);
+            border: 1px solid #e8ecf1;
+            border-radius: 10px;
+        }
+        
+        /* Offline queue badge */
+        .queue-count.show {
+            animation: bounce 0.5s;
+        }
+        @keyframes bounce { 0%,100% { transform:scale(1); } 50% { transform:scale(1.2); } }
+        
+        /* Warning nopol */
+        .nopol-warning {
+            background: #fef3c7 !important;
+            border-color: #f59e0b !important;
+        }
+
+    
+        /* ============================================================ */
+        /* BOTTOM NAV - ACTIVE INDICATOR */
+        /* ============================================================ */
+        .bottom-nav .nav-item {
+            position: relative;
+            transition: all 0.2s;
+        }
+        .bottom-nav .nav-item .icon { font-size: 20px; transition: all 0.2s; }
+        .bottom-nav .nav-item.active .icon { transform: scale(1.2); }
+        .bottom-nav .nav-item .nav-indicator {
+            position: absolute;
+            top: -3px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 24px;
+            height: 3px;
+            border-radius: 0 0 3px 3px;
+            background: transparent;
+            transition: all 0.3s;
+        }
+        .bottom-nav .nav-item.active .nav-indicator {
+            background: #2563eb;
+            width: 32px;
+        }
+        .bottom-nav .nav-item.active {
+            color: #2563eb;
+            font-weight: 600;
+        }
+        
+        /* Page transitions */
+        .page {
+            animation: fadeSlideIn 0.25s ease;
+        }
+        @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Top status bar - current tab label */
+        .current-tab-label {
+            text-align: center;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 8px 0 4px;
+            color: #1e3a5f;
+            letter-spacing: 0.3px;
+        }
+
     </style>
 </head>
 <body>
@@ -176,7 +348,8 @@
 <!-- ================================================================ -->
 <!-- MAIN PAGES -->
 <!-- ================================================================ -->
-<div class="container">
+<div class="current-tab-label" id="currentTabLabel">⛽ BBM</div>
+    <div class="container">
 
     <!-- PAGE 1: BBM -->
     <div id="page-bbm" class="page active">
@@ -317,14 +490,20 @@
 <!-- BOTTOM NAVIGATION -->
 <!-- ================================================================ -->
 <div class="bottom-nav">
-    <button class="nav-item active" data-page="bbm">
-        <span class="icon">⛽</span> BBM
+    <button class="nav-item active" data-page="bbm" onclick="switchTab('bbm')">
+        <span class="icon">⛽</span>
+        <span>BBM</span>
+        <div class="nav-indicator"></div>
     </button>
-    <button class="nav-item" data-page="trip">
-        <span class="icon">🗺️</span> Trip
+    <button class="nav-item" data-page="trip" onclick="switchTab('trip')">
+        <span class="icon">🗺️</span>
+        <span>Trip</span>
+        <div class="nav-indicator"></div>
     </button>
-    <button class="nav-item" data-page="rapor">
-        <span class="icon">📊</span> Rapor
+    <button class="nav-item" data-page="rapor" onclick="switchTab('rapor')">
+        <span class="icon">📊</span>
+        <span>Rapor</span>
+        <div class="nav-indicator"></div>
     </button>
 </div>
 
@@ -684,6 +863,8 @@ async function syncAll() {
             let result = await r.json();
             if (r.ok && result.status === 'success') {
                 showModal(successMsg, result.transaction_id || result.trip_id);
+                // Simpan data offline sebelum clear
+                clearSavedFormData(store);
                 form.reset();
                 if (store === 'fuel_queue') {
                     document.getElementById('jumlah_appointment').value = '0';
@@ -702,6 +883,8 @@ async function syncAll() {
             btn.textContent = orig; btn.disabled = false;
         }
     } else {
+        // Save form data dulu (jaga-jaga)
+        saveFormData(store);
         let data = {};
         for (let [k, v] of fd.entries()) data[k] = v;
         data.gps_lat = document.getElementById('gps_lat').value;
@@ -1170,6 +1353,79 @@ setInterval(() => { if (navigator.onLine) syncAll(); updateStatus(); }, 30000);
 initGPS();
     checkPendingAssignment();
 loadDrivers();
+    function switchTab(page) {
+        // Update pages
+        document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+        document.getElementById('page-' + page).classList.add('active');
+        var labels = {bbm: '⛽ BBM', trip: '🗺️ Log Perjalanan', rapor: '📊 Rapor Performa'};
+        document.getElementById('currentTabLabel').textContent = labels[page] || '';
+        
+        // Update nav
+        document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+        document.querySelector('.nav-item[data-page="' + page + '"]').classList.add('active');
+        
+        // Save active tab
+        localStorage.setItem('activeTab', page);
+        
+        // Restore form data for this tab
+        if (page === 'bbm') restoreFormData('fuel_queue');
+        if (page === 'trip') restoreFormData('trip_queue');
+    }
+    
+    // Restore last active tab
+    (function() {
+        var saved = localStorage.getItem('activeTab') || 'bbm';
+        switchTab(saved);
+    })();
+
+    // ============================================================
+    // AUTO-SAVE FORM DATA (anti-hilang)
+    // ============================================================
+    function saveFormData(store) {
+        var form = store === 'fuel_queue' ? document.getElementById('bbmForm') : document.getElementById('tripForm');
+        var data = {};
+        var inputs = form.querySelectorAll('input, select, textarea');
+        inputs.forEach(function(el) {
+            if (el.name) data[el.name] = el.value;
+        });
+        localStorage.setItem('saved_' + store, JSON.stringify(data));
+    }
+    
+    function restoreFormData(store) {
+        var saved = localStorage.getItem('saved_' + store);
+        if (!saved) return;
+        try {
+            var data = JSON.parse(saved);
+            var form = store === 'fuel_queue' ? document.getElementById('bbmForm') : document.getElementById('tripForm');
+            for (var key in data) {
+                var el = form.querySelector('[name="' + key + '"]');
+                if (el && !el.value) el.value = data[key];
+            }
+        } catch(e) {}
+    }
+    
+    function clearSavedFormData(store) {
+        localStorage.removeItem('saved_' + store);
+    }
+    
+    // Auto-save setiap 3 detik
+    setInterval(function() {
+        var activePage = document.querySelector('.page.active');
+        if (!activePage) return;
+        if (activePage.id === 'page-bbm') saveFormData('fuel_queue');
+        if (activePage.id === 'page-trip') saveFormData('trip_queue');
+    }, 3000);
+    
+    // Restore data saat halaman load
+    restoreFormData('fuel_queue');
+    restoreFormData('trip_queue');
+    
+    // Save sebelum unload
+    window.addEventListener('beforeunload', function() {
+        saveFormData('fuel_queue');
+        saveFormData('trip_queue');
+    });
+
 addTripRow();
 document.getElementById('trip_date').value = new Date().toISOString().split('T')[0];
 </script>
