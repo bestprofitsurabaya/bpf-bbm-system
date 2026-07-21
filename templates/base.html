@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="icon" type="image/png" href="/static/icon-192.png">
+    <link rel="apple-touch-icon" href="/static/icon-192.png">
+    <title>{% block title %}BPF BBM System{% endblock %}</title>
+    <link rel="manifest" href="/manifest.json?v=20260720_FINAL">
+    <meta name="theme-color" content="#1d4ed8">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb; --primary-dark: #1d4ed8; --primary-light: #dbeafe;
+            --success: #059669; --success-light: #d1fae5;
+            --warning: #d97706; --warning-light: #fef3c7;
+            --danger: #dc2626; --danger-light: #fee2e2;
+            --info: #0891b2; --info-light: #cffafe;
+            --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-300: #d1d5db;
+            --gray-400: #9ca3af; --gray-500: #6b7280; --gray-600: #4b5563;
+            --gray-700: #374151; --gray-800: #1f2937; --gray-900: #111827;
+            --white: #ffffff;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+            --radius-sm: 6px; --radius: 10px; --radius-lg: 14px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Inter", system-ui, sans-serif; background: var(--gray-50); color: var(--gray-800); line-height: 1.6; min-height: 100vh; display: flex; flex-direction: column; }
+        
+        /* NAVBAR */
+        .navbar { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: var(--shadow-md); position: sticky; top: 0; z-index: 100; }
+        .navbar h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+        .navbar .nav-links { display: flex; gap: 4px; flex-wrap: wrap; }
+        .navbar .nav-links a { color: rgba(255,255,255,0.85); text-decoration: none; padding: 7px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; transition: all 0.2s; }
+        .navbar .nav-links a:hover { background: rgba(255,255,255,0.12); color: white; }
+        .navbar .nav-links a.active { background: rgba(255,255,255,0.2); color: white; font-weight: 600; }
+        
+        /* MAIN CONTENT */
+        .main-content { flex: 1; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 24px 20px; }
+        
+        /* CARDS */
+        .card { background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow); border: 1px solid var(--gray-200); overflow: hidden; margin-bottom: 20px; }
+        .card-header { padding: 16px 22px; border-bottom: 1px solid var(--gray-200); font-weight: 600; font-size: 15px; color: var(--gray-800); background: var(--gray-50); display: flex; justify-content: space-between; align-items: center; }
+        .card-body { padding: 20px 22px; }
+        
+        /* TABLES */
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { background: var(--gray-100); color: var(--gray-700); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 12px; text-align: left; border-bottom: 2px solid var(--gray-200); white-space: nowrap; }
+        td { padding: 10px 12px; border-bottom: 1px solid var(--gray-100); color: var(--gray-700); }
+        tr:hover td { background: var(--gray-50); }
+        
+        /* BADGES */
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
+        .badge-pending { background: var(--warning-light); color: var(--warning); }
+        .badge-ga { background: var(--info-light); color: var(--info); }
+        .badge-finance { background: var(--success-light); color: var(--success); }
+        .badge-archive { background: var(--gray-100); color: var(--gray-500); }
+        .badge-reject { background: var(--danger-light); color: var(--danger); }
+        
+        /* BUTTONS */
+        .btn { padding: 7px 16px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
+        .btn-success { background: var(--success); color: white; } .btn-success:hover { background: #047857; }
+        .btn-info { background: var(--info); color: white; } .btn-info:hover { background: #0e7490; }
+        .btn-warning { background: var(--warning); color: white; } .btn-warning:hover { background: #b45309; }
+        .btn-danger { background: var(--danger); color: white; } .btn-danger:hover { background: #b91c1c; }
+        .btn-secondary { background: var(--gray-500); color: white; } .btn-secondary:hover { background: var(--gray-600); }
+        .btn-outline { background: white; color: var(--primary); border: 1.5px solid var(--primary); } .btn-outline:hover { background: var(--primary-light); }
+        .btn-primary { background: var(--primary); color: white; } .btn-primary:hover { background: var(--primary-dark); }
+        .btn-sm { padding: 4px 10px; font-size: 11px; }
+        
+        /* FORMS */
+        .form-control { width: 100%; padding: 9px 13px; border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm); font-size: 13px; color: var(--gray-800); background: var(--white); transition: border-color 0.2s; }
+        .form-control:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-weight: 600; font-size: 13px; color: var(--gray-700); margin-bottom: 5px; }
+        .form-group label .required { color: var(--danger); }
+        
+        /* ALERTS */
+        .alert { padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 14px; font-size: 13px; font-weight: 500; }
+        .alert-success { background: var(--success-light); color: #065f46; border-left: 4px solid var(--success); }
+        .alert-error { background: var(--danger-light); color: #991b1b; border-left: 4px solid var(--danger); }
+        
+        /* EMPTY */
+        .empty { text-align: center; padding: 48px 20px; color: var(--gray-400); }
+        
+        /* FOOTER */
+        .site-footer { text-align: center; margin-top: 40px; padding: 20px 15px; background: linear-gradient(to bottom, var(--white), var(--gray-50)); border-top: 1px solid var(--gray-200); color: var(--gray-500); }
+        .site-footer .footer-brand { display: flex; justify-content: center; align-items: center; margin-bottom: 8px; gap: 10px; }
+        .site-footer .footer-brand img { width: 28px; height: 28px; object-fit: contain; }
+        .site-footer .footer-brand strong { color: var(--gray-900); font-size: 14px; letter-spacing: 0.5px; }
+        .site-footer .footer-copy { font-size: 11px; }
+        .site-footer .footer-dev { font-size: 11px; margin-top: 4px; }
+        .site-footer .footer-license { margin-top: 10px; display: inline-block; background: var(--gray-100); padding: 5px 12px; border-radius: 6px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--gray-600); font-weight: 700; border: 1px solid var(--gray-300); }
+
+        @media (max-width: 768px) { .navbar { padding: 12px 16px; } .navbar h1 { font-size: 16px; } }
+    </style>
+    {% block extra_css %}{% endblock %}
+
+    
+    
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>window.socket = io();</script>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>BPF BBM System</h1>
+        <div class="nav-links">
+            {% block navbar_links %}
+            <a href="/admin">Dashboard</a>
+            <a href="/admin/rekap">Rekap</a>
+            <a href="/admin/analytics">Analytics</a>
+            <a href="/admin/logs">Audit Log</a>
+            <a href="/admin/settings">Settings</a>
+            {% endblock %}
+        </div>
+    </nav>
+
+    <div class="main-content">
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer class="site-footer">
+        <div class="footer-brand">
+            <img src="/static/icon-512.png" alt="BPF Logo">
+            <strong>PT BESTPROFIT SURABAYA</strong>
+        </div>
+        <div class="footer-copy">&copy; 2026 Hak Cipta Dilindungi Undang-Undang.</div>
+        <div class="footer-dev">Developed & Maintained by <span style="color: #0284c7; font-weight: 700;">IT BPF Surabaya</span></div>
+        <div class="footer-license">🔒 Private License • Internal Company Use Only</div>
+    </footer>
+
+    <script>
+    if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js?v=20260720_FINAL").then(function(reg) {
+            reg.addEventListener("updatefound", function() {
+                var newWorker = reg.installing;
+                newWorker.addEventListener("statechange", function() {
+                    if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                        if (confirm("Pembaruan tersedia. Muat ulang sekarang?")) window.location.reload();
+                    }
+                });
+            });
+        });
+    }
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

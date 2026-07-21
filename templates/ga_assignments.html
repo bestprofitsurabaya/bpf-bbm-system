@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GA - Manajemen Kendaraan</title>
+    <link rel="manifest" href="/manifest.json?v=20260720_FINAL">
+    <meta name="theme-color" content="#1d4ed8">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #2563eb; --primary-dark: #1d4ed8; --success: #059669; --success-light: #d1fae5; --warning: #d97706; --warning-light: #fef3c7; --danger: #dc2626; --danger-light: #fee2e2; --info: #0891b2; --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-300: #d1d5db; --gray-500: #6b7280; --gray-700: #374151; --gray-800: #1f2937; --white: #ffffff; --shadow: 0 1px 3px rgba(0,0,0,0.1); --radius: 10px; --radius-sm: 6px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Inter", "Segoe UI", sans-serif; background: var(--gray-50); color: var(--gray-800); }
+        .navbar { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; position: sticky; top: 0; z-index: 100; }
+        .navbar h1 { font-size: 20px; font-weight: 700; }
+        .navbar .nav-links { display: flex; gap: 4px; }
+        .navbar .nav-links a { color: rgba(255,255,255,0.85); text-decoration: none; padding: 7px 16px; border-radius: var(--radius-sm); font-size: 13px; }
+        .navbar .nav-links a.active { background: rgba(255,255,255,0.2); color: white; font-weight: 600; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
+        .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--gray-200); margin-bottom: 20px; }
+        .card-header { padding: 16px 22px; border-bottom: 1px solid var(--gray-200); font-weight: 600; background: var(--gray-50); display: flex; justify-content: space-between; align-items: center; }
+        .card-body { padding: 20px 22px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { background: var(--gray-100); color: var(--gray-700); font-weight: 600; font-size: 11px; text-transform: uppercase; padding: 10px 12px; text-align: left; border-bottom: 2px solid var(--gray-200); }
+        td { padding: 10px 12px; border-bottom: 1px solid var(--gray-100); }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+        .badge-driver { background: #fee2e2; color: #991b1b; }
+        .badge-vehicle { background: #fef3c7; color: #92400e; }
+        .badge-rotation { background: #dbeafe; color: #1e40af; }
+        .badge-confirmed { background: #d1fae5; color: #065f46; }
+        .badge-pending { background: #fef3c7; color: #d97706; }
+        .btn { padding: 7px 16px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: 12px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-outline { background: white; color: var(--primary); border: 1.5px solid var(--primary); }
+        .form-control { width: 100%; padding: 9px 13px; border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm); font-size: 13px; background: white; }
+        .form-control:focus { border-color: var(--primary); outline: none; }
+        .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .note { font-size: 11px; color: var(--gray-500); }
+        .alert { padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 14px; font-size: 13px; }
+        .alert-success { background: var(--success-light); color: #065f46; border-left: 4px solid var(--success); }
+        @media (max-width: 768px) { .row-2 { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>🚛 BPF BBM System</h1>
+        <div class="nav-links">
+            <a href="/admin">📊 Dashboard</a>
+            <a href="/ga/assignments" class="active">🚛 Assignments</a>
+            <a href="/admin/rekap">📋 Rekap</a>
+            <a href="/admin/analytics">📈 Analytics</a>
+            <a href="/admin/trips">🗺️ Trips</a>
+            <a href="/admin/logs">📝 Audit Log</a>
+            <a href="/admin/settings">⚙️ Settings</a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <div class="alert alert-success" style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:20px;">ℹ️</span>
+            <span>Gunakan halaman ini untuk <strong>mengelola kendaraan dan driver</strong>. Setiap perubahan tercatat dengan alasan dan kategori.</span>
+        </div>
+        
+        <!-- ASSIGNMENT AKTIF -->
+        <div class="card">
+            <div class="card-header">
+                <span>📋 Assignment Saat Ini</span>
+                <span style="font-size:11px;color:var(--gray-500);" id="activeCount">0 kendaraan</span>
+            </div>
+            <div class="card-body">
+                <table>
+                    <thead><tr><th>No. Polisi</th><th>Driver</th><th>Kendaraan</th><th>BBM</th><th>Tgl Mulai</th><th>Konfirmasi</th><th>Aksi</th></tr></thead>
+                    <tbody id="activeAssignments">
+                        <tr><td colspan="7" style="text-align:center;color:var(--gray-500);">Memuat...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- TUKAR KENDARAAN -->
+        <div class="card" style="border-left:4px solid var(--warning);">
+            <div class="card-header">🔄 Tukar Kendaraan</div>
+            <div class="card-body">
+                <div class="row-2" style="margin-bottom:10px;">
+                    <div>
+                        <label style="font-weight:600;font-size:11px;">Kendaraan <span style="color:var(--danger);">*</span></label>
+                        <select id="swapNopol" class="form-control" onchange="onNopolSelect()">
+                            <option value="">-- Pilih Kendaraan --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-weight:600;font-size:11px;">Driver Saat Ini</label>
+                        <input type="text" id="swapCurrentDriver" class="form-control" readonly>
+                    </div>
+                </div>
+                <div class="row-2" style="margin-bottom:10px;">
+                    <div>
+                        <label style="font-weight:600;font-size:11px;">Driver Baru <span style="color:var(--danger);">*</span></label>
+                        <select id="swapNewDriver" class="form-control">
+                            <option value="">-- Pilih Driver --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-weight:600;font-size:11px;">Kategori <span style="color:var(--danger);">*</span></label>
+                        <select id="swapCategory" class="form-control">
+                            <option value="">-- Pilih --</option>
+                            <option value="driver_issue">👤 Kendala Driver</option>
+                            <option value="vehicle_issue">🚗 Kendala Kendaraan</option>
+                            <option value="rotation">🔄 Rotasi Biasa</option>
+                            <option value="other">📝 Lainnya</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-bottom:10px;">
+                    <label style="font-weight:600;font-size:11px;">Alasan <span style="color:var(--danger);">*</span></label>
+                    <textarea id="swapReason" class="form-control" placeholder="Jelaskan alasan penukaran..." rows="2"></textarea>
+                </div>
+                <div style="margin-bottom:10px;">
+                    <label style="font-weight:600;font-size:11px;">Nama GA <span style="color:var(--danger);">*</span></label>
+                    <input type="text" id="swapGA" class="form-control" value="GA Officer">
+                </div>
+                <button class="btn btn-warning" onclick="submitSwap()">🔄 Tukar Kendaraan</button>
+                <span id="swapMsg" style="font-size:12px;margin-left:10px;"></span>
+            </div>
+        </div>
+        
+        <!-- ASSIGN KOSONG -->
+        <div class="card" style="border-left:4px solid var(--success);">
+            <div class="card-header">➕ Assign Kendaraan Kosong</div>
+            <div class="card-body">
+                <div class="row-2" style="margin-bottom:10px;">
+                    <div>
+                        <label style="font-weight:600;font-size:11px;">No. Polisi <span style="color:var(--danger);">*</span></label>
+                        <select id="assignNopolSelect" class="form-control">
+                            <option value="">-- Pilih Kendaraan --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-weight:600;font-size:11px;">Driver <span style="color:var(--danger);">*</span></label>
+                        <select id="assignDriverSelect" class="form-control">
+                            <option value="">-- Pilih Driver --</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-bottom:10px;">
+                    <label style="font-weight:600;font-size:11px;">Catatan</label>
+                    <input type="text" id="assignNotes" class="form-control" placeholder="Opsional">
+                </div>
+                <button class="btn btn-success" onclick="assignNew()">➕ Assign Kendaraan</button>
+                <span id="assignMsg" style="font-size:12px;margin-left:10px;"></span>
+            </div>
+        </div>
+        
+        <!-- RIWAYAT -->
+        <div class="card">
+            <div class="card-header">📜 Riwayat Penukaran</div>
+            <div class="card-body">
+                <table>
+                    <thead><tr><th>No. Polisi</th><th>Driver Lama</th><th>Driver Baru</th><th>Kategori</th><th>Alasan</th><th>Tanggal</th><th>GA</th></tr></thead>
+                    <tbody id="historyTable">
+                        <tr><td colspan="7" style="text-align:center;color:var(--gray-500);">Memuat...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    var allDrivers = [];
+    
+    // ============================================================
+    // INIT
+    // ============================================================
+    async function loadAll() {
+        await loadDrivers();
+        await loadActive();
+        await loadUnassigned();
+        await loadHistory();
+    }
+    
+    // ============================================================
+    // LOAD DRIVERS
+    // ============================================================
+    async function loadDrivers() {
+        try {
+            var res = await fetch('/api/drivers');
+            allDrivers = await res.json();
+            var opts = '<option value="">-- Pilih Driver --</option>';
+            for (var i = 0; i < allDrivers.length; i++) {
+                var d = allDrivers[i];
+                if (!d.name || !d.is_active) continue;
+                opts += '<option value="' + d.name + '">' + d.name + '</option>';
+            }
+            document.getElementById('swapNewDriver').innerHTML = opts;
+            document.getElementById('assignDriverSelect').innerHTML = opts;
+        } catch(e) { console.error(e); }
+    }
+    
+    // ============================================================
+    // LOAD ACTIVE ASSIGNMENTS
+    // ============================================================
+    async function loadActive() {
+        try {
+            var res = await fetch('/api/assignments/active');
+            var data = await res.json();
+            document.getElementById('activeCount').textContent = data.length + ' kendaraan';
+            
+            var nopolOpts = '<option value="">-- Pilih Kendaraan --</option>';
+            var rows = '';
+            
+            for (var i = 0; i < data.length; i++) {
+                var a = data[i];
+                nopolOpts += '<option value="' + a.nopol + '" data-driver="' + a.driver_name + '" data-vehicle="' + a.vehicle_type + '" data-bbm="' + a.bbm_type + '">' + a.nopol + ' (' + a.driver_name + ')</option>';
+                
+                var confirmBadge = a.confirmed_by_driver ? '<span class="badge badge-confirmed">✅ Dikonfirmasi</span>' : '<span class="badge badge-pending">⏳ Menunggu</span>';
+                
+                rows += '<tr>' +
+                    '<td><strong>' + a.nopol + '</strong></td>' +
+                    '<td>' + a.driver_name + '</td>' +
+                    '<td>' + a.vehicle_type + '</td>' +
+                    '<td>' + a.bbm_type + '</td>' +
+                    '<td style="font-size:11px;">' + a.assigned_date + '</td>' +
+                    '<td>' + confirmBadge + '</td>' +
+                    '<td>' +
+                        '<button class="btn btn-warning btn-sm" onclick="fillSwap(\'' + a.nopol + '\',\'' + a.driver_name + '\')" style="font-size:10px;padding:4px 8px;">🔄 Tukar</button> ' +
+                        '<button class="btn btn-danger btn-sm" onclick="releaseVehicle(\'' + a.nopol + '\',\'' + a.driver_name + '\')" style="font-size:10px;padding:4px 8px;">✕ Lepas</button>' +
+                    '</td>' +
+                '</tr>';
+            }
+            
+            document.getElementById('activeAssignments').innerHTML = rows || '<tr><td colspan="7" style="text-align:center;color:var(--gray-500);">Tidak ada assignment aktif</td></tr>';
+            document.getElementById('swapNopol').innerHTML = nopolOpts;
+        } catch(e) { console.error(e); }
+    }
+    
+    // ============================================================
+    // LOAD UNASSIGNED
+    // ============================================================
+    async function loadUnassigned() {
+        try {
+            var res = await fetch('/api/assignments/unassigned');
+            var data = await res.json();
+            var opts = '<option value="">-- Pilih Kendaraan --</option>';
+            for (var i = 0; i < data.length; i++) {
+                opts += '<option value="' + data[i].nopol + '" data-vehicle="' + data[i].vehicle_type + '" data-bbm="' + data[i].bbm_type + '">' + data[i].nopol + ' (' + data[i].vehicle_type + ')</option>';
+            }
+            document.getElementById('assignNopolSelect').innerHTML = opts;
+        } catch(e) { console.error(e); }
+    }
+    
+    // ============================================================
+    // LOAD HISTORY
+    // ============================================================
+    async function loadHistory() {
+        try {
+            var res = await fetch('/api/assignments/swap-history');
+            var data = await res.json();
+            if (data.length === 0) {
+                document.getElementById('historyTable').innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--gray-500);">Belum ada riwayat</td></tr>';
+                return;
+            }
+            var rows = '';
+            for (var i = 0; i < data.length; i++) {
+                var h = data[i];
+                var catBadge = '';
+                if (h.category === 'driver_issue') catBadge = '<span class="badge badge-driver">👤 Driver</span>';
+                else if (h.category === 'vehicle_issue') catBadge = '<span class="badge badge-vehicle">🚗 Kendaraan</span>';
+                else if (h.category === 'rotation') catBadge = '<span class="badge badge-rotation">🔄 Rotasi</span>';
+                else catBadge = '<span class="badge">📝 Lainnya</span>';
+                rows += '<tr>' +
+                    '<td><strong>' + h.nopol + '</strong></td>' +
+                    '<td>' + (h.old_driver || '-') + '</td>' +
+                    '<td>' + (h.new_driver || '-') + '</td>' +
+                    '<td>' + catBadge + '</td>' +
+                    '<td style="font-size:11px;">' + h.reason + '</td>' +
+                    '<td style="font-size:11px;">' + h.created_at + '</td>' +
+                    '<td>' + h.ga_name + '</td>' +
+                '</tr>';
+            }
+            document.getElementById('historyTable').innerHTML = rows;
+        } catch(e) { console.error(e); }
+    }
+    
+    // ============================================================
+    // ON NOPOL SELECT
+    // ============================================================
+    function onNopolSelect() {
+        var sel = document.getElementById('swapNopol');
+        var opt = sel.options[sel.selectedIndex];
+        document.getElementById('swapCurrentDriver').value = (opt && opt.dataset.driver) ? opt.dataset.driver : '';
+    }
+    
+    function fillSwap(nopol, driver) {
+        document.getElementById('swapNopol').value = nopol;
+        document.getElementById('swapCurrentDriver').value = driver;
+        document.getElementById('swapNopol').scrollIntoView({behavior:'smooth'});
+    }
+    
+    // ============================================================
+    // SUBMIT SWAP
+    // ============================================================
+    async function submitSwap() {
+        var nopol = document.getElementById('swapNopol').value;
+        var newDriver = document.getElementById('swapNewDriver').value;
+        var category = document.getElementById('swapCategory').value;
+        var reason = document.getElementById('swapReason').value.trim();
+        var ga = document.getElementById('swapGA').value.trim();
+        var msg = document.getElementById('swapMsg');
+        
+        if (!nopol || !newDriver || !category || !reason || !ga) {
+            msg.textContent = 'Semua field wajib diisi!'; msg.style.color = '#dc2626'; return;
+        }
+        
+        msg.textContent = '...';
+        try {
+            var r = await fetch('/api/assignments/swap', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({nopol: nopol, new_driver: newDriver, category: category, reason: reason, ga_name: ga})
+            });
+            var d = await r.json();
+            msg.textContent = d.msg;
+            msg.style.color = d.status === 'success' ? '#059669' : '#dc2626';
+            if (d.status === 'success') {
+                document.getElementById('swapReason').value = '';
+                document.getElementById('swapNewDriver').value = '';
+                document.getElementById('swapCategory').value = '';
+                loadAll();
+            }
+        } catch(e) { msg.textContent = 'Error'; msg.style.color = '#dc2626'; }
+    }
+    
+    // ============================================================
+    // ASSIGN NEW
+    // ============================================================
+    async function assignNew() {
+        var nopol = document.getElementById('assignNopolSelect').value;
+        var driver = document.getElementById('assignDriverSelect').value;
+        var notes = document.getElementById('assignNotes').value.trim();
+        var msg = document.getElementById('assignMsg');
+        
+        if (!nopol || !driver) { msg.textContent = 'Nopol dan Driver wajib!'; msg.style.color = '#dc2626'; return; }
+        
+        msg.textContent = '...';
+        try {
+            var selNopol = document.getElementById('assignNopolSelect');
+            var optNopol = selNopol.options[selNopol.selectedIndex];
+            
+            var r = await fetch('/api/assignments/create', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    driver_name: driver, nopol: nopol,
+                    vehicle_type: optNopol.dataset.vehicle || 'AVANZA',
+                    bbm_type: optNopol.dataset.bbm || 'PERTALITE',
+                    notes: notes
+                })
+            });
+            var d = await r.json();
+            msg.textContent = d.msg;
+            msg.style.color = d.status === 'success' ? '#059669' : '#dc2626';
+            if (d.status === 'success') {
+                document.getElementById('assignNotes').value = '';
+                document.getElementById('assignNopolSelect').value = '';
+                document.getElementById('assignDriverSelect').value = '';
+                loadAll();
+            }
+        } catch(e) { msg.textContent = 'Error'; msg.style.color = '#dc2626'; }
+    }
+    
+    // ============================================================
+    // RELEASE VEHICLE
+    // ============================================================
+    async function releaseVehicle(nopol, driver) {
+        var reason = prompt('Alasan melepas ' + nopol + ' dari ' + driver + '?\n\nContoh: Kendaraan masuk bengkel, Driver resign, dll');
+        if (!reason) return;
+        try {
+            var r = await fetch('/api/assignments/release', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({nopol: nopol, reason: reason, ga_name: 'GA Officer'})
+            });
+            var d = await r.json();
+            if (d.status === 'success') { alert('✅ ' + d.msg); loadAll(); }
+            else { alert('❌ ' + d.msg); }
+        } catch(e) { alert('Error: ' + e.message); }
+    }
+    
+    // ============================================================
+    // START
+    // ============================================================
+    loadAll();
+    </script>
+    
+    <footer style="margin-top:40px;background:linear-gradient(180deg,#ffffff,#f1f5f9);border-top:1px solid #e2e8f0;padding:20px;text-align:center;">
+        <div style="max-width:1200px;margin:0 auto;">
+            <span style="font-weight:700;font-size:13px;color:#1e293b;">PT BESTPROFIT FUTURES</span>
+            <span style="color:#94a3b8;"> | </span>
+            <span style="font-size:11px;color:#64748b;">Surabaya</span>
+            <div style="font-size:10px;color:#94a3b8;margin-top:4px;">BPF BBM System v1.0 · Developed by IT BPF Surabaya · © 2026</div>
+        </div>
+    </footer>
+</body>
+</html>

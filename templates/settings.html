@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - BPF BBM System</title>
+    <link rel="manifest" href="/manifest.json?v=20260720_FINAL">
+    <meta name="theme-color" content="#1d4ed8">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #2563eb; --primary-dark: #1d4ed8; --success: #059669; --success-light: #d1fae5; --warning: #d97706; --danger: #dc2626; --danger-light: #fee2e2; --info: #0891b2; --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-300: #d1d5db; --gray-500: #6b7280; --gray-700: #374151; --gray-800: #1f2937; --white: #ffffff; --shadow: 0 1px 3px rgba(0,0,0,0.1); --radius: 10px; --radius-sm: 6px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Inter", "Segoe UI", sans-serif; background: var(--gray-50); color: var(--gray-800); }
+        .navbar { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; position: sticky; top: 0; z-index: 200; }
+        .navbar h1 { font-size: 20px; font-weight: 700; }
+        .navbar .nav-links { display: flex; gap: 4px; }
+        .navbar .nav-links a { color: rgba(255,255,255,0.85); text-decoration: none; padding: 7px 16px; border-radius: var(--radius-sm); font-size: 13px; }
+        .navbar .nav-links a.active { background: rgba(255,255,255,0.2); color: white; font-weight: 600; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 24px 20px; }
+        .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--gray-200); margin-bottom: 20px; }
+        .card-header { padding: 16px 22px; border-bottom: 1px solid var(--gray-200); font-weight: 600; background: var(--gray-50); }
+        .card-body { padding: 20px 22px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { background: var(--gray-100); color: var(--gray-700); font-weight: 600; font-size: 11px; text-transform: uppercase; padding: 10px 12px; text-align: left; border-bottom: 2px solid var(--gray-200); }
+        td { padding: 10px 12px; border-bottom: 1px solid var(--gray-100); }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .badge-good { background: var(--success-light); color: var(--success); }
+        .badge-danger { background: var(--danger-light); color: var(--danger); }
+        .btn { padding: 7px 16px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: 12px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-add { background: var(--success); color: white; padding: 8px 16px; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 12px; font-weight: 600; margin-top: 10px; }
+        .btn-remove { background: var(--danger); color: white; padding: 5px 12px; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 11px; }
+        .btn-delete { background: #ef4444; color: white; padding: 5px 12px; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 11px; }
+        .btn-toggle { padding: 5px 12px; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 11px; margin-right: 4px; }
+        .btn-toggle.off { background: #dc2626; color: white; }
+        .btn-toggle.on { background: #16a34a; color: white; }
+        .btn-outline { background: white; color: var(--primary); border: 1.5px solid var(--primary); padding: 7px 16px; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: 12px; text-decoration: none; display: inline-block; }
+        .form-control { width: 100%; padding: 9px 13px; border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm); font-size: 13px; }
+        .form-control:focus { border-color: var(--primary); outline: none; }
+        .alert { padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 14px; font-size: 13px; }
+        .alert-success { background: var(--success-light); color: #065f46; border-left: 4px solid var(--success); }
+        .note { font-size: 12px; color: var(--gray-500); }
+        .row-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+        @media (max-width: 768px) { .row-4 { grid-template-columns: 1fr 1fr; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>🚛 BPF BBM System</h1>
+        <div class="nav-links">
+            <a href="/admin">📊 Dashboard</a>
+            <a href="/ga/assignments">🚛 Assignments</a>
+            <a href="/admin/rekap">📋 Rekap</a>
+            <a href="/admin/analytics">📈 Analytics</a>
+            <a href="/admin/trips">🗺️ Trips</a>
+            <a href="/admin/logs">📝 Audit Log</a>
+            <a href="/admin/settings" class="active">⚙️ Settings</a>
+        </div>
+    </nav>
+    
+    <!-- PIN GATE -->
+    <div id="settingsGate" style="display:flex;justify-content:center;align-items:center;min-height:60vh;">
+        <div style="background:white;padding:40px;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,0.2);text-align:center;max-width:380px;width:100%;">
+            <div style="font-size:48px;margin-bottom:12px;">&#128274;</div>
+            <h2>Admin Access Only</h2>
+            <p style="color:#6b7280;margin-bottom:20px;">Masukkan PIN Admin</p>
+            <input type="password" id="adminPinInput" class="form-control" placeholder="••••••" maxlength="6" style="font-size:24px;text-align:center;letter-spacing:8px;width:150px;margin:0 auto 12px;">
+            <p id="adminPinError" style="color:#dc2626;font-size:12px;display:none;"></p>
+            <button class="btn btn-primary" onclick="verifyAdmin()">Buka Settings</button>
+        </div>
+    </div>
+    
+    <!-- MAIN CONTENT -->
+    <div id="settingsContent" style="display:none;">
+    <div class="container">
+        
+        <!-- DRIVERS -->
+        <div class="card">
+            <div class="card-header">Driver & Kendaraan</div>
+            <div class="card-body">
+                <p class="note" style="margin-bottom:14px;">Kelola data driver. Toggle untuk aktif/nonaktifkan.</p>
+                <table>
+                    <thead><tr><th>Driver</th><th>Nopol</th><th>Kendaraan</th><th>BBM</th><th>Status</th><th>Aksi</th></tr></thead>
+                    <tbody id="driver-table">
+                        <tr><td colspan="6" style="text-align:center;color:#9ca3af;">Loading...</td></tr>
+                    </tbody>
+                </table>
+                <div style="margin-top:16px;padding:14px;background:#f3f4f6;border-radius:10px;">
+                    <strong>Tambah/Update Driver:</strong>
+                    <div class="row-4" style="margin-top:8px;">
+                        <input type="text" id="newDriverName" class="form-control" placeholder="Nama Driver">
+                        <input type="text" id="newDriverNopol" class="form-control" placeholder="No. Polisi">
+                        <select id="newDriverVehicle" class="form-control">
+                            <option value="">Kendaraan</option>
+                            {% for v in vehicles %}<option value="{{ v.vehicle_type }}">{{ v.vehicle_type }}</option>{% endfor %}
+                        </select>
+                        <select id="newDriverBBM" class="form-control">
+                            <option value="">BBM</option>
+                            {% for b in bbm_types %}<option value="{{ b.name }}">{{ b.name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <button class="btn-add" onclick="syncDriver()">+ Simpan Driver</button>
+                    <span id="syncStatus" style="font-size:12px;margin-left:10px;"></span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- USERS -->
+        <div class="card">
+            <div class="card-header">User & PIN</div>
+            <div class="card-body">
+                <table>
+                    <thead><tr><th>Username</th><th>Nama</th><th>Role</th><th>Status</th><th>Login</th><th>Aksi</th></tr></thead>
+                    <tbody id="user-table"><tr><td colspan="6" style="text-align:center;color:#9ca3af;">Loading...</td></tr></tbody>
+                </table>
+                <div style="margin-top:16px;padding:14px;background:#f3f4f6;border-radius:10px;">
+                    <strong>Tambah/Update User:</strong>
+                    <div class="row-4" style="margin-top:8px;">
+                        <input type="text" id="newUsername" class="form-control" placeholder="Username">
+                        <input type="text" id="newFullName" class="form-control" placeholder="Nama Lengkap">
+                        <select id="newRole" class="form-control">
+                            <option value="ga">GA</option><option value="finance">Finance</option><option value="admin">Admin</option>
+                        </select>
+                        <input type="text" id="newPin" class="form-control" placeholder="PIN 6-digit" maxlength="6">
+                    </div>
+                    <button class="btn-add" onclick="syncUser()">+ Simpan User</button>
+                    <span id="syncUserStatus" style="font-size:12px;margin-left:10px;"></span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- BACKUP & DEMO -->
+        <div class="card">
+            <div class="card-header">Backup & Data Demo</div>
+            <div class="card-body">
+                <div style="display:flex;gap:20px;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:200px;">
+                        <strong>Backup Database</strong>
+                        <p class="note" style="margin:8px 0;">Download seluruh data dalam format SQL.</p>
+                        <a href="/admin/backup" class="btn btn-primary">Download Backup</a>
+                    </div>
+                    <div style="flex:1;min-width:200px;">
+                        <strong>Data Demo</strong>
+                        <p class="note" style="margin:8px 0;">Data dummy untuk demo.</p>
+                        <button id="dummyToggleBtn" class="btn btn-warning" onclick="toggleDummyData()">Loading...</button>
+                        <span id="dummyStatus" style="font-size:12px;margin-left:10px;"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- EXCEL IMPORT -->
+        <div class="card" style="border-left:4px solid var(--info);">
+            <div class="card-header">Bulk Import Transaksi (.XLSX)</div>
+            <div class="card-body">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                    <a href="/admin/templates/import-bbm" class="btn btn-outline">Unduh Template</a>
+                    <form action="/admin/settings/import-xlsx" method="POST" enctype="multipart/form-data" style="display:inline-flex;gap:8px;">
+                        <input type="file" name="excel_file" accept=".xlsx" class="form-control" style="width:auto;" required>
+                        <button type="submit" class="btn btn-primary">Upload & Proses</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- SETTINGS FORM -->
+        <form method="POST">
+            <!-- Batas Konsumsi -->
+            <div class="card"><div class="card-header">Batas Konsumsi KM/L</div><div class="card-body">
+                <table><thead><tr><th>Kendaraan</th><th>BBM</th><th>Baik</th><th>Warning</th><th>Min</th><th>Max</th><th>Default</th></tr></thead>
+                <tbody>
+                    {% for l in vehicle_limits %}
+                    <tr>
+                        <td><input type="hidden" name="limit_id[]" value="{{ l.id }}"><strong>{{ l.vehicle_type }}</strong></td>
+                        <td><strong>{{ l.bbm_type }}</strong></td>
+                        <td><input type="number" name="limit_good[]" class="form-control" value="{{ l.good_km_per_liter }}" step="0.5" style="width:70px;"></td>
+                        <td><input type="number" name="limit_warning[]" class="form-control" value="{{ l.warning_km_per_liter }}" step="0.5" style="width:70px;"></td>
+                        <td><input type="number" name="limit_min[]" class="form-control" value="{{ l.min_km_per_liter }}" step="0.5" style="width:70px;"></td>
+                        <td><input type="number" name="limit_max[]" class="form-control" value="{{ l.max_km_per_liter }}" step="0.5" style="width:70px;"></td>
+                        <td><input type="checkbox" name="limit_default[]" value="{{ loop.index0 }}" {% if l.is_default %}checked{% endif %}></td>
+                    </tr>
+                    {% endfor %}
+                </tbody></table>
+            </div></div>
+            
+            <!-- Multi-Fill -->
+            <div class="card" style="border-left:4px solid var(--primary);">
+                <div class="card-header">Konfigurasi Multi-Fill / Top-Up BBM</div>
+                <div class="card-body">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <label style="font-weight:600;">Batas Jarak Top-Up (KM):</label>
+                        <input type="number" name="multifill_km_threshold" id="multifillKmThreshold" class="form-control" value="{{ multifill_threshold or '40' }}" min="10" max="200" step="5" style="max-width:120px;font-weight:700;font-size:18px;text-align:center;">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Vehicles -->
+            <div class="card"><div class="card-header">Tipe Kendaraan</div><div class="card-body">
+                <table><thead><tr><th>Tipe</th><th>Brand</th><th>Kapasitas</th><th>Aktif</th><th></th></tr></thead>
+                <tbody id="vehicle-table">
+                    {% for v in vehicles %}
+                    <tr><td><input type="hidden" name="vehicle_id[]" value="{{ v.id }}"><input type="text" name="vehicle_name[]" class="form-control" value="{{ v.vehicle_type }}"></td>
+                    <td><input type="text" name="vehicle_brand[]" class="form-control" value="{{ v.brand }}"></td>
+                    <td><input type="number" name="vehicle_capacity[]" class="form-control" value="{{ v.fuel_capacity }}" style="width:80px;"></td>
+                    <td><input type="checkbox" name="vehicle_active[]" value="{{ loop.index0 }}" {% if v.is_active %}checked{% endif %}></td>
+                    <td><button type="button" class="btn-remove" onclick="this.closest('tr').remove()">Hapus</button></td></tr>
+                    {% endfor %}
+                </tbody></table>
+                <button type="button" class="btn-add" onclick="addVRow()">+ Tambah</button>
+            </div></div>
+            
+            <!-- BBM Types -->
+            <div class="card"><div class="card-header">Jenis BBM</div><div class="card-body">
+                <table><thead><tr><th>BBM</th><th>Harga/L</th><th>Aktif</th><th></th></tr></thead>
+                <tbody id="bbm-table">
+                    {% for b in bbm_types %}
+                    <tr><td><input type="hidden" name="bbm_id[]" value="{{ b.id }}"><input type="text" name="bbm_name[]" class="form-control" value="{{ b.name }}"></td>
+                    <td><input type="number" name="bbm_price[]" class="form-control" value="{{ b.price_per_liter }}" style="width:120px;"></td>
+                    <td><input type="checkbox" name="bbm_active[]" value="{{ loop.index0 }}" {% if b.is_active %}checked{% endif %}></td>
+                    <td><button type="button" class="btn-remove" onclick="this.closest('tr').remove()">Hapus</button></td></tr>
+                    {% endfor %}
+                </tbody></table>
+                <button type="button" class="btn-add" onclick="addBRow()">+ Tambah</button>
+            </div></div>
+            
+            <div style="text-align:center;margin-top:20px;">
+                <button type="submit" class="btn btn-primary" style="padding:12px 48px;font-size:15px;">Simpan Semua Settings</button>
+            </div>
+        </form>
+    </div>
+    </div>
+    
+    <script>
+    // ============================================================
+    // PIN GATE
+    // ============================================================
+    async function verifyAdmin() {
+        var pin = document.getElementById('adminPinInput').value;
+        var err = document.getElementById('adminPinError');
+        if (pin.length !== 6) { err.textContent = 'PIN 6 digit!'; err.style.display = 'block'; return; }
+        err.style.display = 'none';
+        try {
+            var res = await fetch('/api/verify-pin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:'admin', pin:pin}) });
+            var data = await res.json();
+            if (data.status === 'success') {
+                document.getElementById('settingsGate').style.display = 'none';
+                document.getElementById('settingsContent').style.display = 'block';
+                loadDrivers();
+                loadUsers();
+                checkDummyStatus();
+                loadMultifillThreshold();
+            } else { 
+                err.textContent = 'PIN salah!'; 
+                err.style.display = 'block'; 
+            }
+        } catch(e) { 
+            err.textContent = 'Error koneksi'; 
+            err.style.display = 'block'; 
+        }
+    }
+    document.getElementById('adminPinInput').addEventListener('keydown', function(e){ if(e.key==='Enter') verifyAdmin(); });
+    
+    // ============================================================
+    // DRIVERS
+    // ============================================================
+    async function loadDrivers() {
+        var res = await fetch('/api/drivers');
+        var data = await res.json();
+        var tbody = document.getElementById('driver-table');
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9ca3af;">Tidak ada driver</td></tr>';
+            return;
+        }
+        var rows = '';
+        for (var i = 0; i < data.length; i++) {
+            var d = data[i];
+            if (!d.name) continue;
+            var isActive = (d.is_active === 1 || d.is_active === true);
+            var statusBadge = isActive ? '<span class="badge badge-good">Aktif</span>' : '<span class="badge badge-danger">Nonaktif</span>';
+            var toggleLabel = isActive ? 'Nonaktifkan' : 'Aktifkan';
+            var toggleClass = isActive ? 'off' : 'on';
+            rows += '<tr>' +
+                '<td><strong>' + d.name + '</strong></td>' +
+                '<td>' + (d.nopol || '-') + '</td>' +
+                '<td>' + (d.vehicle_type || '-') + '</td>' +
+                '<td>' + (d.bbm_type || '-') + '</td>' +
+                '<td>' + statusBadge + '</td>' +
+                '<td>' +
+                    '<button class="btn-toggle ' + toggleClass + '" onclick="toggleDriver(\'' + d.name + '\', ' + isActive + ')">' + toggleLabel + '</button>' +
+                    '<button class="btn-delete" onclick="deleteDriver(\'' + d.name + '\')">🗑</button>' +
+                '</td>' +
+            '</tr>';
+        }
+        tbody.innerHTML = rows;
+    }
+    
+    async function toggleDriver(name, isActive) {
+        var action = isActive ? 'nonaktifkan' : 'aktifkan';
+        if (!confirm('Yakin ' + action + ' driver ' + name + '?')) return;
+        try {
+            if (isActive) {
+                await fetch('/api/drivers/' + encodeURIComponent(name) + '/deactivate', {method: 'POST'});
+            } else {
+                var resp = await fetch('/api/drivers');
+                var drivers = await resp.json();
+                var found = null;
+                for (var i = 0; i < drivers.length; i++) {
+                    if (drivers[i].name === name) { found = drivers[i]; break; }
+                }
+                var nopol = (found && found.nopol) ? found.nopol : name;
+                var vehicle = (found && found.vehicle_type) ? found.vehicle_type : 'AVANZA';
+                var bbm = (found && found.bbm_type) ? found.bbm_type : 'PERTALITE';
+                await fetch('/api/drivers/sync', { method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({driver_name: name, nopol: nopol, vehicle_type: vehicle, bbm_type: bbm}) });
+            }
+            loadDrivers();
+        } catch(e) { alert('Gagal: ' + e.message); }
+    }
+    
+    async function deleteDriver(name) {
+        if (!confirm('HAPUS permanen driver ' + name + '?')) return;
+        try {
+            var res = await fetch('/api/drivers/' + encodeURIComponent(name) + '/delete', {method: 'POST'});
+            var data = await res.json();
+            if (data.status === 'success') { loadDrivers(); }
+            else { alert('Gagal: ' + (data.msg || 'Error')); }
+        } catch(e) { alert('Error: ' + e.message); }
+    }
+    
+    async function syncDriver() {
+        var n = document.getElementById('newDriverName').value.trim().toUpperCase();
+        var p = document.getElementById('newDriverNopol').value.trim().toUpperCase();
+        var v = document.getElementById('newDriverVehicle').value;
+        var b = document.getElementById('newDriverBBM').value;
+        var s = document.getElementById('syncStatus');
+        if(!n||!p){s.textContent='Nama+Nopol wajib!';s.style.color='red';return;}
+        var res = await fetch('/api/drivers/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({driver_name:n, nopol:p, vehicle_type:v||'AVANZA', bbm_type:b||'PERTALITE'})});
+        var d = await res.json();
+        s.textContent = d.status==='success'?'Berhasil!':'Gagal';
+        s.style.color = d.status==='success'?'green':'red';
+        if(d.status==='success'){document.getElementById('newDriverName').value='';document.getElementById('newDriverNopol').value='';loadDrivers();}
+    }
+    
+    // ============================================================
+    // USERS
+    // ============================================================
+    async function loadUsers() {
+        var res = await fetch('/api/users');
+        var data = await res.json();
+        var tbody = document.getElementById('user-table');
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9ca3af;">Tidak ada user</td></tr>';
+            return;
+        }
+        var rows = '';
+        for (var i = 0; i < data.length; i++) {
+            var u = data[i];
+            var statusBadge = u.is_active ? '<span class="badge badge-good">Aktif</span>' : '<span class="badge badge-danger">Nonaktif</span>';
+            var toggleLabel = u.is_active ? 'Nonaktifkan' : 'Aktifkan';
+            rows += '<tr>' +
+                '<td><strong>'+u.username+'</strong></td>' +
+                '<td>'+u.full_name+'</td>' +
+                '<td><span class="badge badge-'+(u.role==='admin'?'danger':u.role==='finance'?'badge-finance':'badge-ga')+'">'+u.role.toUpperCase()+'</span></td>' +
+                '<td>'+statusBadge+'</td>' +
+                '<td style="font-size:11px;">'+(u.last_login ? new Date(u.last_login).toLocaleString('id-ID') : '-')+'</td>' +
+                '<td>' +
+                    '<button class="btn-toggle '+(u.is_active?'off':'on')+'" onclick="toggleUser(\''+u.username+'\', '+(u.is_active?1:0)+')" style="font-size:10px;padding:3px 8px;">'+toggleLabel+'</button>' +
+                    '<button class="btn-delete" onclick="deleteUser(\''+u.username+'\')" style="font-size:10px;padding:3px 8px;">🗑</button>' +
+                    '<button class="btn btn-outline" onclick="openResetPin(\''+u.username+'\')" style="font-size:10px;padding:3px 8px;margin-left:4px;">🔑 PIN</button>' +
+                '</td>' +
+            '</tr>';
+        }
+        tbody.innerHTML = rows;
+    }
+    
+    async function syncUser() {
+        var u = document.getElementById('newUsername').value.trim();
+        var f = document.getElementById('newFullName').value.trim();
+        var r = document.getElementById('newRole').value;
+        var p = document.getElementById('newPin').value.trim();
+        var s = document.getElementById('syncUserStatus');
+        if(!u||!f||!p){s.textContent='Semua wajib!';s.style.color='red';return;}
+        if(!/^\d{6}$/.test(p)){s.textContent='PIN 6 digit!';s.style.color='red';return;}
+        var res = await fetch('/api/users/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,full_name:f,role:r,pin:p,is_active:true})});
+        var d = await res.json();
+        s.textContent = d.status==='success'?'Berhasil!':'Gagal';
+        s.style.color = d.status==='success'?'green':'red';
+        if(d.status==='success'){document.getElementById('newUsername').value='';document.getElementById('newFullName').value='';document.getElementById('newPin').value='';loadUsers();}
+    }
+
+    async function toggleUser(username, isActive) {
+        var action = isActive ? 'nonaktifkan' : 'aktifkan';
+        if (!confirm('Yakin ' + action + ' user ' + username + '?')) return;
+        try {
+            await fetch('/api/users/sync', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: username, full_name: username, role: 'ga', pin: '000000', is_active: !isActive})
+            });
+            loadUsers();
+        } catch(e) { alert('Gagal: ' + e.message); }
+    }
+    
+    
+    var resetPinUsername = '';
+    
+    function openResetPin(username) {
+        resetPinUsername = username;
+        document.getElementById('resetPinUsername').textContent = username;
+        document.getElementById('resetPinInput').value = '';
+        document.getElementById('resetPinConfirm').value = '';
+        document.getElementById('resetPinMsg').style.display = 'none';
+        document.getElementById('resetPinModal').style.display = 'flex';
+        setTimeout(function(){ document.getElementById('resetPinInput').focus(); }, 200);
+    }
+    
+    function closeResetPin() {
+        document.getElementById('resetPinModal').style.display = 'none';
+    }
+    
+    async function submitResetPin() {
+        var pin = document.getElementById('resetPinInput').value;
+        var confirm = document.getElementById('resetPinConfirm').value;
+        var msg = document.getElementById('resetPinMsg');
+        
+        if (pin.length !== 6 || !/^\d{6}$/.test(pin)) {
+            msg.textContent = 'PIN harus 6 digit angka!'; msg.style.color = '#dc2626'; msg.style.display = 'block'; return;
+        }
+        if (pin !== confirm) {
+            msg.textContent = 'PIN tidak cocok!'; msg.style.color = '#dc2626'; msg.style.display = 'block'; return;
+        }
+        
+        msg.style.display = 'none';
+        try {
+            var res = await fetch('/api/users/reset-pin', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: resetPinUsername, new_pin: pin})
+            });
+            var d = await res.json();
+            if (d.status === 'success') {
+                msg.textContent = '✅ ' + d.msg;
+                msg.style.color = '#059669';
+                msg.style.display = 'block';
+                setTimeout(function(){ closeResetPin(); loadUsers(); }, 1000);
+            } else {
+                msg.textContent = '❌ ' + (d.msg || 'Gagal');
+                msg.style.color = '#dc2626';
+                msg.style.display = 'block';
+            }
+        } catch(e) {
+            msg.textContent = 'Error koneksi'; msg.style.color = '#dc2626'; msg.style.display = 'block';
+        }
+    }
+    
+    // Tutup modal saat klik luar (delay untuk pastikan DOM ready)
+    setTimeout(function() {
+        var modal = document.getElementById('resetPinModal');
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) closeResetPin();
+            });
+        }
+    }, 500);
+
+    async function deleteUser(username) {
+        if (!confirm('HAPUS user ' + username + '?')) return;
+        try {
+            await fetch('/api/users/sync', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: username, full_name: username, role: 'ga', pin: '000000', is_active: false})
+            });
+            loadUsers();
+        } catch(e) { alert('Error: ' + e.message); }
+    }
+    
+    // ============================================================
+    // DUMMY DATA
+    // ============================================================
+    async function checkDummyStatus() {
+        try {
+            var res = await fetch('/api/dummy-data/status');
+            var data = await res.json();
+            var btn = document.getElementById('dummyToggleBtn');
+            if (data.enabled) { btn.textContent = 'Nonaktifkan Data Demo'; btn.className = 'btn btn-danger'; }
+            else { btn.textContent = 'Aktifkan Data Demo'; btn.className = 'btn btn-success'; }
+        } catch(e) {}
+    }
+    
+    async function toggleDummyData() {
+        var btn = document.getElementById('dummyToggleBtn');
+        btn.textContent = '...'; btn.disabled = true;
+        try {
+            var res = await fetch('/api/dummy-data/status');
+            var data = await res.json();
+            var enable = !data.enabled;
+            var toggleRes = await fetch('/api/dummy-data/toggle', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({enable:enable}) });
+            var result = await toggleRes.json();
+            if (result.status === 'success') { checkDummyStatus(); document.getElementById('dummyStatus').textContent = result.msg; document.getElementById('dummyStatus').style.color = 'green'; }
+        } catch(e) { document.getElementById('dummyStatus').textContent = 'Error'; document.getElementById('dummyStatus').style.color = 'red'; }
+        finally { btn.disabled = false; }
+    }
+    
+    async function loadMultifillThreshold() {
+        try {
+            var res = await fetch('/api/system-config/multifill_km_threshold');
+            var data = await res.json();
+            if (data.value) { document.getElementById('multifillKmThreshold').value = data.value; }
+        } catch(e) {}
+    }
+    
+    checkDummyStatus();
+    loadMultifillThreshold();
+    
+    // ============================================================
+    // VEHICLE/BBM ROWS
+    // ============================================================
+    function addVRow(){var tr=document.createElement('tr');tr.innerHTML='<td><input type="text" name="new_vehicle_name[]" class="form-control" placeholder="Tipe"></td><td><input type="text" name="new_vehicle_brand[]" class="form-control" value="Toyota"></td><td><input type="number" name="new_vehicle_capacity[]" class="form-control" value="45" style="width:80px;"></td><td><input type="checkbox" checked disabled></td><td><button type="button" class="btn-remove" onclick="this.closest(\'tr\').remove()">Hapus</button></td>';document.getElementById('vehicle-table').appendChild(tr);}
+    function addBRow(){var tr=document.createElement('tr');tr.innerHTML='<td><input type="text" name="new_bbm_name[]" class="form-control" placeholder="BBM"></td><td><input type="number" name="new_bbm_price[]" class="form-control" placeholder="Harga" style="width:120px;"></td><td><input type="checkbox" checked disabled></td><td><button type="button" class="btn-remove" onclick="this.closest(\'tr\').remove()">Hapus</button></td>';document.getElementById('bbm-table').appendChild(tr);}
+    </script>
+    
+    <script>
+    if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js?v=20260720_FINAL").then(function(reg) {
+            reg.addEventListener("updatefound", function() {
+                var newWorker = reg.installing;
+                newWorker.addEventListener("statechange", function() {
+                    if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                        if (confirm("Pembaruan sistem tersedia. Muat ulang sekarang?")) window.location.reload();
+                    }
+                });
+            });
+        });
+    }
+    </script>
+    
+    <footer style="margin-top:40px;background:linear-gradient(180deg,#ffffff,#f1f5f9);border-top:1px solid #e2e8f0;padding:20px;text-align:center;">
+        <div style="max-width:1200px;margin:0 auto;">
+            <span style="font-weight:700;font-size:13px;color:#1e293b;">PT BESTPROFIT FUTURES</span>
+            <span style="color:#94a3b8;"> | </span>
+            <span style="font-size:11px;color:#64748b;">Surabaya</span>
+            <div style="font-size:10px;color:#94a3b8;margin-top:4px;">BPF BBM System v1.0 · Developed by IT BPF Surabaya · © 2026</div>
+        </div>
+    </footer>
+
+    <!-- RESET PIN MODAL -->
+    <div class="modal-overlay" id="resetPinModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center;">
+        <div style="background:white;border-radius:10px;padding:24px;width:90%;max-width:380px;box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+            <h3 style="margin-bottom:12px;">🔑 Reset PIN</h3>
+            <p style="font-size:13px;color:#6b7280;margin-bottom:4px;">Username: <strong id="resetPinUsername">-</strong></p>
+            <label style="font-weight:600;font-size:12px;margin-top:8px;display:block;">PIN Baru <span style="color:#dc2626;">*</span></label>
+            <input type="password" id="resetPinInput" class="form-control" placeholder="6 digit" maxlength="6" style="font-size:20px;text-align:center;letter-spacing:6px;width:120px;margin:8px auto;">
+            <label style="font-weight:600;font-size:12px;margin-top:8px;display:block;">Konfirmasi PIN <span style="color:#dc2626;">*</span></label>
+            <input type="password" id="resetPinConfirm" class="form-control" placeholder="Ulangi PIN" maxlength="6" style="font-size:20px;text-align:center;letter-spacing:6px;width:120px;margin:8px auto;">
+            <p id="resetPinMsg" style="font-size:11px;margin-top:8px;display:none;"></p>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
+                <button class="btn btn-outline" onclick="closeResetPin()">Batal</button>
+                <button class="btn btn-primary" onclick="submitResetPin()">💾 Simpan PIN Baru</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

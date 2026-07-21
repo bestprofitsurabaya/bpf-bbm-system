@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.backup_*
+
+# Docker
+docker-compose.override.yml
+
+# Uploads (data user)
+uploads/*
+!uploads/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+bash.txt
+
+# Backups
+backups/
+
+# Generated
+generate_icon.py

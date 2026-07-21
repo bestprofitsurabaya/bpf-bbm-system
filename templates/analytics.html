@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - BPF BBM System</title>
+    <link rel="manifest" href="/manifest.json?v=20260720_FINAL">
+    <meta name="theme-color" content="#1d4ed8">
+    <link rel="icon" type="image/png" href="/static/icon-192.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root { --primary: #2563eb; --primary-dark: #1d4ed8; --primary-light: #dbeafe; --success: #059669; --success-light: #d1fae5; --warning: #d97706; --warning-light: #fef3c7; --danger: #dc2626; --danger-light: #fee2e2; --info: #0891b2; --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-500: #6b7280; --gray-700: #374151; --gray-800: #1f2937; --gray-900: #111827; --white: #ffffff; --shadow: 0 1px 3px rgba(0,0,0,0.1); --radius: 10px; --radius-sm: 6px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Inter", sans-serif; background: var(--gray-50); color: var(--gray-800); }
+        .navbar { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.07); position: sticky; top: 0; z-index: 100; }
+        .navbar h1 { font-size: 18px; font-weight: 700; }
+        .navbar .nav-links { display: flex; gap: 4px; flex-wrap: wrap; }
+        .navbar .nav-links a { color: rgba(255,255,255,0.85); text-decoration: none; padding: 7px 14px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 500; }
+        .navbar .nav-links a:hover { background: rgba(255,255,255,0.12); color: white; }
+        .navbar .nav-links a.active { background: rgba(255,255,255,0.2); color: white; font-weight: 600; }
+        .container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
+        
+        /* Tabs */
+        .tab-nav { display: flex; gap: 0; margin-bottom: 20px; background: var(--gray-100); border-radius: var(--radius); padding: 4px; }
+        .tab-btn { flex: 1; padding: 12px 16px; border: none; background: transparent; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; font-size: 13px; color: var(--gray-500); }
+        .tab-btn.active { background: var(--white); color: var(--primary); box-shadow: var(--shadow); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* Stat cards */
+        .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px; }
+        .stat-card { background: var(--white); padding: 18px 20px; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--gray-200); border-left: 4px solid var(--primary); }
+        .stat-card .number { font-size: 24px; font-weight: 700; color: var(--gray-900); }
+        .stat-card .label { font-size: 11px; color: var(--gray-500); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card .sub { font-size: 12px; color: var(--success); margin-top: 4px; font-weight: 600; }
+        .stat-card .sub.down { color: var(--danger); }
+        
+        .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--gray-200); margin-bottom: 20px; }
+        .card-header { padding: 14px 18px; border-bottom: 1px solid var(--gray-200); font-weight: 600; background: var(--gray-50); font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+        .card-body { padding: 16px; }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { background: var(--gray-100); color: var(--gray-700); font-weight: 600; padding: 10px; text-align: left; border-bottom: 2px solid var(--gray-200); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+        td { padding: 10px; border-bottom: 1px solid var(--gray-100); }
+        tr:hover td { background: var(--gray-50); }
+        .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+        .badge-success { background: var(--success-light); color: var(--success); }
+        .badge-warning { background: var(--warning-light); color: var(--warning); }
+        .badge-danger { background: var(--danger-light); color: var(--danger); }
+        .empty { text-align: center; padding: 40px; color: var(--gray-500); }
+        
+        .btn { padding: 8px 16px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-outline { background: white; color: var(--primary); border: 1.5px solid var(--primary); }
+        
+        @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } .tab-btn { font-size: 11px; padding: 10px 8px; } }
+    </style>
+</head>
+<body>
+        <nav class="navbar">
+        <h1>🚛 BPF BBM System</h1>
+        <div class="nav-links">
+            <a href="/admin">📊 Dashboard</a>
+            <a href="/ga/assignments">🚛 Assignments</a>
+            <a href="/admin/rekap">📋 Rekap</a>
+            <a href="/admin/analytics" class="active">📈 Analytics</a>
+            <a href="/admin/trips">🗺️ Trips</a>
+            <a href="/admin/logs">📝 Audit Log</a>
+            <a href="/admin/settings">⚙️ Settings</a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <!-- TABS -->
+        <div class="tab-nav">
+            <button class="tab-btn active" data-tab="finance">💰 Pengeluaran (Finance)</button>
+            <button class="tab-btn" data-tab="ga">👥 Driver (GA)</button>
+            <button class="tab-btn" data-tab="fleet">🚗 Kendaraan (Manager)</button>
+        </div>
+        
+        <!-- ================================================================ -->
+        <!-- TAB 1: FINANCE VIEW -->
+        <!-- ================================================================ -->
+        <div id="tab-finance" class="tab-content active">
+            <div class="stat-row">
+                <div class="stat-card" style="border-left-color: var(--primary);">
+                    <div class="label">Total Pengeluaran Bulan Ini</div>
+                    <div class="number" id="totalMonth">Rp 0</div>
+                </div>
+                <div class="stat-card" style="border-left-color: var(--success);">
+                    <div class="label">Rata-rata per Hari</div>
+                    <div class="number" id="avgDay">Rp 0</div>
+                </div>
+                <div class="stat-card" style="border-left-color: var(--warning);">
+                    <div class="label">Rata-rata per Transaksi</div>
+                    <div class="number" id="avgTx">Rp 0</div>
+                </div>
+                <div class="stat-card" style="border-left-color: var(--info);">
+                    <div class="label">Total Transaksi</div>
+                    <div class="number" id="totalTx">0</div>
+                </div>
+            </div>
+            
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">📈 Trend Pengeluaran 6 Bulan</div>
+                    <div class="card-body"><canvas id="trendChart" height="250"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">🔝 Top 5 Driver (Pengeluaran)</div>
+                    <div class="card-body" id="topDrivers"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ================================================================ -->
+        <!-- TAB 2: GA VIEW -->
+        <!-- ================================================================ -->
+        <div id="tab-ga" class="tab-content">
+            <div class="stat-row">
+                <div class="stat-card"><div class="label">Total Driver Aktif</div><div class="number" id="gaDrivers">0</div></div>
+                <div class="stat-card"><div class="label">Total Klaim Bulan Ini</div><div class="number" id="gaClaims">0</div></div>
+                <div class="stat-card"><div class="label">Total Appointment</div><div class="number" id="gaAppt">0</div></div>
+                <div class="stat-card"><div class="label">Driver Paling Sering Klaim</div><div class="number" id="gaTopDriver" style="font-size:16px;">-</div></div>
+            </div>
+            
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">📊 Frekuensi Klaim per Driver</div>
+                    <div class="card-body"><canvas id="freqChart" height="250"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">📋 Appointment vs Klaim</div>
+                    <div class="card-body" id="apptVsClaim"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ================================================================ -->
+        <!-- TAB 3: FLEET VIEW -->
+        <!-- ================================================================ -->
+        <div id="tab-fleet" class="tab-content">
+            <div class="stat-row">
+                <div class="stat-card"><div class="label">Kendaraan Paling Efisien</div><div class="number" id="bestKml" style="font-size:16px;">-</div></div>
+                <div class="stat-card" style="border-left-color: var(--danger);"><div class="label">Kendaraan Paling Boros</div><div class="number" id="worstKml" style="font-size:16px;">-</div></div>
+                <div class="stat-card"><div class="label">Rata-rata KM/L Armada</div><div class="number" id="avgKml">0</div></div>
+                <div class="stat-card"><div class="label">Anomali Terdeteksi</div><div class="number" id="anomalyCount">0</div></div>
+            </div>
+            
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">🚗 Efisiensi per Kendaraan (KM/L)</div>
+                    <div class="card-body"><canvas id="efficiencyChart" height="250"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">⚠️ Indikasi Perlu Servis (KM/L < 9)</div>
+                    <div class="card-body" id="serviceAlert"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- FOOTER -->
+        <footer style="margin-top:40px;background:linear-gradient(180deg,#ffffff,#f1f5f9);border-top:1px solid #e2e8f0;padding:20px;text-align:center;font-family:Inter,system-ui,sans-serif;">
+        <div style="max-width:1200px;margin:0 auto;">
+            <div style="display:flex;justify-content:center;align-items:center;gap:10px;margin-bottom:6px;">
+                <span style="font-weight:700;font-size:13px;color:#1e293b;">PT BESTPROFIT FUTURES</span>
+                <span style="color:#94a3b8;">|</span>
+                <span style="font-size:11px;color:#64748b;">Surabaya</span>
+            </div>
+            <div style="font-size:10px;color:#94a3b8;">
+                BPF BBM System v1.0 · Developed by <span style="color:#2563eb;font-weight:600;">IT BPF Surabaya</span> · © 2026
+            </div>
+        </div>
+    </footer>
+
+    <script>
+    // ============================================================
+    // TAB SWITCHING
+    // ============================================================
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+            document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+            document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+            this.classList.add('active');
+        });
+    });
+    
+    // ============================================================
+    // FETCH DATA
+    // ============================================================
+    fetch('/api/analytics/data')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            renderFinance(data);
+            renderGA(data);
+            renderFleet(data);
+        })
+        .catch(function(e) { console.error('Analytics load error:', e); });
+    
+    function renderFinance(d) {
+        var fin = d.finance || {};
+        document.getElementById('totalMonth').textContent = 'Rp ' + (fin.total_month || 0).toLocaleString('id-ID');
+        document.getElementById('avgDay').textContent = 'Rp ' + (fin.avg_per_day || 0).toLocaleString('id-ID');
+        document.getElementById('avgTx').textContent = 'Rp ' + (fin.avg_per_tx || 0).toLocaleString('id-ID');
+        document.getElementById('totalTx').textContent = fin.total_tx || 0;
+        
+        // Trend chart
+        var months = fin.monthly_labels || [];
+        var amounts = fin.monthly_amounts || [];
+        var ctx = document.getElementById('trendChart');
+        if (ctx && months.length > 0) {
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Pengeluaran (Rp)',
+                        data: amounts,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37,99,235,0.1)',
+                        fill: true, tension: 0.3
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } } }
+            });
+        }
+        
+        // Top 5 drivers
+        var top = fin.top_drivers || [];
+        var html = '<table><tr><th>Driver</th><th>Nopol</th><th>Total</th><th>Transaksi</th></tr>';
+        top.forEach(function(t) {
+            html += '<tr><td><strong>'+t.driver_name+'</strong></td><td>'+t.nopol+'</td><td>Rp '+t.total.toLocaleString('id-ID')+'</td><td>'+t.tx_count+'x</td></tr>';
+        });
+        html += '</table>';
+        document.getElementById('topDrivers').innerHTML = html || '<div class="empty">Belum ada data</div>';
+    }
+    
+    function renderGA(d) {
+        var ga = d.ga || {};
+        document.getElementById('gaDrivers').textContent = ga.total_drivers || 0;
+        document.getElementById('gaClaims').textContent = ga.total_claims || 0;
+        document.getElementById('gaAppt').textContent = ga.total_appt || 0;
+        document.getElementById('gaTopDriver').textContent = ga.top_driver || '-';
+        
+        // Freq chart
+        var labels = ga.freq_labels || [];
+        var values = ga.freq_values || [];
+        var ctx = document.getElementById('freqChart');
+        if (ctx && labels.length > 0) {
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{ label: 'Klaim', data: values, backgroundColor: '#2563eb', borderRadius: 4 }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { ticks: { stepSize: 1 } } } }
+            });
+        }
+        
+        // Appt vs Claim
+        var appt = ga.appt_vs_claim || [];
+        var html = '<table><tr><th>Driver</th><th>Appointment</th><th>Klaim</th><th>Rasio</th></tr>';
+        appt.forEach(function(a) {
+            var ratio = a.klaim > 0 ? (a.appt / a.klaim).toFixed(1) : '-';
+            html += '<tr><td><strong>'+a.driver_name+'</strong></td><td>'+a.appt+'x</td><td>'+a.klaim+'x</td><td>'+ratio+' appt/klaim</td></tr>';
+        });
+        html += '</table>';
+        document.getElementById('apptVsClaim').innerHTML = html || '<div class="empty">Belum ada data</div>';
+    }
+    
+    function renderFleet(d) {
+        var fl = d.fleet || {};
+        document.getElementById('bestKml').textContent = fl.best_vehicle || '-';
+        document.getElementById('worstKml').textContent = fl.worst_vehicle || '-';
+        document.getElementById('avgKml').textContent = Number(fl.avg_kml || 0).toFixed(1) + ' KM/L';
+        document.getElementById('anomalyCount').textContent = fl.anomaly_count || 0;
+        
+        // Efficiency chart
+        var labels = fl.eff_labels || [];
+        var values = fl.eff_values || [];
+        var colors = values.map(function(v) { return v >= 12 ? '#059669' : v >= 10 ? '#d97706' : '#dc2626'; });
+        var ctx = document.getElementById('efficiencyChart');
+        if (ctx && labels.length > 0) {
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{ label: 'KM/L', data: values, backgroundColor: colors, borderRadius: 6, barThickness: 28 }]
+                },
+                options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
+            });
+        }
+        
+        // Service alert
+        var svc = fl.service_alerts || [];
+        var html = '<table><tr><th>Nopol</th><th>KM/L</th><th>Status</th><th>Transaksi</th></tr>';
+        svc.forEach(function(s) {
+            html += '<tr><td><strong>'+s.nopol+'</strong></td><td>'+s.avg_kml+'</td><td><span class="badge badge-danger">⚠ Perlu Servis</span></td><td>'+s.tx_count+'x</td></tr>';
+        });
+        html += '</table>';
+        document.getElementById('serviceAlert').innerHTML = html || '<div class="empty">✅ Semua kendaraan dalam kondisi baik</div>';
+    }
+    </script>
+</body>
+</html>

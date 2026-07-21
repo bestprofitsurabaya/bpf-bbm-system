@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="id" manifest="/manifest.json">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <link rel="icon" type="image/png" href="/static/icon-192.png">
+    <link rel="apple-touch-icon" href="/static/icon-192.png">
+    <title>BPF Driver</title>
+    <link rel="manifest" href="/manifest.json?v=20260720_FINAL">
+    <meta name="theme-color" content="#1d4ed8">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb; --primary-dark: #1d4ed8; --primary-light: #dbeafe;
+            --success: #059669; --success-light: #d1fae5;
+            --warning: #d97706; --warning-light: #fef3c7;
+            --danger: #dc2626; --danger-light: #fee2e2;
+            --info: #0891b2; --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb;
+            --gray-300: #d1d5db; --gray-500: #6b7280; --gray-700: #374151; --gray-800: #1f2937;
+            --white: #ffffff; --shadow: 0 1px 3px rgba(0,0,0,0.1); --radius: 10px; --radius-sm: 6px;
+            --bottom-nav-height: 64px;
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: "Inter", sans-serif; background: var(--gray-50); color: var(--gray-800); padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px); }
+        
+        /* ================================================================ */
+        /* TOP STATUS BAR */
+        /* ================================================================ */
+        .status-bar { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; font-size: 11px; font-weight: 600; position: sticky; top: 0; z-index: 50; }
+        .status-bar.online { background: var(--success-light); color: #065f46; }
+        .status-bar.offline { background: var(--warning-light); color: #92400e; }
+        .status-bar .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .status-bar.online .dot { background: var(--success); }
+        .status-bar.offline .dot { background: var(--warning); animation: pulse 1.5s infinite; }
+        .queue-count { background: var(--danger); color: white; padding: 2px 10px; border-radius: 10px; font-size: 10px; margin-left: 8px; display: none; }
+        .queue-count.show { display: inline-block; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+        
+        /* ================================================================ */
+        /* BRAND HEADER */
+        /* ================================================================ */
+        .brand-header { text-align: center; padding: 20px 16px 16px; }
+        .brand-header img { width: 48px; height: 48px; border-radius: 12px; }
+        .brand-header h2 { font-size: 16px; font-weight: 800; color: #0f172a; margin: 6px 0 2px; }
+        .brand-header span { font-size: 9px; background: #0f172a; color: white; padding: 2px 8px; border-radius: 10px; font-weight: 700; letter-spacing: 1px; }
+        
+        /* ================================================================ */
+        /* MAIN CONTENT */
+        /* ================================================================ */
+        .container { max-width: 700px; margin: 0 auto; padding: 0 12px; }
+        .page { display: none; }
+        .page.active { display: block; }
+        
+        /* ================================================================ */
+        /* BOTTOM NAVIGATION */
+        /* ================================================================ */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: var(--bottom-nav-height); padding-bottom: var(--safe-bottom); background: var(--white); border-top: 1px solid var(--gray-200); display: flex; z-index: 100; box-shadow: 0 -2px 10px rgba(0,0,0,0.04); }
+        .bottom-nav .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; color: var(--gray-500); font-size: 10px; font-weight: 500; transition: 0.2s; border: none; background: none; }
+        .bottom-nav .nav-item.active { color: var(--primary); }
+        .bottom-nav .nav-item .icon { font-size: 22px; }
+        .bottom-nav .nav-item .badge { position: absolute; top: 4px; right: 50%; transform: translateX(18px); background: var(--danger); color: white; font-size: 9px; padding: 1px 6px; border-radius: 10px; min-width: 18px; text-align: center; }
+        
+        /* ================================================================ */
+        /* FORMS (compact mobile style) */
+        /* ================================================================ */
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; font-weight: 600; font-size: 11px; color: var(--gray-700); margin-bottom: 2px; }
+        .form-group label .req { color: var(--danger); }
+        .form-control { width: 100%; padding: 10px 12px; border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm); font-size: 13px; min-height: 44px; background: var(--white); }
+        .form-control:focus { border-color: var(--primary); outline: none; }
+        .form-control[readonly] { background: var(--gray-100); }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .divider { border-top: 1.5px dashed var(--gray-200); margin: 12px 0; }
+        .btn-submit { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; min-height: 48px; }
+        .btn-submit:disabled { background: var(--gray-400); }
+        .note { font-size: 10px; color: var(--gray-500); margin-top: 2px; }
+        
+        /* Upload */
+        .upload-row { display: flex; gap: 6px; flex-wrap: wrap; }
+        .upload-btn { padding: 10px 12px; border: none; border-radius: var(--radius-sm); font-size: 11px; font-weight: 600; cursor: pointer; flex: 1; min-width: 60px; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+        .upload-btn-camera { background: var(--success); color: white; }
+        .upload-btn-gallery { background: var(--gray-500); color: white; }
+        .upload-btn-remove { background: var(--danger); color: white; flex: 0.3; }
+        .preview-img { max-width: 100%; max-height: 120px; border-radius: var(--radius-sm); border: 2px solid var(--gray-200); }
+        .form-control-file { display: none; }
+        .hidden { display: none !important; }
+        
+        /* Trip Rows */
+        .trip-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 10px; background: var(--gray-50); border-radius: var(--radius-sm); margin-bottom: 6px; border: 1px solid var(--gray-200); position: relative; }
+        .trip-row .row-label { font-size: 9px; font-weight: 700; color: var(--gray-500); text-transform: uppercase; }
+        .trip-row .row-label button { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 9px; padding: 0; margin-left: 4px; }
+        .trip-row .remove-btn { position: absolute; top: 4px; right: 4px; background: var(--danger); color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 10px; cursor: pointer; }
+        .btn-add-row { width: 100%; padding: 12px; background: var(--success); color: white; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: 12px; margin-top: 4px; min-height: 44px; }
+        
+        /* Toast & Modal */
+        .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--gray-800); color: white; padding: 12px 20px; border-radius: 20px; font-weight: 600; z-index: 10000; font-size: 12px; animation: fadeInUp 0.3s; max-width: 90%; text-align: center; }
+        .toast.error { background: var(--danger); }
+        .toast.warning { background: var(--warning); color: #0f172a; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10001; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: white; border-radius: 16px; padding: 24px 20px; text-align: center; max-width: 320px; width: 90%; animation: popIn 0.3s; }
+        .modal-box .icon { font-size: 40px; margin-bottom: 8px; }
+        .modal-box h2 { font-size: 16px; color: #065f46; margin-bottom: 4px; }
+        .modal-box .tx-id { background: #f0fdf4; color: #059669; padding: 2px 10px; border-radius: 20px; font-weight: 700; font-size: 14px; display: inline-block; margin: 6px 0; }
+        .modal-box .btn-close { margin-top: 12px; padding: 10px 24px; background: #059669; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; min-height: 44px; }
+        @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        
+        /* GPS Bar */
+        .gps-bar { padding: 8px 12px; border-radius: var(--radius-sm); margin-bottom: 12px; font-size: 10px; }
+        .gps-bar.active { background: var(--success-light); border: 1px solid var(--success); }
+        .gps-bar.offline { background: var(--warning-light); border: 1px solid var(--warning); }
+        
+        /* Rapor Card */
+        .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--gray-200); margin-top: 12px; }
+        .card-header { padding: 10px 14px; border-bottom: 1px solid var(--gray-200); font-weight: 600; background: var(--gray-50); font-size: 12px; }
+        .card-body { padding: 10px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+        .badge-good { background: var(--success-light); color: var(--success); }
+        .badge-warn { background: var(--warning-light); color: var(--warning); }
+        .badge-danger { background: var(--danger-light); color: var(--danger); }
+        .btn-sm { padding: 8px 14px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 11px; background: var(--primary); color: white; min-height: 40px; }
+        
+        @media (max-width: 400px) { .row { grid-template-columns: 1fr; } .trip-row { grid-template-columns: 1fr 1fr; } }
+    
+        /* GPS Box */
+        .gps-box { padding: 10px 12px; border-radius: 8px; margin-bottom: 12px; font-size: 11px; transition: 0.3s; }
+
+    
+        /* Watermark preview badge */
+        .wm-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; margin-top: 4px; }
+        .wm-badge.done { background: #d1fae5; color: #059669; }
+        .wm-badge.processing { background: #fef3c7; color: #d97706; }
+        .wm-badge.error { background: #fee2e2; color: #dc2626; }
+
+    
+        .assign-notif { background: #fef3c7; border: 1.5px solid #d97706; border-radius: 10px; padding: 14px; margin-bottom: 14px; display: none; }
+        .assign-notif.show { display: block; animation: pulse 2s infinite; }
+        .assign-notif h4 { color: #92400e; margin-bottom: 6px; }
+        .assign-notif button { padding: 8px 16px; background: #059669; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 6px; }
+
+    </style>
+</head>
+<body>
+
+<!-- ================================================================ -->
+<!-- STATUS BAR -->
+<!-- ================================================================ -->
+<div id="statusBar" class="status-bar online">
+    <span><span class="dot"></span><span id="statusText">🟢 Online</span></span>
+    <span id="queueBadge" class="queue-count">0</span>
+</div>
+
+<!-- ================================================================ -->
+
+    <!-- ASSIGNMENT NOTIFICATION -->
+    <div class="assign-notif" id="assignNotif">
+        <h4>🔔 Serah Terima Kendaraan</h4>
+        <p id="assignNotifText">Anda memiliki kendaraan baru yang perlu dikonfirmasi.</p>
+        <button onclick="confirmAssignment()">✅ Konfirmasi Serah Terima</button>
+    </div>
+
+    
+    <!-- BRAND HEADER -->
+<!-- ================================================================ -->
+<div class="brand-header">
+    <img src="/static/icon-512.png" alt="BPF">
+    <h2>FLEET & FUEL SYSTEM</h2>
+    <span>PT BESTPROFIT SURABAYA</span>
+</div>
+
+<!-- ================================================================ -->
+<!-- MAIN PAGES -->
+<!-- ================================================================ -->
+<div class="container">
+
+    <!-- PAGE 1: BBM -->
+    <div id="page-bbm" class="page active">
+        <div class="gps-box" id="gpsBox" style="padding:10px 12px;border-radius:8px;margin-bottom:12px;font-size:11px;background:#f0fdf4;border:1px solid #059669;">
+            <div style="font-weight:600;" id="gpsTitle">📍 Mendeteksi lokasi...</div>
+            <div style="font-size:9px;color:#64748b;margin-top:2px;" id="gpsCoords"></div>
+            <div style="font-weight:600;margin-top:4px;font-size:12px;" id="gpsAddr"></div>
+            <div style="display:none;font-size:10px;color:#0891b2;margin-top:3px;padding:2px 6px;background:#cffafe;border-radius:4px;" id="gpsSpbu"></div>
+        </div>
+        
+        <form id="bbmForm">
+            <input type="hidden" name="gps_lat" id="gps_lat">
+            <input type="hidden" name="gps_lon" id="gps_lon">
+            <input type="hidden" name="gps_address" id="gps_address">
+            
+            <div class="form-group">
+                <label>Nama Driver <span class="req">*</span></label>
+                <select name="driver_name" id="driver_name" class="form-control" required onchange="autoFill()">
+                    <option value="">-- Pilih Nama --</option>
+                </select>
+            </div>
+            <div class="row">
+                <div class="form-group"><label>No. Polisi</label><input type="text" name="nopol" id="nopol" class="form-control" readonly></div>
+                <div class="form-group"><label>Tipe</label><input type="text" name="vehicle_type" id="vehicle_type" class="form-control" readonly></div>
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <label>BBM <span class="req">*</span></label>
+                    <select name="bbm_type" id="bbm_type" class="form-control" required onchange="updatePrice()">
+                        <option value="">-- Pilih Dulu --</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Harga/L</label><input type="number" name="price_per_liter" id="price_per_liter" class="form-control" value="10000" readonly></div>
+            </div>
+            <div class="row">
+                <div class="form-group"><label>Nominal (Rp) <span class="req">*</span></label><input type="number" name="nominal" id="nominal" class="form-control" required oninput="calcL()"></div>
+                <div class="form-group"><label>Volume (L)</label><input type="number" name="liter" id="liter" class="form-control" readonly><div class="note" id="literDisplay">0.00 L</div></div>
+            </div>
+            <div class="form-group"><label>Appointment <span class="req">*</span></label><input type="number" name="jumlah_appointment" id="jumlah_appointment" class="form-control" required min="0" value="0"></div>
+            <div class="form-group"><label>Odometer (KM) <span class="req">*</span></label><input type="number" name="odo_km" id="odo_km" class="form-control" required></div>
+            <div class="form-group">
+                <label>SPBU</label>
+                <select name="spbu_type" id="spbu_type" class="form-control">
+                    <option value="rekanan">Rekanan</option>
+                    <option value="non_rekanan">Non-Rekanan</option>
+                </select>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="form-group"><label>1. Foto ODO <span class="req">*</span></label>
+                <div class="upload-row">
+                    <button type="button" class="upload-btn upload-btn-camera" onclick="cap('foto_odo_sebelum')">📷</button>
+                    <button type="button" class="upload-btn upload-btn-gallery" onclick="pick('foto_odo_sebelum')">🖼️</button>
+                    <button type="button" class="upload-btn upload-btn-remove" onclick="rm('foto_odo_sebelum')">✕</button>
+                </div>
+                <input type="file" name="foto_odo_sebelum" id="foto_odo_sebelum" class="form-control-file" accept="image/*" required>
+                <div id="prev_foto_odo_sebelum" class="hidden" style="margin-top:4px;"><img id="img_foto_odo_sebelum" class="preview-img"><div id="wm_foto_odo_sebelum" class="wm-badge"></div></div>
+            </div>
+            <div class="form-group"><label>2. Foto ODO+Struk <span class="req">*</span></label>
+                <div class="upload-row">
+                    <button type="button" class="upload-btn upload-btn-camera" onclick="cap('foto_nota_odo_sesudah')">📷</button>
+                    <button type="button" class="upload-btn upload-btn-gallery" onclick="pick('foto_nota_odo_sesudah')">🖼️</button>
+                    <button type="button" class="upload-btn upload-btn-remove" onclick="rm('foto_nota_odo_sesudah')">✕</button>
+                </div>
+                <input type="file" name="foto_nota_odo_sesudah" id="foto_nota_odo_sesudah" class="form-control-file" accept="image/*" required>
+                <div id="prev_foto_nota_odo_sesudah" class="hidden" style="margin-top:4px;"><img id="img_foto_nota_odo_sesudah" class="preview-img"><div id="wm_foto_nota_odo_sesudah" class="wm-badge"></div></div>
+            </div>
+            <div class="form-group"><label>3. Foto Struk <span class="req">*</span></label>
+                <div class="upload-row">
+                    <button type="button" class="upload-btn upload-btn-camera" onclick="cap('foto_struk')">📷</button>
+                    <button type="button" class="upload-btn upload-btn-gallery" onclick="pick('foto_struk')">🖼️</button>
+                    <button type="button" class="upload-btn upload-btn-remove" onclick="rm('foto_struk')">✕</button>
+                </div>
+                <input type="file" name="foto_struk" id="foto_struk" class="form-control-file" accept="image/*" required>
+                <div id="prev_foto_struk" class="hidden" style="margin-top:4px;"><img id="img_foto_struk" class="preview-img"><div id="wm_foto_struk" class="wm-badge"></div></div>
+            </div>
+            <div id="dispenser_div" class="form-group hidden"><label>4. Dispenser <span class="req">*</span></label>
+                <div class="upload-row">
+                    <button type="button" class="upload-btn upload-btn-camera" onclick="cap('foto_struk_dispenser')">📷</button>
+                    <button type="button" class="upload-btn upload-btn-gallery" onclick="pick('foto_struk_dispenser')">🖼️</button>
+                    <button type="button" class="upload-btn upload-btn-remove" onclick="rm('foto_struk_dispenser')">✕</button>
+                </div>
+                <input type="file" name="foto_struk_dispenser" id="foto_struk_dispenser" class="form-control-file" accept="image/*">
+                <div id="prev_foto_struk_dispenser" class="hidden" style="margin-top:4px;"><img id="img_foto_struk_dispenser" class="preview-img"><div id="wm_foto_struk_dispenser" class="wm-badge"></div></div>
+            </div>
+            
+            <button type="submit" class="btn-submit" id="bbmBtn">📤 Kirim Laporan BBM</button>
+        </form>
+    </div>
+
+    <!-- PAGE 2: TRIP -->
+    <div id="page-trip" class="page">
+        <form id="tripForm">
+            <div class="form-group">
+                <label>Nama Driver <span class="req">*</span></label>
+                <select name="driver_name" id="trip_driver" class="form-control" required onchange="autoFillTrip()">
+                    <option value="">-- Pilih Nama --</option>
+                </select>
+            </div>
+            <div class="row">
+                <div class="form-group"><label>No. Polisi</label><input type="text" name="nopol" id="trip_nopol" class="form-control" readonly></div>
+                <div class="form-group"><label>Tanggal</label><input type="date" name="trip_date" id="trip_date" class="form-control" required></div>
+            </div>
+            <div class="row">
+                <div class="form-group"><label>KM Awal <span class="req">*</span></label><input type="number" name="km_awal" class="form-control" required></div>
+                <div class="form-group"><label>Jam Berangkat <span class="req">*</span></label><input type="time" name="jam_keberangkatan" class="form-control" required></div>
+            </div>
+            <div class="row">
+                <div class="form-group"><label>KM Akhir</label><input type="number" name="km_akhir" class="form-control"></div>
+                <div class="form-group"><label>Jam Tiba</label><input type="time" name="jam_tiba" class="form-control"></div>
+            </div>
+            
+            <div class="divider"></div>
+            <h4 style="font-size:13px;color:var(--gray-700);margin-bottom:6px;">📍 Rute Perjalanan</h4>
+            <div id="tripRows"></div>
+            <button type="button" class="btn-add-row" onclick="addTripRow()">+ Tambah Rute</button>
+            <button type="submit" class="btn-submit" style="margin-top:10px;">📋 Kirim Log Perjalanan</button>
+        </form>
+    </div>
+
+    <!-- PAGE 3: RAPOR -->
+    <div id="page-rapor" class="page">
+        <div class="card">
+            <div class="card-header">📊 Rapor Performa</div>
+            <div class="card-body">
+                <div style="display:flex;gap:6px;">
+                    <input type="text" id="perfNopol" class="form-control" placeholder="Plat nomor" style="text-transform:uppercase;flex:1;">
+                    <button class="btn-sm" onclick="checkPerf()">Cek</button>
+                </div>
+                <div id="perfResult" style="display:none;margin-top:8px;padding:8px;background:var(--gray-50);border-radius:var(--radius-sm);font-size:11px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- BOTTOM NAVIGATION -->
+<!-- ================================================================ -->
+<div class="bottom-nav">
+    <button class="nav-item active" data-page="bbm">
+        <span class="icon">⛽</span> BBM
+    </button>
+    <button class="nav-item" data-page="trip">
+        <span class="icon">🗺️</span> Trip
+    </button>
+    <button class="nav-item" data-page="rapor">
+        <span class="icon">📊</span> Rapor
+    </button>
+</div>
+
+<!-- SUCCESS MODAL -->
+<div class="modal-overlay" id="successModal">
+    <div class="modal-box">
+        <div class="icon">✅</div>
+        <h2>Berhasil!</h2>
+        <p id="modalMsg">Laporan telah dikirim</p>
+        <div class="tx-id" id="modalTxId" style="display:none;"></div>
+        <button class="btn-close" onclick="closeModal()">Tutup</button>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// INDEXEDDB SETUP
+// ============================================================
+const DB_NAME = 'BPF_Driver_DB', DB_VER = 2;
+let db = null;
+
+function openDB() {
+    return new Promise((resolve, reject) => {
+        let req = indexedDB.open(DB_NAME, DB_VER);
+        req.onupgradeneeded = e => {
+            let d = e.target.result;
+            if (!d.objectStoreNames.contains('fuel_queue')) d.createObjectStore('fuel_queue', { keyPath: 'id', autoIncrement: true });
+            if (!d.objectStoreNames.contains('trip_queue')) d.createObjectStore('trip_queue', { keyPath: 'id', autoIncrement: true });
+        };
+        req.onsuccess = e => { db = e.target.result; resolve(db); };
+        req.onerror = e => reject(e);
+    });
+}
+
+function saveToQueue(store, data) {
+    return new Promise((resolve, reject) => {
+        let tx = db.transaction(store, 'readwrite');
+        let req = tx.objectStore(store).add(data);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = e => reject(e);
+    });
+}
+
+function getAllFromQueue(store) {
+    return new Promise((resolve, reject) => {
+        let tx = db.transaction(store, 'readonly');
+        let req = tx.objectStore(store).getAll();
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = e => reject(e);
+    });
+}
+
+function deleteFromQueue(store, id) {
+    return new Promise((resolve, reject) => {
+        let tx = db.transaction(store, 'readwrite');
+        tx.objectStore(store).delete(id);
+        tx.oncomplete = () => resolve();
+        tx.onerror = e => reject(e);
+    });
+}
+
+function countQueue(store) {
+    return new Promise((resolve, reject) => {
+        let tx = db.transaction(store, 'readonly');
+        let req = tx.objectStore(store).count();
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = e => reject(e);
+    });
+}
+
+// ============================================================
+// CONNECTION STATUS
+// ============================================================
+function updateStatus() {
+    let bar = document.getElementById('statusBar');
+    let txt = document.getElementById('statusText');
+    if (navigator.onLine) {
+        bar.className = 'status-bar online';
+        txt.textContent = '🟢 Online';
+    } else {
+        bar.className = 'status-bar offline';
+        txt.textContent = '🟡 Offline - Data tersimpan lokal';
+    }
+    updateBadge();
+}
+
+async function updateBadge() {
+    let fuel = await countQueue('fuel_queue');
+    let trip = await countQueue('trip_queue');
+    let total = fuel + trip;
+    let badge = document.getElementById('queueBadge');
+    badge.textContent = total;
+    badge.className = total > 0 ? 'queue-count show' : 'queue-count';
+}
+
+// ============================================================
+// AUTO SYNC
+// ============================================================
+async function syncAll() {
+    if (!navigator.onLine || !db) return;
+    console.log('[SYNC] Starting...');
+    
+    let fuelItems = await getAllFromQueue('fuel_queue');
+    for (let item of fuelItems) {
+        try {
+            let fd = new FormData();
+            for (let k in item.data) fd.append(k, item.data[k]);
+            fd.append('gps_lat', item.data.gps_lat || '');
+            fd.append('gps_lon', item.data.gps_lon || '');
+            fd.append('gps_address', item.data.gps_address || '');
+            let r = await fetch('/driver', { method:'POST', body:fd, headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'} });
+            if (r.ok) await deleteFromQueue('fuel_queue', item.id);
+        } catch(e) {}
+    }
+    
+    let tripItems = await getAllFromQueue('trip_queue');
+    for (let item of tripItems) {
+        try {
+            let fd = new FormData();
+            for (let k in item.data) fd.append(k, item.data[k]);
+            let r = await fetch('/submit-trip', { method:'POST', body:fd, headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'} });
+            if (r.ok) await deleteFromQueue('trip_queue', item.id);
+        } catch(e) {}
+    }
+    
+    updateBadge();
+    console.log('[SYNC] Complete');
+}
+
+// ============================================================
+// SUBMIT (Online/Offline)
+// ============================================================
+
+    // ============================================================
+    // AUTO-WATERMARK ENGINE (ANTI-FRAUD)
+    // ============================================================
+    function getGPSCoordinates() {
+        return new Promise(function(resolve) {
+            if (gpsData && gpsData.lat && gpsData.lon) {
+                resolve(gpsData.lat.toFixed(5) + ', ' + gpsData.lon.toFixed(5));
+                return;
+            }
+            if (!navigator.geolocation) { resolve("GPS Tidak Didukung"); return; }
+            navigator.geolocation.getCurrentPosition(
+                function(pos) { resolve(pos.coords.latitude.toFixed(5) + ', ' + pos.coords.longitude.toFixed(5)); },
+                function() { resolve("GPS Tidak Aktif"); },
+                { enableHighAccuracy: true, timeout: 5000 }
+            );
+        });
+    }
+    
+    function applyWatermark(fileBlob) {
+        return new Promise(function(resolve) {
+            getGPSCoordinates().then(function(gpsText) {
+                var now = new Date();
+                var timeText = now.toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'medium' });
+                
+                var img = new Image();
+                img.src = URL.createObjectURL(fileBlob);
+                img.onload = function() {
+                    var canvas = document.createElement('canvas');
+                    var ctx = canvas.getContext('2d');
+                    
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    
+                    var fontSize = Math.max(14, Math.floor(canvas.width / 40));
+                    var padding = 20;
+                    var lineH = fontSize * 1.4;
+                    
+                    // Background bar
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+                    ctx.fillRect(0, canvas.height - (lineH * 3 + padding * 2), canvas.width, lineH * 3 + padding * 2);
+                    
+                    // Company name
+                    ctx.font = 'bold ' + fontSize + 'px Arial';
+                    ctx.fillStyle = '#FFD700';
+                    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+                    ctx.shadowBlur = 4;
+                    ctx.fillText('PT BESTPROFIT FUTURES SURABAYA', padding, canvas.height - (lineH * 2.2));
+                    
+                    // Time
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.font = (fontSize * 0.8) + 'px Arial';
+                    ctx.fillText('Waktu: ' + timeText, padding, canvas.height - (lineH * 0.9));
+                    
+                    // GPS
+                    ctx.fillText('GPS: ' + gpsText, padding, canvas.height - padding);
+                    
+                    canvas.toBlob(function(blob) {
+                        var newFile = new File([blob], fileBlob.name, { type: 'image/jpeg' });
+                        resolve(newFile);
+                    }, 'image/jpeg', 0.85);
+                };
+            });
+        });
+    }
+
+    
+    // ============================================================
+    // WATERMARK ENGINE
+    // ============================================================
+    var watermarkedBlobs = {}; // Simpan hasil watermark per foto
+    
+    function getGPSCoordinates() {
+        return new Promise(function(resolve) {
+            // Prioritaskan alamat administratif dari GPS box
+            if (gpsData && gpsData.addr) {
+                resolve(gpsData.addr);
+                return;
+            }
+            
+            // Coba dari hidden input
+            var addrEl = document.getElementById('gps_address');
+            if (addrEl && addrEl.value) {
+                resolve(addrEl.value);
+                return;
+            }
+            
+            // Fallback ke koordinat
+            if (gpsData && gpsData.lat && gpsData.lon) {
+                // Coba reverse geocode cepat
+                fetch('https://nominatim.openstreetmap.org/reverse?lat='+gpsData.lat+'&lon='+gpsData.lon+'&format=json&zoom=18&accept-language=id',
+                    { headers: { 'User-Agent': 'BPF-BBM/1.0' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) {
+                        if (d && d.display_name) {
+                            gpsData.addr = d.display_name;
+                            resolve(d.display_name);
+                        } else {
+                            resolve(gpsData.lat.toFixed(5) + ', ' + gpsData.lon.toFixed(5));
+                        }
+                    })
+                    .catch(function() {
+                        resolve(gpsData.lat.toFixed(5) + ', ' + gpsData.lon.toFixed(5));
+                    });
+                return;
+            }
+            
+            if (!navigator.geolocation) { resolve('GPS Tidak Didukung'); return; }
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    fetch('https://nominatim.openstreetmap.org/reverse?lat='+pos.coords.latitude+'&lon='+pos.coords.longitude+'&format=json&zoom=18&accept-language=id',
+                        { headers: { 'User-Agent': 'BPF-BBM/1.0' } })
+                        .then(function(r) { return r.json(); })
+                        .then(function(d) {
+                            if (d && d.display_name) resolve(d.display_name);
+                            else resolve(pos.coords.latitude.toFixed(5) + ', ' + pos.coords.longitude.toFixed(5));
+                        });
+                },
+                function() { resolve('GPS Tidak Aktif'); },
+                { enableHighAccuracy: true, timeout: 5000 }
+            );
+        });
+    }
+    
+    async function applyWatermarkToPhoto(fileInputId) {
+        var input = document.getElementById(fileInputId);
+        if (!input || !input.files || !input.files[0]) return null;
+        
+        var file = input.files[0];
+        if (!file.type.startsWith('image/')) return null;
+        
+        // Update badge
+        var badge = document.getElementById('wm_' + fileInputId);
+        if (badge) { badge.textContent = '⏳ Memproses...'; badge.className = 'wm-badge processing'; }
+        
+        try {
+            var gpsText = await getGPSCoordinates();
+            var now = new Date();
+            var timeText = now.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+            
+            var img = new Image();
+            var blobUrl = URL.createObjectURL(file);
+            
+            return new Promise(function(resolve) {
+                img.onload = function() {
+                    var canvas = document.createElement('canvas');
+                    var ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    
+                    var fontSize = Math.max(16, Math.floor(canvas.width / 35));
+                    var padding = 20;
+                    var lineH = fontSize * 1.5;
+                    var barH = lineH * 3 + padding * 2;
+                    
+                    // Background bar
+                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                    ctx.fillRect(0, canvas.height - barH, canvas.width, barH);
+                    
+                    // Text
+                    ctx.fillStyle = '#FFD700';
+                    ctx.font = 'bold ' + fontSize + 'px Inter, Arial';
+                    ctx.fillText('PT BESTPROFIT FUTURES SBY', padding, canvas.height - barH + lineH);
+                    
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.font = (fontSize * 0.8) + 'px Inter, Arial';
+                    ctx.fillText('📅 ' + timeText, padding, canvas.height - barH + lineH * 2);
+                    ctx.fillText('📍 ' + gpsText, padding, canvas.height - barH + lineH * 3);
+                    
+                    canvas.toBlob(function(blob) {
+                        URL.revokeObjectURL(blobUrl);
+                        watermarkedBlobs[fileInputId] = blob;
+                        
+                        // Update preview dengan watermark
+                        var previewImg = document.getElementById('img_' + fileInputId);
+                        if (previewImg) { previewImg.src = URL.createObjectURL(blob); }
+                        
+                        // Update badge
+                        if (badge) { badge.textContent = '✅ Watermarked'; badge.className = 'wm-badge done'; }
+                        
+                        resolve(blob);
+                    }, 'image/jpeg', 0.85);
+                };
+                img.src = blobUrl;
+            });
+        } catch(e) {
+            console.log('Watermark error:', e);
+            if (badge) { badge.textContent = '⚠ Gagal'; badge.className = 'wm-badge error'; }
+            return null;
+        }
+    }
+    
+    // Auto-watermark saat foto dipilih
+    document.addEventListener('change', function(e) {
+        if (!e.target.classList.contains('form-control-file') || !e.target.files[0]) return;
+        var id = e.target.id;
+        var f = e.target.files[0];
+        if (!f.type.startsWith('image/')) { e.target.value = ''; return; }
+        
+        // Tampilkan preview dulu
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+            var img = document.getElementById('img_' + id);
+            if (img) img.src = ev.target.result;
+            var prev = document.getElementById('prev_' + id);
+            if (prev) prev.classList.remove('hidden');
+        };
+        reader.readAsDataURL(f);
+        
+        // Apply watermark
+        applyWatermarkToPhoto(id);
+    });
+
+    async function submitForm(form, store, endpoint, successMsg) {
+    let fd = new FormData(form);
+    
+    if (navigator.onLine) {
+        let btn = form.querySelector('.btn-submit');
+        let orig = btn.textContent;
+        btn.textContent = '⏳...'; btn.disabled = true;
+        try {
+            let r = await fetch(endpoint, { method:'POST', body:fd, headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'} });
+            let result = await r.json();
+            if (r.ok && result.status === 'success') {
+                showModal(successMsg, result.transaction_id || result.trip_id);
+                form.reset();
+                if (store === 'fuel_queue') {
+                    document.getElementById('jumlah_appointment').value = '0';
+                    document.querySelectorAll('[id^="prev_"]').forEach(el => el.classList.add('hidden'));
+                }
+                if (store === 'trip_queue') {
+                    document.getElementById('tripRows').innerHTML = '';
+                    addTripRow();
+                }
+            } else {
+                showToast('❌ ' + (result.message || 'Gagal'), 'error');
+            }
+        } catch(e) {
+            showToast('❌ Error koneksi', 'error');
+        } finally {
+            btn.textContent = orig; btn.disabled = false;
+        }
+    } else {
+        let data = {};
+        for (let [k, v] of fd.entries()) data[k] = v;
+        data.gps_lat = document.getElementById('gps_lat').value;
+        data.gps_lon = document.getElementById('gps_lon').value;
+        data.gps_address = document.getElementById('gps_address').value;
+        await saveToQueue(store, { data, timestamp: new Date().toISOString() });
+        form.reset();
+        if (store === 'fuel_queue') {
+            document.getElementById('jumlah_appointment').value = '0';
+            document.querySelectorAll('[id^="prev_"]').forEach(el => el.classList.add('hidden'));
+        }
+        if (store === 'trip_queue') {
+            document.getElementById('tripRows').innerHTML = '';
+            addTripRow();
+        }
+        document.getElementById('trip_date').value = new Date().toISOString().split('T')[0];
+        showToast('⚠️ Offline. Data disimpan lokal!', 'warning');
+        updateBadge();
+    }
+}
+
+// ============================================================
+// BOTTOM NAV
+// ============================================================
+document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        this.classList.add('active');
+        document.getElementById('page-' + this.dataset.page).classList.add('active');
+    });
+});
+
+// ============================================================
+// GPS
+// ============================================================
+// GPS state
+var gpsData = { lat: null, lon: null, addr: '', spbu: '' };
+
+
+    // ============================================================
+    // ASSIGNMENT CHECK (placeholder - akan diisi fitur handover)
+    // ============================================================
+    function checkPendingAssignment() {
+        // Cek apakah ada assignment pending untuk driver ini
+        // Fitur ini akan diaktifkan bersama Digital Handover
+        console.log('[ASSIGN] Checking pending assignments...');
+    }
+
+    function initGPS() {
+    if (!navigator.geolocation) { updateGpsUI(); return; }
+    var box = document.getElementById('gpsBox');
+    box.style.background = '#fef3c7';
+    box.style.borderColor = '#d97706';
+    document.getElementById('gpsTitle').textContent = '🔍 Mencari lokasi...';
+    
+    navigator.geolocation.getCurrentPosition(function(pos) {
+        gpsData.lat = pos.coords.latitude;
+        gpsData.lon = pos.coords.longitude;
+        document.getElementById('gps_lat').value = gpsData.lat;
+        document.getElementById('gps_lon').value = gpsData.lon;
+        document.getElementById('gpsCoords').textContent = gpsData.lat.toFixed(6) + ', ' + gpsData.lon.toFixed(6);
+        
+        // Reverse geocode
+        fetch('https://nominatim.openstreetmap.org/reverse?lat='+gpsData.lat+'&lon='+gpsData.lon+'&format=json&zoom=18&addressdetails=1&accept-language=id',
+            { headers: { 'User-Agent': 'BPF-BBM/1.0' } })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d && d.address) {
+                    var a = d.address;
+                    var parts = [];
+                    if (a.road) parts.push(a.road);
+                    if (a.suburb || a.village) parts.push(a.suburb || a.village);
+                    if (a.city || a.town) parts.push(a.city || a.town);
+                    if (a.state) parts.push(a.state);
+                    gpsData.addr = parts.join(', ') || d.display_name;
+                    document.getElementById('gpsAddr').textContent = gpsData.addr;
+                    document.getElementById('gps_address').value = gpsData.addr;
+                }
+                updateGpsUI();
+            }).catch(function() { updateGpsUI(); });
+        
+        // Find nearby SPBU
+        fetch('https://nominatim.openstreetmap.org/search?q=SPBU&format=json&limit=3&lat='+gpsData.lat+'&lon='+gpsData.lon+'&bounded=1&addressdetails=1&accept-language=id',
+            { headers: { 'User-Agent': 'BPF-BBM/1.0' } })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data && data.length > 0) {
+                    var names = data.slice(0, 2).map(function(d) {
+                        var dist = d.dist ? Math.round(d.dist) + 'm' : '';
+                        var name = d.display_name.split(',')[0].trim();
+                        return name + (dist ? ' (' + dist + ')' : '');
+                    });
+                    gpsData.spbu = names.join(' | ');
+                    var spbuEl = document.getElementById('gpsSpbu');
+                    spbuEl.textContent = '⛽ ' + gpsData.spbu;
+                    spbuEl.style.display = 'inline-block';
+                }
+            }).catch(function() {});
+    }, function() {
+        updateGpsUI();
+    }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 300000 });
+}
+
+function updateGpsUI() {
+    var box = document.getElementById('gpsBox');
+    if (gpsData.lat) {
+        box.style.background = '#f0fdf4';
+        box.style.borderColor = '#059669';
+        document.getElementById('gpsTitle').textContent = '📍 Lokasi Terdeteksi';
+    } else {
+        box.style.background = '#fee2e2';
+        box.style.borderColor = '#dc2626';
+        document.getElementById('gpsTitle').textContent = '⚠ GPS Tidak Aktif';
+        document.getElementById('gpsAddr').textContent = 'Mohon izinkan akses lokasi';
+    }
+}
+
+// ============================================================
+// DRIVERS
+// ============================================================
+function loadDrivers() {
+    fetch('/api/drivers').then(function(r) { return r.json(); }).then(function(d) {
+        var selectElements = [document.getElementById('driver_name'), document.getElementById('trip_driver')];
+        selectElements.forEach(function(sel) {
+            if (!sel) return;
+            // Hapus opsi lama (kecuali yang pertama: "-- Pilih Nama --")
+            while (sel.options.length > 1) {
+                sel.remove(1);
+            }
+            // Tambahkan opsi driver
+            d.forEach(function(drv) {
+                if (!drv.name) return; // Skip driver tanpa nama
+                var o = document.createElement('option');
+                o.value = drv.name;
+                o.textContent = drv.name;
+                o.dataset.nopol = drv.nopol || '';
+                o.dataset.vehicle = drv.vehicle_type || 'AVANZA';
+                o.dataset.bbm = drv.bbm_type || 'PERTALITE';
+                sel.appendChild(o);
+            });
+        });
+        console.log('[DRIVERS] Loaded ' + d.length + ' drivers');
+    }).catch(function(e) {
+        console.error('[DRIVERS] Error loading:', e);
+    });
+}
+
+function autoFill() {
+    var sel = document.getElementById('driver_name');
+    var opt = sel.options[sel.selectedIndex];
+    if (!opt || !opt.dataset.nopol) return;
+    
+    document.getElementById('nopol').value = opt.dataset.nopol || '';
+    document.getElementById('vehicle_type').value = opt.dataset.vehicle || '';
+    
+    var bbm = document.getElementById('bbm_type');
+    bbm.innerHTML = '<option value="">Loading...</option>';
+    
+    var vehicleType = opt.dataset.vehicle || 'AVANZA';
+    
+    fetch('/api/vehicle-allowed-bbm/' + encodeURIComponent(vehicleType))
+        .then(function(r) { return r.json(); })
+        .then(function(list) {
+            bbm.innerHTML = '';
+            
+            if (!list || list.length === 0) {
+                // Fallback: tidak ada BBM terdaftar → pakai default dari dataset
+                var fallbackBBM = opt.dataset.bbm || 'PERTALITE';
+                var o = document.createElement('option');
+                o.value = fallbackBBM;
+                o.textContent = fallbackBBM + ' (default)';
+                o.dataset.price = (fallbackBBM === 'PERTAMAX') ? 16250 : 10000;
+                o.selected = true;
+                bbm.appendChild(o);
+                updatePrice();
+                return;
+            }
+            
+            // Urutkan: default dulu, PERTALITE kedua
+            list.sort(function(a, b) {
+                if (a.is_default) return -1;
+                if (b.is_default) return 1;
+                if (a.bbm_type === 'PERTALITE') return -1;
+                if (b.bbm_type === 'PERTALITE') return 1;
+                return 0;
+            });
+            
+            var hasSelection = false;
+            
+            list.forEach(function(b) {
+                var o = document.createElement('option');
+                o.value = b.bbm_type;
+                o.textContent = b.bbm_type + ' (Rp ' + Number(b.price_per_liter).toLocaleString('id-ID') + ')';
+                o.dataset.price = b.price_per_liter;
+                
+                // Prioritas seleksi:
+                // 1. is_default = true
+                // 2. Cocok dengan dataset driver
+                // 3. PERTALITE
+                if (b.is_default && !hasSelection) {
+                    o.selected = true;
+                    hasSelection = true;
+                }
+                if (b.bbm_type === opt.dataset.bbm && !hasSelection) {
+                    o.selected = true;
+                    hasSelection = true;
+                }
+                
+                bbm.appendChild(o);
+            });
+            
+            // Jika belum ada yang selected → pilih PERTALITE
+            if (!hasSelection) {
+                for (var i = 0; i < bbm.options.length; i++) {
+                    if (bbm.options[i].value === 'PERTALITE') {
+                        bbm.options[i].selected = true;
+                        break;
+                    }
+                }
+            }
+            
+            updatePrice();
+        })
+        .catch(function(e) {
+            console.error('[BBM] Error:', e);
+            bbm.innerHTML = '<option value="PERTALITE">PERTALITE (default)</option>';
+            updatePrice();
+        });
+}
+
+function autoFillTrip() {
+    let sel = document.getElementById('trip_driver');
+    let opt = sel.options[sel.selectedIndex];
+    if (opt && opt.dataset.nopol) document.getElementById('trip_nopol').value = opt.dataset.nopol;
+}
+
+function updatePrice() {
+    let sel = document.getElementById('bbm_type');
+    let opt = sel.options[sel.selectedIndex];
+    if (opt && opt.dataset.price) { document.getElementById('price_per_liter').value = opt.dataset.price; calcL(); }
+}
+
+function calcL() {
+    let n = document.getElementById('nominal').value;
+    let p = document.getElementById('price_per_liter').value || 10000;
+    if (n > 0) { let l = n/p; document.getElementById('liter').value = l.toFixed(2); document.getElementById('literDisplay').textContent = l.toFixed(2) + ' L'; }
+}
+
+// ============================================================
+// PHOTOS
+// ============================================================
+function cap(id) { let el = document.getElementById(id); el.setAttribute('capture','environment'); el.click(); }
+function pick(id) { let el = document.getElementById(id); el.removeAttribute('capture'); el.click(); }
+function rm(id) { document.getElementById(id).value = ''; document.getElementById('prev_'+id).classList.add('hidden'); }
+document.addEventListener('change', function(e) {
+    if (!e.target.classList.contains('form-control-file') || !e.target.files[0]) return;
+    let f = e.target.files[0];
+    if (!f.type.startsWith('image/')) { e.target.value = ''; return; }
+    let r = new FileReader();
+    r.onload = ev => { document.getElementById('img_'+e.target.id).src = ev.target.result; document.getElementById('prev_'+e.target.id).classList.remove('hidden'); };
+    r.readAsDataURL(f);
+});
+document.getElementById('spbu_type').addEventListener('change', function() {
+    let d = document.getElementById('dispenser_div');
+    if (this.value === 'non_rekanan') { d.classList.remove('hidden'); document.getElementById('foto_struk_dispenser').setAttribute('required','required'); }
+    else { d.classList.add('hidden'); document.getElementById('foto_struk_dispenser').removeAttribute('required'); }
+});
+
+// ============================================================
+// TRIP ROWS
+// ============================================================
+function addTripRow() {
+    let d = document.createElement('div');
+    d.className = 'trip-row';
+    d.innerHTML = '<button type="button" class="remove-btn" onclick="this.parentElement.remove()">×</button>' +
+        '<div><div class="row-label">Lokasi Berangkat <button type="button" onclick="fillGPSWithTime(this)" style="background:#dbeafe;color:#1e40af;border:none;border-radius:3px;cursor:pointer;font-size:9px;padding:1px 5px;margin-left:4px;" title="Isi GPS + Jam otomatis">📍 GPS</button></div><input name="lokasi_berangkat[]" class="form-control loc-input" required placeholder="Nama tempat..."></div>' +
+        '<div><div class="row-label">Pukul</div><input type="time" name="pukul_berangkat[]" class="form-control time-input" required></div>' +
+        '<div><div class="row-label">KM</div><input type="number" name="km_berangkat[]" class="form-control km-input" required placeholder="0"></div>' +
+        '<div><div class="row-label">Lokasi Tujuan <button type="button" onclick="fillGPSWithTime(this)" style="background:#dbeafe;color:#1e40af;border:none;border-radius:3px;cursor:pointer;font-size:9px;padding:1px 5px;margin-left:4px;" title="Isi GPS + Jam otomatis">📍 GPS</button></div><input name="lokasi_tujuan[]" class="form-control loc-input" required placeholder="Nama tempat..."></div>' +
+        '<div><div class="row-label">Pukul</div><input type="time" name="pukul_tujuan[]" class="form-control time-input" required></div>' +
+        '<div><div class="row-label">KM</div><input type="number" name="km_tujuan[]" class="form-control km-input" required placeholder="0"></div>';
+    document.getElementById('tripRows').appendChild(d);
+}
+
+
+    // ============================================================
+    // ONE-CLICK GPS FILL + AUTO TIME
+    // ============================================================
+    function fillGPSWithTime(btn) {
+        // Cari parent trip-row
+        var row = btn.closest('.trip-row');
+        if (!row) return;
+        
+        // Cari input lokasi (setelah tombol GPS)
+        var locInput = btn.parentElement.nextElementSibling;
+        
+        // Isi lokasi dari GPS
+        if (gpsData.addr) {
+            locInput.value = gpsData.addr;
+            locInput.style.background = '#f0fdf4';
+            locInput.style.borderColor = '#059669';
+            setTimeout(function() {
+                locInput.style.background = '';
+                locInput.style.borderColor = '';
+            }, 2000);
+        } else if (gpsData.lat && gpsData.lon) {
+            locInput.value = 'Mendeteksi...';
+            locInput.disabled = true;
+            fetch('https://nominatim.openstreetmap.org/reverse?lat='+gpsData.lat+'&lon='+gpsData.lon+'&format=json&zoom=18&accept-language=id',
+                { headers: { 'User-Agent': 'BPF-BBM/1.0' } })
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    if (d && d.display_name) {
+                        gpsData.addr = d.display_name;
+                        locInput.value = d.display_name;
+                        document.getElementById('gps_address').value = d.display_name;
+                        document.getElementById('gpsAddr').textContent = d.display_name;
+                    } else {
+                        locInput.value = gpsData.lat.toFixed(6) + ', ' + gpsData.lon.toFixed(6);
+                    }
+                    locInput.style.background = '#f0fdf4';
+                    locInput.style.borderColor = '#059669';
+                })
+                .catch(function() {
+                    locInput.value = gpsData.lat.toFixed(6) + ', ' + gpsData.lon.toFixed(6);
+                })
+                .finally(function() {
+                    locInput.disabled = false;
+                    setTimeout(function() {
+                        locInput.style.background = '';
+                        locInput.style.borderColor = '';
+                    }, 2000);
+                });
+        } else {
+            alert('GPS belum terdeteksi. Mohon tunggu atau izinkan akses lokasi.');
+            return;
+        }
+        
+        // Auto-fill waktu sekarang ke input "Pukul" di row yang sama
+        var now = new Date();
+        var timeStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+        var timeInputs = row.querySelectorAll('.time-input');
+        if (timeInputs.length > 0) {
+            // Isi waktu ke input pukul yang sesuai (berangkat atau tujuan)
+            // Cari input pukul yang paling dekat dengan tombol
+            var allInputs = row.querySelectorAll('input');
+            var btnIndex = Array.from(allInputs).indexOf(locInput);
+            if (btnIndex >= 0 && btnIndex + 1 < allInputs.length) {
+                var nextTimeInput = allInputs[btnIndex + 1];
+                if (nextTimeInput.type === 'time') {
+                    nextTimeInput.value = timeStr;
+                    nextTimeInput.style.background = '#f0fdf4';
+                    setTimeout(function() { nextTimeInput.style.background = ''; }, 2000);
+                }
+            }
+        }
+        
+        // Auto-fill KM dari ODO tab BBM (jika tersedia)
+        var odoInput = document.getElementById('odo_km');
+        if (odoInput && odoInput.value) {
+            var kmInputs = row.querySelectorAll('.km-input');
+            if (kmInputs.length > 0 && !kmInputs[0].value) {
+                kmInputs[0].value = odoInput.value;
+                kmInputs[0].style.background = '#f0fdf4';
+                setTimeout(function() { kmInputs[0].style.background = ''; }, 2000);
+            }
+        }
+        
+        // Toast feedback
+        showToast('📍 Lokasi & jam terisi otomatis', '');
+    }
+    
+    // Update getGPSForInput untuk backward compatibility
+    function getGPSForInput(input) {
+        // Cari tombol GPS terdekat dan panggil fillGPSWithTime
+        var row = input.closest('.trip-row');
+        if (row) {
+            var btn = row.querySelector('button[onclick*="fillGPSWithTime"]');
+            if (btn) { fillGPSWithTime(btn); return; }
+        }
+        // Fallback
+        if (gpsData.addr) { input.value = gpsData.addr; }
+        else if (gpsData.lat && gpsData.lon) { input.value = gpsData.lat.toFixed(6) + ', ' + gpsData.lon.toFixed(6); }
+    }
+
+
+// ============================================================
+// FORM SUBMITS
+// ============================================================
+document.getElementById('bbmForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    submitForm(this, 'fuel_queue', '/driver', 'Laporan BBM berhasil!');
+});
+
+document.getElementById('tripForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    submitForm(this, 'trip_queue', '/submit-trip', 'Log perjalanan berhasil!');
+});
+
+// ============================================================
+// RAPOR
+// ============================================================
+function checkPerf() {
+    let n = document.getElementById('perfNopol').value.trim().toUpperCase();
+    if (!n) { showToast('Masukkan plat nomor!', 'error'); return; }
+    let box = document.getElementById('perfResult');
+    box.style.display = 'block';
+    box.innerHTML = 'Menganalisis...';
+    fetch('/api/get-feedback/' + encodeURIComponent(n)).then(r => r.json()).then(d => {
+        if (d.status === 'success') {
+            let cls = d.performa === 'BOROS' ? 'badge-danger' : (d.performa === 'CUKUP' ? 'badge-warn' : 'badge-good');
+            box.innerHTML = '<span class="badge '+cls+'">'+d.performa+'</span> | <strong>'+d.avg_km_per_liter+' KM/L</strong><br><small>'+d.msg+'</small>';
+        } else { box.innerHTML = 'Data tidak ditemukan'; }
+    });
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function showToast(msg, type) {
+    let t = document.createElement('div');
+    t.className = 'toast' + (type ? ' ' + type : '');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+}
+function showModal(msg, txId) {
+    document.getElementById('modalMsg').textContent = msg;
+    if (txId) { document.getElementById('modalTxId').textContent = '#' + txId; document.getElementById('modalTxId').style.display = 'inline-block'; }
+    document.getElementById('successModal').classList.add('active');
+}
+function closeModal() { document.getElementById('successModal').classList.remove('active'); }
+
+// ============================================================
+// INIT
+// ============================================================
+openDB().then(() => { updateStatus(); syncAll(); });
+window.addEventListener('online', () => { updateStatus(); syncAll(); });
+window.addEventListener('offline', updateStatus);
+setInterval(() => { if (navigator.onLine) syncAll(); updateStatus(); }, 30000);
+
+initGPS();
+    checkPendingAssignment();
+loadDrivers();
+addTripRow();
+document.getElementById('trip_date').value = new Date().toISOString().split('T')[0];
+</script>
+
+    <footer style="margin-top:40px;background:linear-gradient(180deg,#ffffff,#f1f5f9);border-top:1px solid #e2e8f0;padding:20px;text-align:center;font-family:Inter,system-ui,sans-serif;">
+        <div style="max-width:1200px;margin:0 auto;">
+            <div style="display:flex;justify-content:center;align-items:center;gap:10px;margin-bottom:6px;">
+                <span style="font-weight:700;font-size:13px;color:#1e293b;">PT BESTPROFIT FUTURES</span>
+                <span style="color:#94a3b8;">|</span>
+                <span style="font-size:11px;color:#64748b;">Surabaya</span>
+            </div>
+            <div style="font-size:10px;color:#94a3b8;">
+                BPF BBM System v1.0 · Developed by <span style="color:#2563eb;font-weight:600;">IT BPF Surabaya</span> · © 2026
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - BPF BBM System</title>
+    <link rel="manifest" href="/manifest.json?v=20260720_FINAL">
+    <meta name="theme-color" content="#1d4ed8">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #2563eb; --primary-dark: #1d4ed8; --primary-light: #dbeafe; --success: #059669; --success-light: #d1fae5; --warning: #d97706; --warning-light: #fef3c7; --danger: #dc2626; --danger-light: #fee2e2; --info: #0891b2; --info-light: #cffafe; --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-300: #d1d5db; --gray-400: #9ca3af; --gray-500: #6b7280; --gray-600: #4b5563; --gray-700: #374151; --gray-800: #1f2937; --gray-900: #111827; --white: #ffffff; --shadow: 0 1px 3px rgba(0,0,0,0.1); --shadow-md: 0 4px 6px rgba(0,0,0,0.07); --radius: 10px; --radius-sm: 6px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Inter", "Segoe UI", sans-serif; background: var(--gray-50); color: var(--gray-800); }
+        .navbar { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: var(--shadow-md); position: sticky; top: 0; z-index: 100; }
+        .navbar h1 { font-size: 20px; font-weight: 700; }
+        .navbar .nav-links { display: flex; gap: 4px; flex-wrap: wrap; }
+        .navbar .nav-links a { color: rgba(255,255,255,0.85); text-decoration: none; padding: 7px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; }
+        .navbar .nav-links a:hover { background: rgba(255,255,255,0.12); color: white; }
+        .navbar .nav-links a.active { background: rgba(255,255,255,0.2); color: white; font-weight: 600; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 24px 20px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 22px; }
+        .stat-card { background: var(--white); padding: 18px 20px; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--gray-200); border-left: 4px solid var(--primary); cursor: pointer; text-decoration: none; color: inherit; display: block; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .stat-card .number { font-size: 28px; font-weight: 700; color: var(--gray-900); }
+        .stat-card .label { font-size: 12px; color: var(--gray-500); margin-top: 4px; text-transform: uppercase; }
+        .tab-nav { display: flex; gap: 2px; margin-bottom: 18px; background: var(--gray-100); border-radius: var(--radius); padding: 4px; overflow-x: auto; }
+        .tab-btn { padding: 10px 22px; border: none; background: transparent; border-radius: var(--radius-sm); cursor: pointer; font-weight: 500; font-size: 13px; white-space: nowrap; color: var(--gray-600); }
+        .tab-btn:hover { color: var(--gray-900); }
+        .tab-btn.active { background: var(--white); color: var(--primary); font-weight: 600; box-shadow: var(--shadow); }
+        .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--gray-200); overflow: hidden; margin-bottom: 20px; }
+        .card-header { padding: 16px 22px; border-bottom: 1px solid var(--gray-200); font-weight: 600; background: var(--gray-50); display: flex; justify-content: space-between; }
+        .card-body { padding: 20px 22px; }
+        .tx-item { border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 12px; }
+        .tx-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+        .tx-header .nopol { font-weight: 700; font-size: 17px; color: var(--gray-900); }
+        .tx-detail { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--gray-600); margin: 8px 0; }
+        .tx-detail span { background: var(--gray-100); padding: 3px 10px; border-radius: 20px; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .badge-pending { background: var(--warning-light); color: var(--warning); }
+        .badge-ga { background: var(--info-light); color: var(--info); }
+        .badge-finance { background: var(--success-light); color: var(--success); }
+        .badge-archive { background: var(--gray-100); color: var(--gray-500); }
+        .badge-reject { background: var(--danger-light); color: var(--danger); }
+        .workflow-indicator { display: flex; align-items: center; gap: 6px; font-size: 11px; margin: 10px 0; padding: 8px 12px; background: var(--gray-50); border-radius: var(--radius-sm); }
+        .workflow-step { padding: 3px 10px; border-radius: 20px; font-weight: 600; }
+        .workflow-step.done { background: var(--success-light); color: var(--success); }
+        .workflow-step.current { background: var(--warning-light); color: var(--warning); }
+        .workflow-step.next { background: var(--gray-100); color: var(--gray-400); }
+        .photo-gallery { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+        .photo-thumb { width: 56px; height: 42px; object-fit: cover; border-radius: var(--radius-sm); cursor: pointer; border: 1.5px solid var(--gray-200); }
+        .btn { padding: 7px 16px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: 12px; text-decoration: none; display: inline-block; margin: 2px; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-info { background: var(--info); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-secondary { background: var(--gray-500); color: white; }
+        .btn-outline { background: white; color: var(--primary); border: 1.5px solid var(--primary); }
+        .alert { padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 14px; font-size: 13px; }
+        .alert-success { background: var(--success-light); color: #065f46; border-left: 4px solid var(--success); }
+        .alert-error { background: var(--danger-light); color: #991b1b; border-left: 4px solid var(--danger); }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: white; border-radius: var(--radius); padding: 24px; width: 90%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .modal-box h3 { margin-bottom: 12px; }
+        .modal-box input, .modal-box textarea { width: 100%; padding: 10px; border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 8px; }
+        .empty { text-align: center; padding: 48px 20px; color: var(--gray-400); }
+        .flex { display: flex; } .gap-2 { gap: 8px; } .flex-wrap { flex-wrap: wrap; }
+    
+        /* High-contrast pulse animation */
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+            50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+        }
+        @keyframes pulseGreen {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.6); }
+            50% { box-shadow: 0 0 0 8px rgba(5, 150, 105, 0); }
+        }
+        @keyframes pulseBlue {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.6); }
+            50% { box-shadow: 0 0 0 8px rgba(37, 99, 235, 0); }
+        }
+        @keyframes pulseAmber {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.6); }
+            50% { box-shadow: 0 0 0 8px rgba(217, 119, 6, 0); }
+        }
+        
+        /* GA Queue - Red pulse (URGENT) */
+        .stat-card.ga-queue.pulse {
+            border-left: 4px solid #ef4444 !important;
+            background: linear-gradient(135deg, #fef2f2, #ffffff);
+            animation: pulseGlow 2s infinite;
+        }
+        .stat-card.ga-queue.pulse .number { color: #dc2626 !important; font-weight: 800; }
+        .stat-card.ga-queue.pulse .label { color: #dc2626 !important; font-weight: 700; }
+        
+        /* Finance - Green pulse (READY) */
+        .stat-card.finance-queue.pulse {
+            border-left: 4px solid #059669 !important;
+            background: linear-gradient(135deg, #ecfdf5, #ffffff);
+            animation: pulseGreen 2s infinite;
+        }
+        .stat-card.finance-queue.pulse .number { color: #059669 !important; font-weight: 800; }
+        .stat-card.finance-queue.pulse .label { color: #059669 !important; font-weight: 700; }
+        
+        /* Driver TTD - Blue pulse (WAITING) */
+        .stat-card.driver-queue.pulse {
+            border-left: 4px solid #2563eb !important;
+            background: linear-gradient(135deg, #eff6ff, #ffffff);
+            animation: pulseBlue 2s infinite;
+        }
+        .stat-card.driver-queue.pulse .number { color: #2563eb !important; font-weight: 800; }
+        .stat-card.driver-queue.pulse .label { color: #2563eb !important; font-weight: 700; }
+        
+        /* Archive - No pulse (neutral) */
+        .stat-card.archive-queue { border-left-color: #9ca3af !important; }
+
+    
+        /* Cross-Check Modal */
+        .cc-modal { background: white; border-radius: 14px; width: 95%; max-width: 500px; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: popIn 0.2s; }
+        .cc-header { padding: 16px 20px; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: white; z-index: 1; border-radius: 14px 14px 0 0; }
+        .cc-body { padding: 16px 20px; }
+        .cc-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--gray-100); font-size: 13px; }
+        .cc-row .label { color: var(--gray-500); font-weight: 500; }
+        .cc-row .value { font-weight: 600; }
+        .cc-flag { padding: 8px 12px; border-radius: 8px; margin: 6px 0; font-size: 12px; font-weight: 500; }
+        .cc-flag.danger { background: #fee2e2; color: #991b1b; border-left: 4px solid #dc2626; }
+        .cc-flag.warning { background: #fef3c7; color: #92400e; border-left: 4px solid #d97706; }
+        .cc-score { display: flex; align-items: center; gap: 10px; padding: 12px; background: var(--gray-50); border-radius: 10px; margin: 10px 0; }
+        .cc-score-bar { flex: 1; height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden; }
+        .cc-score-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+        .cc-score-fill.good { background: #059669; }
+        .cc-score-fill.warn { background: #d97706; }
+        .cc-score-fill.danger { background: #dc2626; }
+        .cc-recommendation { padding: 14px; border-radius: 10px; text-align: center; font-weight: 700; font-size: 14px; margin-top: 10px; }
+        .cc-recommendation.success { background: #d1fae5; color: #065f46; }
+        .cc-recommendation.warning { background: #fef3c7; color: #92400e; }
+        .cc-recommendation.danger { background: #fee2e2; color: #991b1b; }
+        .cc-actions { display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; }
+
+    
+        /* Flag badges on transaction items */
+        .flag-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: 700; margin-left: 6px; }
+        .flag-badge.success { background: #d1fae5; color: #065f46; }
+        .flag-badge.warning { background: #fef3c7; color: #92400e; }
+        .flag-badge.danger { background: #fee2e2; color: #991b1b; animation: pulseFlag 2s infinite; }
+        @keyframes pulseFlag { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+        
+        /* ODO Edit inline button */
+        .odo-edit-btn { background: none; border: none; color: #d97706; cursor: pointer; font-size: 10px; padding: 0 4px; text-decoration: underline; }
+        .odo-edit-btn:hover { color: #92400e; }
+        
+        /* ODO Edit Modal */
+        .odo-modal { background: white; border-radius: 14px; width: 95%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: popIn 0.2s; }
+        .odo-modal-header { padding: 16px 20px; border-bottom: 1px solid var(--gray-200); font-weight: 700; }
+        .odo-modal-body { padding: 16px 20px; }
+        .odo-modal-body label { display: block; font-weight: 600; font-size: 12px; color: var(--gray-700); margin-bottom: 4px; }
+        .odo-modal-body input, .odo-modal-body textarea { width: 100%; padding: 8px 12px; border: 1.5px solid var(--gray-300); border-radius: 6px; font-size: 13px; margin-bottom: 10px; }
+
+    
+        /* Flag badges on transaction items */
+        .flag-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: 700; margin-left: 6px; }
+        .flag-badge.success { background: #d1fae5; color: #065f46; }
+        .flag-badge.warning { background: #fef3c7; color: #92400e; }
+        .flag-badge.danger { background: #fee2e2; color: #991b1b; animation: pulseFlag 2s infinite; }
+        @keyframes pulseFlag { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+        
+        /* ODO Edit inline button */
+        .odo-edit-btn { background: none; border: none; color: #d97706; cursor: pointer; font-size: 10px; padding: 0 4px; text-decoration: underline; }
+        .odo-edit-btn:hover { color: #92400e; }
+        
+        /* ODO Edit Modal */
+        .odo-modal { background: white; border-radius: 14px; width: 95%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: popIn 0.2s; }
+        .odo-modal-header { padding: 16px 20px; border-bottom: 1px solid var(--gray-200); font-weight: 700; }
+        .odo-modal-body { padding: 16px 20px; }
+        .odo-modal-body label { display: block; font-weight: 600; font-size: 12px; color: var(--gray-700); margin-bottom: 4px; }
+        .odo-modal-body input, .odo-modal-body textarea { width: 100%; padding: 8px 12px; border: 1.5px solid var(--gray-300); border-radius: 6px; font-size: 13px; margin-bottom: 10px; }
+
+    
+        /* Health Score Widget */
+        .health-widget { margin-bottom: 20px; }
+        .health-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+        .health-card { background: white; padding: 14px 16px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid var(--gray-200); cursor: pointer; transition: 0.2s; }
+        .health-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); transform: translateY(-1px); }
+        .health-card .nopol { font-weight: 700; font-size: 14px; color: var(--gray-900); }
+        .health-card .driver { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+        .health-card .score-circle { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; float: right; }
+        .health-card .score-circle.good { background: #d1fae5; color: #065f46; }
+        .health-card .score-circle.warning { background: #fef3c7; color: #92400e; }
+        .health-card .score-circle.danger { background: #fee2e2; color: #991b1b; animation: pulseFlag 2s infinite; }
+        .health-card .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 8px; font-size: 10px; color: var(--gray-500); }
+        .health-card .stats span { font-weight: 600; color: var(--gray-700); }
+        .remark-btn { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 10px; text-decoration: underline; }
+        
+        /* Remark Modal */
+        .remark-modal { background: white; border-radius: 14px; width: 95%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: popIn 0.2s; padding: 20px; }
+
+    
+        /* Finance Review Panel */
+        .review-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10000; justify-content: center; align-items: center; }
+        .review-overlay.active { display: flex; }
+        .review-panel { background: white; border-radius: 14px; width: 95%; max-width: 1100px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+        .review-header { padding: 14px 20px; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; background: var(--gray-50); flex-shrink: 0; }
+        .review-body { display: flex; flex: 1; overflow: hidden; min-height: 500px; }
+        .review-photos { flex: 1; background: #1a1a2e; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+        .review-photo-item { background: #16213e; border-radius: 10px; overflow: hidden; border: 2px solid transparent; cursor: pointer; transition: 0.2s; }
+        .review-photo-item:hover { border-color: #2563eb; }
+        .review-photo-item img { width: 100%; max-height: 300px; object-fit: contain; display: block; }
+        .review-photo-item .photo-label { padding: 8px 12px; color: #94a3b8; font-size: 11px; font-weight: 600; background: #0f172a; }
+        .review-data { width: 380px; overflow-y: auto; padding: 16px 20px; border-left: 1px solid var(--gray-200); flex-shrink: 0; }
+        .review-data h4 { font-size: 14px; color: var(--gray-900); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid var(--primary); }
+        .review-data .info-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 12px; border-bottom: 1px solid var(--gray-100); }
+        .review-data .info-row .lbl { color: var(--gray-500); }
+        .review-data .info-row .val { font-weight: 600; }
+        .review-remark { margin-top: 14px; }
+        .review-remark textarea { width: 100%; padding: 10px; border: 1.5px solid var(--gray-300); border-radius: 8px; font-size: 12px; resize: vertical; min-height: 60px; }
+        .review-remark button { margin-top: 6px; }
+        
+        /* Zoom overlay */
+        .zoom-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10001; cursor: zoom-out; justify-content: center; align-items: center; }
+        .zoom-overlay.active { display: flex; }
+        .zoom-overlay img { max-width: 95%; max-height: 95%; object-fit: contain; }
+        
+        /* Review button on transaction */
+        .review-btn { background: #0891b2; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 10px; cursor: pointer; font-weight: 600; }
+        .review-btn:hover { background: #0e7490; }
+        
+        @media (max-width: 768px) { .review-body { flex-direction: column; } .review-data { width: 100%; border-left: none; border-top: 1px solid var(--gray-200); } }
+
+    </style>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body>
+        <nav class="navbar">
+        <h1>🚛 BPF BBM System</h1>
+        <div class="nav-links">
+            <a href="/admin" class="active">📊 Dashboard</a>
+            <a href="/ga/assignments">🚛 Assignments</a>
+            <a href="/admin/rekap">📋 Rekap</a>
+            <a href="/admin/analytics">📈 Analytics</a>
+            <a href="/admin/trips">🗺️ Trips</a>
+            <a href="/admin/logs">📝 Audit Log</a>
+            <a href="/admin/settings">⚙️ Settings</a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message|safe }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="stats">
+            <a href="?tab=ga_queue" class="stat-card ga-queue {% if stats.pending > 0 %}pulse{% endif %}"><div class="number">{{ stats.pending }}</div><div class="label">⚠️ Antrean GA</div></a>
+            <a href="?tab=finance" class="stat-card finance-queue {% if stats.verified_ga > 0 %}pulse{% endif %}"><div class="number">{{ stats.verified_ga }}</div><div class="label">💰 Finance</div></a>
+            <a href="?tab=driver_confirm" class="stat-card driver-queue {% if stats.os_finance > 0 %}pulse{% endif %}"><div class="number">{{ stats.os_finance }}</div><div class="label">✍️ Driver TTD</div></a>
+            <a href="?tab=archive" class="stat-card archive-queue"><div class="number">{{ stats.archived }}</div><div class="label">📦 Arsip</div></a>
+        </div>
+        
+        
+    <!-- VEHICLE HEALTH WIDGET -->
+    <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-weight:600;font-size:14px;color:var(--gray-700);">🏥 Vehicle Health Score</span>
+        <button id="healthToggleBtn" class="btn btn-outline btn-sm" onclick="toggleHealth()" style="font-size:11px;">Tampilkan</button>
+    </div>
+    <div id="healthWidget" class="health-widget" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:12px;color:var(--gray-500);">Rata-rata Health Armada: <strong id="avgHealth">--</strong>/100</span>
+            <button class="btn btn-outline btn-sm" onclick="openRemarkModal()" style="font-size:10px;">📝 Remark Driver</button>
+        </div>
+        <div class="health-cards" id="healthCards">
+            <p style="color:var(--gray-500);padding:20px;text-align:center;">Memuat data kesehatan kendaraan...</p>
+        </div>
+    </div>
+    
+    <!-- REMARK MODAL -->
+    <div class="modal-overlay" id="remarkModal">
+        <div class="remark-modal">
+            <h3 style="margin-bottom:12px;">📝 Remark Kendaraan</h3>
+            <label style="font-weight:600;font-size:12px;">No. Polisi</label>
+            <input type="text" id="remarkNopol" class="form-control" placeholder="Pilih nopol dari kartu di bawah" style="margin-bottom:8px;">
+            <label style="font-weight:600;font-size:12px;">Catatan (contoh: ganti driver, servis, dll)</label>
+            <textarea id="remarkText" class="form-control" placeholder="Tulis catatan..." rows="3" style="margin-bottom:8px;"></textarea>
+            <label style="font-weight:600;font-size:12px;">Nama GA</label>
+            <input type="text" id="remarkGA" class="form-control" value="GA Officer" style="margin-bottom:12px;">
+            <p id="remarkMsg" style="font-size:11px;display:none;"></p>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+                <button class="btn btn-secondary" onclick="closeRemark()">Batal</button>
+                <button class="btn btn-success" onclick="submitRemark()">💾 Simpan Remark</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    var healthData = null;
+    
+    async function toggleHealth() {
+        var widget = document.getElementById('healthWidget');
+        var btn = document.getElementById('healthToggleBtn');
+        
+        if (widget.style.display === 'none') {
+            widget.style.display = 'block';
+            btn.textContent = 'Sembunyikan';
+            
+            if (!healthData) {
+                try {
+                    var r = await fetch('/api/vehicle-health');
+                    healthData = await r.json();
+                    renderHealthCards(healthData);
+                } catch(e) {}
+            }
+        } else {
+            widget.style.display = 'none';
+            btn.textContent = 'Tampilkan';
+        }
+    }
+    
+    function renderHealthCards(data) {
+        document.getElementById('avgHealth').textContent = data.avg_fleet_health || 0;
+        
+        var html = '';
+        if (data.units && data.units.length > 0) {
+            data.units.forEach(function(u) {
+                var statusClass = u.status || 'good';
+                var currentDriver = u.current_driver || '-';
+                var notes = u.latest_notes || '';
+                
+                html += '<div class="health-card">' +
+                    '<div class="score-circle ' + statusClass + '">' + u.health_score + '</div>' +
+                    '<div class="nopol">' + u.nopol + '</div>' +
+                    '<div class="driver">👤 ' + currentDriver + ' | ' + u.vehicle_type + '</div>' +
+                    '<div class="stats">' +
+                        '<div>KM/L: <span>' + (u.avg_kml || '-') + '</span></div>' +
+                        '<div>Transaksi: <span>' + u.total_tx + 'x</span></div>' +
+                        '<div>Appt: <span>' + (u.total_appt || 0) + 'x</span></div>' +
+                        '<div>Biaya: <span>Rp ' + ((u.total_nominal || 0)/1000).toFixed(0) + 'K</span></div>' +
+                    '</div>' +
+                    (notes ? '<div style="font-size:10px;color:#d97706;margin-top:6px;">📝 ' + notes + '</div>' : '') +
+                    '<button class="remark-btn" onclick="quickRemark(\'' + u.nopol + '\')">+ Remark</button>' +
+                '</div>';
+            });
+        } else {
+            html = '<p style="color:var(--gray-500);padding:20px;text-align:center;">Belum ada data kendaraan</p>';
+        }
+        
+        document.getElementById('healthCards').innerHTML = html;
+    }
+    
+    function quickRemark(nopol) {
+        document.getElementById('remarkNopol').value = nopol;
+        document.getElementById('remarkText').value = '';
+        document.getElementById('remarkModal').classList.add('active');
+    }
+    
+    function openRemarkModal() {
+        document.getElementById('remarkNopol').value = '';
+        document.getElementById('remarkText').value = '';
+        document.getElementById('remarkModal').classList.add('active');
+    }
+    
+    function closeRemark() {
+        document.getElementById('remarkModal').classList.remove('active');
+    }
+    
+    async function submitRemark() {
+        var nopol = document.getElementById('remarkNopol').value.trim();
+        var remark = document.getElementById('remarkText').value.trim();
+        var ga = document.getElementById('remarkGA').value.trim();
+        var msg = document.getElementById('remarkMsg');
+        
+        if (!nopol || !remark) { msg.textContent = 'Nopol dan remark wajib!'; msg.style.color = '#dc2626'; msg.style.display = 'block'; return; }
+        
+        try {
+            var r = await fetch('/api/assignment-remark', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({nopol: nopol, remark: remark, driver_name: ga})
+            });
+            var d = await r.json();
+            msg.textContent = d.msg;
+            msg.style.color = d.status === 'success' ? '#059669' : '#dc2626';
+            msg.style.display = 'block';
+            
+            if (d.status === 'success') {
+                setTimeout(function() {
+                    closeRemark();
+                    healthData = null;
+                    toggleHealth(); toggleHealth();
+                }, 1000);
+            }
+        } catch(e) { msg.textContent = 'Error koneksi'; msg.style.color = '#dc2626'; msg.style.display = 'block'; }
+    }
+    
+    document.getElementById('remarkModal').addEventListener('click', function(e) { if(e.target === this) closeRemark(); });
+    </script>
+
+        
+        <div class="tab-nav">
+            <button class="tab-btn {% if stats.tab == 'ga_queue' %}active{% endif %}" onclick="window.location='?tab=ga_queue'">Antrean GA ({{ stats.pending }})</button>
+            <button class="tab-btn {% if stats.tab == 'finance' %}active{% endif %}" onclick="window.location='?tab=finance'">Finance ({{ stats.verified_ga }})</button>
+            <button class="tab-btn {% if stats.tab == 'driver_confirm' %}active{% endif %}" onclick="window.location='?tab=driver_confirm'">Driver TTD ({{ stats.os_finance }})</button>
+            <button class="tab-btn {% if stats.tab == 'archive' %}active{% endif %}" onclick="window.location='?tab=archive'">Arsip ({{ stats.archived }})</button>
+        </div>
+        
+        
+                        {% if stats.tab == 'finance' and transactions %}
+                        <div style="background:linear-gradient(135deg,#dbeafe,#eff6ff);padding:14px 20px;border-radius:10px;margin-bottom:16px;border-left:4px solid var(--primary);">
+                            <span style="font-size:13px;font-weight:600;color:var(--primary-dark);">Total Payout Pending:</span>
+                            <span style="font-size:20px;font-weight:700;color:var(--gray-900);margin-left:8px;">
+                                Rp {{ "{:,.0f}".format(transactions|sum(attribute='nominal')) if transactions else 0 }}
+                            </span>
+                        </div>
+                        {% endif %}
+
+        
+        <div class="card">
+            <div class="card-header">
+                <span>{% if stats.tab == 'ga_queue' %}Antrean GA{% elif stats.tab == 'finance' %}Disburse Finance{% elif stats.tab == 'driver_confirm' %}Konfirmasi Driver{% else %}Arsip{% endif %}</span>
+                <span style="font-size:12px;color:var(--gray-500);">{{ transactions|length }} transaksi</span>
+            </div>
+            <div class="card-body">
+                {% if transactions %}
+                    {% for tx in transactions %}
+                    <div class="tx-item">
+                        <div class="tx-header">
+                            <span class="nopol">#{{ tx.id }} &middot; {{ tx.nopol }} <small style="color:var(--gray-500);">({{ tx.vehicle_type or 'AVANZA' }})</small></span>
+                            <span class="badge {% if tx.status == 'pending' %}badge-pending{% elif tx.status == 'verified_ga' %}badge-ga{% elif tx.status == 'os_finance' %}badge-finance{% elif tx.status == 'archived' %}badge-archive{% elif tx.status == 'rejected' %}badge-reject{% else %}badge-pending{% endif %}">{{ tx.status|replace('_',' ')|upper }}</span>
+                        </div>
+                        <div class="tx-detail">
+                            <span><strong>{{ tx.driver_name }}</strong></span>
+                            <span>{{ tx.created_at.strftime('%d/%m/%Y %H:%M') if tx.created_at else '-' }}</span>
+                            <span>Rp {{ "{:,.0f}".format(tx.nominal) }}</span>
+                            <span>{{ tx.bbm_type or 'PERTALITE' }} &middot; {{ tx.liter }}L</span>
+                            <span>ODO: {{ tx.odo_km }} km <button class="odo-edit-btn" onclick="openOdoEdit({{ tx.id }}, {{ tx.odo_km }})" title="Edit ODO">✏️</button><span class="flag-badge" id="flag_{{ tx.id }}"></span></span>
+                            <span>Appt: {{ tx.jumlah_appointment or 0 }}x</span>
+                        </div>
+                        <div class="workflow-indicator">
+                            <span class="workflow-step {% if tx.status in ['verified_ga','os_finance','archived'] %}done{% elif tx.status == 'pending' %}current{% else %}next{% endif %}">GA</span> &rarr;
+                            <span class="workflow-step {% if tx.status in ['os_finance','archived'] %}done{% elif tx.status == 'verified_ga' %}current{% else %}next{% endif %}">Finance</span> &rarr;
+                            <span class="workflow-step {% if tx.status == 'archived' %}done{% elif tx.status == 'os_finance' %}current{% else %}next{% endif %}">TTD</span> &rarr;
+                            <span class="workflow-step {% if tx.status == 'archived' %}done{% else %}next{% endif %}">Arsip</span>
+                        </div>
+                        <div class="photo-gallery">
+                            {% for f in ['foto_odo_sebelum','foto_nota_odo_sesudah','foto_struk','foto_struk_dispenser'] %}
+                                {% if tx[f] %}<a href="/uploads/{{ tx[f] }}" target="_blank"><img src="/uploads/{{ tx[f] }}" class="photo-thumb"></a>{% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="flex gap-2 flex-wrap" style="margin-top:10px;">
+                            {% if tx.status in ['pending','modified'] %}
+                                <button class="btn btn-success" onclick="openCrossCheck({{ tx.id }},'approve','GA')">🔍 Approve</button>
+                                <button class="btn btn-danger" onclick="requirePin('reject', {{ tx.id }}, 'Admin')">Tolak</button>
+                            {% elif tx.status == 'verified_ga' %}
+                                <button class="btn btn-info" onclick="openCrossCheck({{ tx.id }},'payout','Finance')">💰 Keluarkan Dana</button>
+                                <button class="btn btn-danger" onclick="requirePin('reject', {{ tx.id }}, 'Admin')">Tolak</button>
+                            {% elif tx.status == 'os_finance' %}
+                                <button class="btn btn-success" onclick="requirePin('archive',{{ tx.id }},'Finance')">TTD & Arsip</button>
+                            {% elif tx.status == 'archived' %}
+                                <a href="/finance/download-archive/{{ tx.id }}" class="btn btn-outline">ZIP</a> <button class="review-btn" onclick="openFinanceReview({{ tx.id }})">🔍 Review</button>
+                                <a href="/admin/report/{{ tx.id }}" class="btn btn-secondary">PDF</a>
+                            {% elif tx.status == 'rejected' %}
+                                <span style="color:var(--danger);font-size:12px;">Ditolak: {{ tx.rejection_reason or '-' }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty">Tidak ada transaksi.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- PIN MODAL -->
+    <div class="modal-overlay" id="pinModal">
+        <div class="modal-box">
+            <h3 id="pinTitle">Verifikasi PIN</h3>
+            <p style="font-size:13px;color:var(--gray-500);" id="pinMsg">Masukkan PIN 6-digit</p>
+            <input type="password" id="pinInput" placeholder="••••••" maxlength="6" style="font-size:24px;text-align:center;letter-spacing:8px;width:150px;margin:0 auto;display:block;">
+            <p id="pinError" style="color:var(--danger);font-size:12px;text-align:center;margin-top:8px;display:none;"></p>
+            <div class="flex gap-2" style="justify-content:center;margin-top:16px;">
+                <button class="btn btn-secondary" onclick="closePin()">Batal</button>
+                <button class="btn btn-success" id="pinBtn" onclick="submitPin()">Verifikasi</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- REJECT MODAL -->
+    <div class="modal-overlay" id="rejectModal">
+        <div class="modal-box">
+            <h3>Tolak Transaksi</h3>
+            <form id="rejectForm" method="POST">
+                <input type="hidden" name="rejected_by" value="Admin">
+                <textarea name="rejection_reason" placeholder="Alasan penolakan..." required style="min-height:80px;"></textarea>
+                <div class="flex gap-2" style="justify-content:flex-end;margin-top:12px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeReject()">Batal</button>
+                    <button type="submit" class="btn btn-danger">Tolak</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+    // ============================================================
+    // PIN SYSTEM
+    // ============================================================
+    var pendingAction = null;
+    var pendingTxId = null;
+    
+    function requirePin(action, txId, role) {
+        pendingAction = action;
+        pendingTxId = txId;
+        document.getElementById('pinTitle').textContent = 'Verifikasi ' + role;
+        document.getElementById('pinMsg').textContent = 'Masukkan PIN 6-digit ' + role;
+        document.getElementById('pinInput').value = '';
+        document.getElementById('pinError').style.display = 'none';
+        document.getElementById('pinBtn').disabled = false;
+        document.getElementById('pinBtn').textContent = 'Verifikasi';
+        document.getElementById('pinModal').classList.add('active');
+        setTimeout(function(){ document.getElementById('pinInput').focus(); }, 200);
+    }
+    
+    function closePin() {
+        document.getElementById('pinModal').classList.remove('active');
+    }
+    
+    async function submitPin() {
+        var pin = document.getElementById('pinInput').value;
+        if (pin.length !== 6 || !/^\d{6}$/.test(pin)) {
+            document.getElementById('pinError').textContent = 'PIN harus 6 digit angka!';
+            document.getElementById('pinError').style.display = 'block';
+            return;
+        }
+        
+        var btn = document.getElementById('pinBtn');
+        btn.textContent = '...';
+        btn.disabled = true;
+        document.getElementById('pinError').style.display = 'none';
+        
+        try {
+            var username = (pendingAction === 'payout' || pendingAction === 'archive') ? 'finance_officer' : 'ga_officer';
+            var res = await fetch('/api/verify-pin', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: username, pin: pin})
+            });
+            var data = await res.json();
+            
+            if (data.status === 'success') {
+                closePin();
+                var name = encodeURIComponent(data.user.full_name);
+                if (pendingAction === 'approve' && confirm('Setujui klaim #' + pendingTxId + '?')) {
+                    window.location.href = '/ga/approve/' + pendingTxId + '?admin=' + name;
+                } else if (pendingAction === 'reject') {
+                    closePin();
+                    showRejectModal(pendingTxId);
+                } else if (pendingAction === 'payout' && confirm('Dana sudah dikeluarkan?')) {
+                    window.location.href = '/finance/payout/' + pendingTxId + '?admin=' + name;
+                } else if (pendingAction === 'archive' && confirm('Driver sudah TTD?')) {
+                    window.location.href = '/finance/archive/' + pendingTxId + '?admin=' + name;
+                }
+            } else {
+                document.getElementById('pinError').textContent = 'PIN salah!';
+                document.getElementById('pinError').style.display = 'block';
+                document.getElementById('pinInput').value = '';
+                document.getElementById('pinInput').focus();
+            }
+        } catch(e) {
+            document.getElementById('pinError').textContent = 'Error koneksi';
+            document.getElementById('pinError').style.display = 'block';
+        } finally {
+            btn.textContent = 'Verifikasi';
+            btn.disabled = false;
+        }
+    }
+    
+    // ============================================================
+    // REJECT SYSTEM
+    // ============================================================
+    function showRejectModal(txId) {
+        document.getElementById('rejectForm').action = '/admin/reject/' + txId;
+        document.getElementById('rejectModal').classList.add('active');
+    }
+    function closeReject() { document.getElementById('rejectModal').classList.remove('active'); }
+    
+    // ============================================================
+    // KEYBOARD + CLICK HANDLERS
+    // ============================================================
+    document.getElementById('pinModal').addEventListener('click', function(e){ if(e.target===this) closePin(); });
+    document.getElementById('rejectModal').addEventListener('click', function(e){ if(e.target===this) closeReject(); });
+    document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape') { closePin(); closeReject(); }
+    });
+    document.getElementById('pinInput').addEventListener('keydown', function(e){
+        if (e.key === 'Enter') submitPin();
+    });
+    </script>
+    <!-- Service Worker Auto-Update -->
+    <script>
+    if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js?v=20260720_FINAL").then(function(reg) {
+            reg.addEventListener("updatefound", function() {
+                var newWorker = reg.installing;
+                newWorker.addEventListener("statechange", function() {
+                    if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                        console.log("Versi baru terdeteksi! Memperbarui aplikasi...");
+                        if (confirm("Pembaruan sistem tersedia. Muat ulang sekarang?")) {
+                            window.location.reload();
+                        }
+                    }
+                });
+            });
+        });
+    }
+    </script>
+
+    <!-- ============================================================ -->
+    <!-- PROFESSIONAL FOOTER - PT BESTPROFIT FUTURES -->
+    <!-- ============================================================ -->
+        <footer style="margin-top:40px;background:linear-gradient(180deg,#ffffff,#f1f5f9);border-top:1px solid #e2e8f0;padding:20px;text-align:center;font-family:Inter,system-ui,sans-serif;">
+        <div style="max-width:1200px;margin:0 auto;">
+            <div style="display:flex;justify-content:center;align-items:center;gap:10px;margin-bottom:6px;">
+                <span style="font-weight:700;font-size:13px;color:#1e293b;">PT BESTPROFIT FUTURES</span>
+                <span style="color:#94a3b8;">|</span>
+                <span style="font-size:11px;color:#64748b;">Surabaya</span>
+            </div>
+            <div style="font-size:10px;color:#94a3b8;">
+                BPF BBM System v1.0 · Developed by <span style="color:#2563eb;font-weight:600;">IT BPF Surabaya</span> · © 2026
+            </div>
+        </div>
+    </footer>
+
+    </script>
+
+
+    <!-- CROSS-CHECK MODAL -->
+    <div class="modal-overlay" id="ccModal">
+        <div class="cc-modal">
+            <div class="cc-header">
+                <h3 style="font-size:16px;">🔍 Cross-Check Verifikasi</h3>
+                <button onclick="closeCC()" style="background:none;border:none;font-size:22px;cursor:pointer;">&times;</button>
+            </div>
+            <div class="cc-body" id="ccBody">
+                <p style="text-align:center;color:var(--gray-500);padding:20px;">Memuat data cross-check...</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    async function openCrossCheck(txId, action, role) {
+        // Tampilkan modal dulu
+        document.getElementById('ccModal').classList.add('active');
+        document.getElementById('ccBody').innerHTML = '<p style="text-align:center;color:var(--gray-500);padding:20px;">⏳ Menganalisis data...</p>';
+        
+        try {
+            var r = await fetch('/api/cross-check/' + txId);
+            var d = await r.json();
+            
+            if (d.error) {
+                document.getElementById('ccBody').innerHTML = '<p style="color:red;">Error: ' + d.error + '</p>';
+                return;
+            }
+            
+            var flagsHtml = '';
+            if (d.flags && d.flags.length > 0) {
+                d.flags.forEach(function(f) {
+                    flagsHtml += '<div class="cc-flag ' + f.level + '">' + f.msg + '</div>';
+                });
+            } else {
+                flagsHtml = '<div class="cc-flag" style="background:#d1fae5;color:#065f46;border-left:4px solid #059669;">✅ Semua parameter normal</div>';
+            }
+            
+            var scoreColor = d.health_score >= 70 ? 'good' : (d.health_score >= 40 ? 'warn' : 'danger');
+            
+            var prevOdo = d.previous_odo ? 
+                '<div class="cc-row"><span class="label">ODO Sebelumnya</span><span class="value">' + d.previous_odo.odo_km.toLocaleString('id-ID') + ' km (' + d.previous_odo.date + ')</span></div>' +
+                '<div class="cc-row"><span class="label">Selisih ODO</span><span class="value" style="color:' + (d.odo_diff < 0 ? '#dc2626' : '#059669') + '">' + (d.odo_diff >= 0 ? '+' : '') + d.odo_diff.toLocaleString('id-ID') + ' km</span></div>'
+                : '<div class="cc-row"><span class="label">ODO Sebelumnya</span><span class="value" style="color:var(--gray-500);">Belum ada data</span></div>';
+            
+            var avgHtml = d.avg_3months ? 
+                '<div class="cc-row"><span class="label">Rata-rata KM/L (3 bln)</span><span class="value">' + d.avg_3months.avg_kml + ' KM/L (' + d.avg_3months.tx_count + ' transaksi)</span></div>'
+                : '';
+            
+            var budgetColor = d.budget_usage_percent > 80 ? '#dc2626' : (d.budget_usage_percent > 60 ? '#d97706' : '#059669');
+            
+            document.getElementById('ccBody').innerHTML = 
+                '<div class="cc-score">' +
+                    '<span style="font-weight:700;">🏥 Health Score:</span>' +
+                    '<div class="cc-score-bar"><div class="cc-score-fill ' + scoreColor + '" style="width:' + d.health_score + '%;"></div></div>' +
+                    '<span style="font-weight:700;">' + d.health_score + '/100</span>' +
+                '</div>' +
+                '<div style="font-weight:600;font-size:13px;margin:10px 0 6px;">📋 Detail Transaksi:</div>' +
+                '<div class="cc-row"><span class="label">Nopol</span><span class="value">' + d.current.nopol + '</span></div>' +
+                '<div class="cc-row"><span class="label">Driver</span><span class="value">' + d.current.driver_name + '</span></div>' +
+                '<div class="cc-row"><span class="label">ODO Saat Ini</span><span class="value">' + d.current.odo_km.toLocaleString('id-ID') + ' km</span></div>' +
+                prevOdo +
+                '<div class="cc-row"><span class="label">KM/L Transaksi Ini</span><span class="value">' + (d.current.km_per_liter || 'N/A') + ' KM/L</span></div>' +
+                '<div class="cc-row"><span class="label">Nominal</span><span class="value">Rp ' + d.current.nominal.toLocaleString('id-ID') + '</span></div>' +
+                '<div class="cc-row"><span class="label">Appointment</span><span class="value">' + (d.current.jumlah_appointment || 0) + 'x</span></div>' +
+                avgHtml +
+                '<div class="cc-row"><span class="label">Budget Bulanan</span><span class="value" style="color:' + budgetColor + '">Rp ' + d.monthly.total_nominal.toLocaleString('id-ID') + ' / Rp ' + d.budget.toLocaleString('id-ID') + ' (' + d.budget_usage_percent + '%)</span></div>' +
+                '<div style="font-weight:600;font-size:13px;margin:12px 0 6px;">🚦 Flags:</div>' +
+                flagsHtml +
+                '<div class="cc-recommendation ' + d.overall + '">' + d.recommendation + '</div>' +
+                '<div class="cc-actions">' +
+                    '<button class="btn btn-secondary" onclick="closeCC()" style="background:var(--gray-200);color:var(--gray-700);">Tutup</button>' +
+                    '<button class="btn btn-success" onclick="closeCC();requirePin(\'' + action + '\',' + txId + ',\'' + role + '\')">✅ Lanjut Approve</button>' +
+                '</div>';
+        } catch(e) {
+            document.getElementById('ccBody').innerHTML = '<p style="color:red;">Error memuat data</p>';
+        }
+    }
+    
+    function closeCC() { document.getElementById('ccModal').classList.remove('active'); }
+    document.getElementById('ccModal').addEventListener('click', function(e) { if(e.target === this) closeCC(); });
+    </script>
+
+
+    <!-- ODO EDIT MODAL -->
+    <div class="modal-overlay" id="odoModal">
+        <div class="odo-modal">
+            <div class="odo-modal-header">
+                ✏️ Edit ODO - Finance
+                <button onclick="closeOdoEdit()" style="float:right;background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
+            </div>
+            <div class="odo-modal-body">
+                <label>ODO Saat Ini</label>
+                <input type="text" id="currentOdo" readonly style="background:#f3f4f6;">
+                
+                <label>ODO Baru <span style="color:#dc2626;">*</span></label>
+                <input type="number" id="newOdo" placeholder="Masukkan ODO yang benar" required>
+                
+                <label>Alasan Perubahan <span style="color:#dc2626;">*</span></label>
+                <textarea id="odoRemark" placeholder="Jelaskan alasan mengubah ODO..." rows="3" required></textarea>
+                
+                <label>PIN Finance <span style="color:#dc2626;">*</span></label>
+                <input type="password" id="odoPin" placeholder="••••••" maxlength="6" inputmode="numeric" style="font-size:18px;text-align:center;letter-spacing:6px;width:120px;">
+                
+                <p id="odoError" style="color:#dc2626;font-size:11px;display:none;"></p>
+                
+                <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;">
+                    <button class="btn btn-secondary" onclick="closeOdoEdit()" style="background:#e5e7eb;color:#374151;">Batal</button>
+                    <button class="btn btn-warning" onclick="submitOdoEdit()">💾 Simpan Perubahan ODO</button>
+                </div>
+                <p style="font-size:10px;color:#94a3b8;margin-top:8px;">⚠️ Perubahan ODO akan tercatat di Audit Log dan memerlukan PIN Finance.</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    var currentEditTxId = null;
+    
+    function openOdoEdit(txId, currentOdo) {
+        currentEditTxId = txId;
+        document.getElementById('currentOdo').value = currentOdo.toLocaleString('id-ID') + ' km';
+        document.getElementById('newOdo').value = '';
+        document.getElementById('odoRemark').value = '';
+        document.getElementById('odoPin').value = '';
+        document.getElementById('odoError').style.display = 'none';
+        document.getElementById('odoModal').classList.add('active');
+    }
+    
+    function closeOdoEdit() {
+        document.getElementById('odoModal').classList.remove('active');
+        currentEditTxId = null;
+    }
+    
+    async function submitOdoEdit() {
+        var newOdo = parseInt(document.getElementById('newOdo').value);
+        var remark = document.getElementById('odoRemark').value.trim();
+        var pin = document.getElementById('odoPin').value;
+        var errEl = document.getElementById('odoError');
+        
+        if (!newOdo || newOdo <= 0) { errEl.textContent = 'ODO baru tidak valid'; errEl.style.display = 'block'; return; }
+        if (!remark) { errEl.textContent = 'Alasan perubahan wajib diisi'; errEl.style.display = 'block'; return; }
+        if (pin.length !== 6) { errEl.textContent = 'PIN 6-digit wajib diisi'; errEl.style.display = 'block'; return; }
+        
+        errEl.style.display = 'none';
+        
+        try {
+            var r = await fetch('/admin/edit-odo/' + currentEditTxId, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({new_odo: newOdo, remark: remark, pin: pin, username: 'finance_officer'})
+            });
+            var d = await r.json();
+            
+            if (d.status === 'success') {
+                alert('✅ ' + d.msg);
+                closeOdoEdit();
+                location.reload();
+            } else {
+                errEl.textContent = d.msg || 'Gagal menyimpan';
+                errEl.style.display = 'block';
+            }
+        } catch(e) {
+            errEl.textContent = 'Error koneksi';
+            errEl.style.display = 'block';
+        }
+    }
+    
+    document.getElementById('odoModal').addEventListener('click', function(e) { if(e.target === this) closeOdoEdit(); });
+    </script>
+
+
+    
+
+
+    <!-- FINANCE REVIEW PANEL -->
+    <div class="review-overlay" id="reviewOverlay">
+        <div class="review-panel">
+            <div class="review-header">
+                <h3 style="font-size:15px;">🔍 Finance Review - Transaksi <span id="revTxId">#--</span></h3>
+                <button onclick="closeReview()" style="background:none;border:none;font-size:22px;cursor:pointer;">&times;</button>
+            </div>
+            <div class="review-body">
+                <!-- Photos Panel (Left) -->
+                <div class="review-photos" id="reviewPhotos">
+                    <p style="color:#94a3b8;text-align:center;padding:40px;">Memuat foto...</p>
+                </div>
+                
+                <!-- Data Panel (Right) -->
+                <div class="review-data" id="reviewData">
+                    <p style="color:var(--gray-500);text-align:center;padding:20px;">Memuat data...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ZOOM OVERLAY -->
+    <div class="zoom-overlay" id="zoomOverlay" onclick="closeZoom()">
+        <img id="zoomImage" src="" alt="Zoom">
+    </div>
+    
+    <script>
+    var reviewTxId = null;
+    
+    async function openFinanceReview(txId) {
+        reviewTxId = txId;
+        document.getElementById('revTxId').textContent = '#' + txId;
+        document.getElementById('reviewPhotos').innerHTML = '<p style="color:#94a3b8;text-align:center;padding:40px;">⏳ Memuat...</p>';
+        document.getElementById('reviewData').innerHTML = '<p style="color:var(--gray-500);text-align:center;padding:20px;">⏳ Memuat...</p>';
+        document.getElementById('reviewOverlay').classList.add('active');
+        
+        try {
+            var r = await fetch('/api/finance-review/' + txId);
+            var d = await r.json();
+            
+            if (d.error) { alert(d.error); return; }
+            
+            // Render photos
+            var photosHtml = '';
+            if (d.photos && d.photos.length > 0) {
+                d.photos.forEach(function(p) {
+                    photosHtml += '<div class="review-photo-item" onclick="openZoom(\'' + p.url + '\')">' +
+                        '<img src="' + p.url + '" alt="' + p.label + '" loading="lazy">' +
+                        '<div class="photo-label">📷 ' + p.label + '</div>' +
+                    '</div>';
+                });
+            } else {
+                photosHtml = '<p style="color:#94a3b8;text-align:center;padding:40px;">Tidak ada foto</p>';
+            }
+            document.getElementById('reviewPhotos').innerHTML = photosHtml;
+            
+            // Render data
+            var tx = d.transaction;
+            var prev = d.previous_odo;
+            var odoDiff = prev ? tx.odo_km - prev.odo_km : 0;
+            var budgetPct = d.budget > 0 ? Math.round(d.monthly.total_nominal / d.budget * 100) : 0;
+            var budgetColor = budgetPct > 80 ? '#dc2626' : (budgetPct > 60 ? '#d97706' : '#059669');
+            
+            var dataHtml = '<h4>📋 Data Transaksi</h4>' +
+                '<div class="info-row"><span class="lbl">Nopol</span><span class="val">' + tx.nopol + '</span></div>' +
+                '<div class="info-row"><span class="lbl">Driver</span><span class="val">' + tx.driver_name + '</span></div>' +
+                '<div class="info-row"><span class="lbl">Kendaraan</span><span class="val">' + tx.vehicle_type + ' · ' + tx.bbm_type + '</span></div>' +
+                '<div class="info-row"><span class="lbl">Tanggal</span><span class="val">' + new Date(tx.created_at).toLocaleString('id-ID') + '</span></div>' +
+                '<div class="info-row"><span class="lbl">Nominal</span><span class="val" style="font-size:14px;color:var(--primary-dark);">Rp ' + tx.nominal.toLocaleString('id-ID') + '</span></div>' +
+                '<div class="info-row"><span class="lbl">Volume</span><span class="val">' + tx.liter + ' L (@Rp ' + tx.price_per_liter.toLocaleString('id-ID') + ')</span></div>' +
+                '<div class="info-row"><span class="lbl">ODO</span><span class="val">' + tx.odo_km.toLocaleString('id-ID') + ' km</span></div>' +
+                (prev ? '<div class="info-row"><span class="lbl">ODO Sebelumnya</span><span class="val">' + prev.odo_km.toLocaleString('id-ID') + ' km (' + prev.date + ')</span></div>' : '') +
+                (prev ? '<div class="info-row"><span class="lbl">Selisih ODO</span><span class="val" style="color:' + (odoDiff < 0 ? '#dc2626' : '#059669') + '">' + (odoDiff >= 0 ? '+' : '') + odoDiff.toLocaleString('id-ID') + ' km</span></div>' : '') +
+                '<div class="info-row"><span class="lbl">KM/L</span><span class="val">' + (tx.km_per_liter || 'N/A') + '</span></div>' +
+                '<div class="info-row"><span class="lbl">Appointment</span><span class="val">' + (tx.jumlah_appointment || 0) + 'x</span></div>' +
+                '<div class="info-row"><span class="lbl">SPBU</span><span class="val">' + (tx.spbu_type || '-') + '</span></div>' +
+                '<div class="info-row"><span class="lbl">GPS</span><span class="val" style="font-size:10px;">' + (tx.gps_address || 'Tidak tersedia') + '</span></div>' +
+                '<div class="info-row"><span class="lbl">Budget Bulanan</span><span class="val" style="color:' + budgetColor + '">Rp ' + d.monthly.total_nominal.toLocaleString('id-ID') + ' / Rp ' + d.budget.toLocaleString('id-ID') + ' (' + budgetPct + '%)</span></div>' +
+                '<div class="info-row"><span class="lbl">Status</span><span class="val">' + tx.status.toUpperCase() + '</span></div>';
+            
+            // Remark section
+            dataHtml += '<div class="review-remark">' +
+                '<h4 style="margin-top:12px;">📝 Remark Finance</h4>' +
+                '<textarea id="reviewRemark" placeholder="Tambahkan catatan (contoh: struk tidak terbaca, minta foto ulang)..."></textarea>' +
+                '<button class="btn btn-info btn-sm" onclick="submitFinanceRemark(' + txId + ')">💾 Simpan Remark</button>' +
+                '<p id="remarkStatus" style="font-size:10px;margin-top:4px;"></p>' +
+                '</div>';
+            
+            document.getElementById('reviewData').innerHTML = dataHtml;
+        } catch(e) {
+            document.getElementById('reviewData').innerHTML = '<p style="color:#dc2626;">Error memuat data</p>';
+        }
+    }
+    
+    function openZoom(url) {
+        document.getElementById('zoomImage').src = url;
+        document.getElementById('zoomOverlay').classList.add('active');
+    }
+    
+    function closeZoom() {
+        document.getElementById('zoomOverlay').classList.remove('active');
+    }
+    
+    function closeReview() {
+        document.getElementById('reviewOverlay').classList.remove('active');
+    }
+    
+    async function submitFinanceRemark(txId) {
+        var remark = document.getElementById('reviewRemark').value.trim();
+        var status = document.getElementById('remarkStatus');
+        
+        if (!remark) { status.textContent = 'Remark tidak boleh kosong'; status.style.color = '#dc2626'; return; }
+        
+        try {
+            var r = await fetch('/api/finance-remark', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({tx_id: txId, remark: remark, username: 'Finance Officer'})
+            });
+            var d = await r.json();
+            status.textContent = d.msg;
+            status.style.color = d.status === 'success' ? '#059669' : '#dc2626';
+            if (d.status === 'success') document.getElementById('reviewRemark').value = '';
+        } catch(e) { status.textContent = 'Error'; status.style.color = '#dc2626'; }
+    }
+    
+    document.getElementById('reviewOverlay').addEventListener('click', function(e) { if(e.target === this) closeReview(); });
+    document.addEventListener('keydown', function(e) { if(e.key === 'Escape') { closeReview(); closeZoom(); } });
+    </script>
+
+</body>
+
+
+</html>

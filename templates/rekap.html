@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rekapitulasi - BPF BBM System</title>
+    <link rel="manifest" href="/manifest.json?v=20260720_FINAL">
+    <meta name="theme-color" content="#1d4ed8">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb; --primary-dark: #1e40af; --primary-light: #dbeafe;
+            --success: #059669; --success-light: #d1fae5;
+            --warning: #d97706; --warning-light: #fef3c7;
+            --danger: #dc2626; --danger-light: #fee2e2;
+            --info: #0891b2; --info-light: #cffafe;
+            --gray-50: #f8fafc; --gray-100: #f1f5f9; --gray-200: #e2e8f0; --gray-300: #cbd5e1;
+            --gray-500: #64748b; --gray-700: #334155; --gray-900: #0f172a;
+            --white: #ffffff; --shadow: 0 4px 6px -1px rgba(0,0,0,0.05); --radius: 12px; --radius-sm: 6px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Inter", system-ui, sans-serif; background: #f1f5f9; color: var(--gray-700); }
+        .navbar { background: linear-gradient(135deg, #1e3a8a, var(--primary)); color: white; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+        .navbar h1 { font-size: 18px; font-weight: 700; }
+        .navbar .nav-links { display: flex; gap: 6px; }
+        .navbar .nav-links a { color: #93c5fd; text-decoration: none; padding: 8px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; }
+        .navbar .nav-links a:hover { color: white; background: rgba(255,255,255,0.1); }
+        .navbar .nav-links a.active { background: rgba(255,255,255,0.2); color: white; font-weight: 600; }
+        .container { max-width: 1440px; margin: 24px auto; padding: 0 20px; }
+        .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--gray-200); overflow: hidden; }
+        .card-header { padding: 18px 24px; border-bottom: 1px solid var(--gray-200); font-weight: 700; font-size: 16px; color: var(--gray-900); display: flex; justify-content: space-between; align-items: center; }
+        .card-body { padding: 24px; }
+        .filter-panel { background: var(--gray-50); padding: 20px; border-radius: var(--radius); margin-bottom: 24px; border: 1px solid var(--gray-200); }
+        .filter-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; align-items: flex-end; }
+        .filter-group label { font-size: 11px; font-weight: 700; color: var(--gray-500); display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .filter-group input { width: 100%; padding: 10px 14px; border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm); font-size: 13px; }
+        .btn-filter { padding: 11px 24px; background: var(--primary); color: white; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: 13px; }
+        .action-buttons { display: flex; gap: 12px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--gray-200); }
+        .btn { padding: 9px 18px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-outline { background: var(--white); color: var(--gray-700); border: 1.5px solid var(--gray-300); }
+        .btn-sm { padding: 5px 10px; font-size: 11px; border-radius: 4px; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-info { background: #0284c7; color: white; }
+        
+        .table-responsive { border-radius: var(--radius); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid var(--gray-200); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1000px; }
+        th { background: #f8fafc; color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 14px; border-bottom: 2px solid var(--gray-200); }
+        td { padding: 14px; border-bottom: 1px solid #f1f5f9; }
+        tr.rejected-row td { background: rgba(239, 68, 68, 0.02); }
+        tr:hover td { background: #f8fafc !important; }
+        tr.rejected-row:hover td { background: rgba(239, 68, 68, 0.05) !important; }
+        
+        .sticky-col { position: sticky; right: 0; background: var(--white); box-shadow: -4px 0 8px rgba(0,0,0,0.02); z-index: 10; }
+        th.sticky-col { background: #f8fafc; }
+        tr:hover td.sticky-col { background: #f8fafc; }
+        
+        .badge-status { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+        .badge-complete { background: var(--success-light); color: #065f46; }
+        .badge-rejected { background: var(--danger-light); color: #991b1b; }
+        .badge-os { background: var(--warning-light); color: #92400e; }
+        .badge-verified { background: var(--info-light); color: #0369a1; }
+        
+        .kml-good { color: #059669; }
+        .kml-bad { color: #dc2626; }
+        .kml-warn { color: #d97706; }
+        
+        .empty { text-align: center; padding: 60px 20px; color: var(--gray-500); }
+        .alert { padding: 14px 20px; border-radius: var(--radius-sm); margin-bottom: 20px; font-size: 14px; }
+        .alert-success { background: var(--success-light); color: #065f46; border-left: 4px solid var(--success); }
+        .alert-warning { background: var(--warning-light); color: #92400e; border-left: 4px solid var(--warning); }
+        .alert-error { background: var(--danger-light); color: #991b1b; border-left: 4px solid var(--danger); }
+    </style>
+</head>
+<body>
+        <nav class="navbar">
+        <h1>🚛 BPF BBM System</h1>
+        <div class="nav-links">
+            <a href="/admin">📊 Dashboard</a>
+            <a href="/ga/assignments">🚛 Assignments</a>
+            <a href="/admin/rekap" class="active">📋 Rekap</a>
+            <a href="/admin/analytics">📈 Analytics</a>
+            <a href="/admin/trips">🗺️ Trips</a>
+            <a href="/admin/logs">📝 Audit Log</a>
+            <a href="/admin/settings">⚙️ Settings</a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message|safe }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="card">
+            <div class="card-header">
+                <span>Rekapitulasi Klaim Driver</span>
+                <span style="font-size:13px;background:var(--gray-100);padding:4px 12px;border-radius:20px;color:var(--gray-500);">
+                    {{ transactions|length }} Transaksi
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="filter-panel">
+                    <form class="filter-form" method="GET" action="/admin/rekap">
+                        <div class="filter-group"><label>Dari</label><input type="date" name="start_date" value="{{ filters.start_date }}"></div>
+                        <div class="filter-group"><label>Sampai</label><input type="date" name="end_date" value="{{ filters.end_date }}"></div>
+                        <div class="filter-group"><label>No. Polisi</label><input type="text" name="nopol" value="{{ filters.nopol }}" placeholder="Semua"></div>
+                        <div class="filter-group"><label>Driver</label><input type="text" name="driver" value="{{ filters.driver }}" placeholder="Semua"></div>
+                        <button type="submit" class="btn-filter">Filter</button>
+                    </form>
+                </div>
+                
+                <div class="action-buttons">
+                    <a href="/admin/rekap/pdf?{{ request.query_string.decode('utf-8') }}" target="_blank" class="btn btn-outline">Preview PDF</a>
+                    <a href="/admin/rekap/pdf?dl=1&{{ request.query_string.decode('utf-8') }}" class="btn btn-primary">Download PDF</a>
+                </div>
+                
+                {% if transactions %}
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:60px;text-align:center;">ID</th>
+                                <th>WAKTU & DRIVER</th>
+                                <th>ARMADA & BBM</th>
+                                <th style="text-align:right;">ODOMETER & JARAK</th>
+                                <th style="text-align:right;">KONSUMSI BBM</th>
+                                <th style="width:60px;text-align:center;">APPT</th>
+                                <th style="text-align:right;">NOMINAL</th>
+                                <th style="text-align:center;">STATUS</th>
+                                <th class="sticky-col" style="text-align:center;">AKSI</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tx in transactions %}
+                            <tr class="{% if tx.status == 'rejected' %}rejected-row{% endif %}">
+                                <td style="text-align:center;font-weight:700;color:var(--gray-900);">{{ tx.display_id or ('#'+tx.id|string) }}</td>
+                                
+                                <td>
+                                    <div style="font-weight:600;color:#0f172a;">{{ tx.driver_name.upper() }}</div>
+                                    <div style="font-size:11px;color:var(--gray-500);margin-top:2px;">{{ tx.created_at.strftime('%d/%m/%Y %H:%M') if tx.created_at else '-' }}</div>
+                                </td>
+                                
+                                <td>
+                                    <div><span style="background:var(--gray-200);padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;">{{ tx.nopol }}</span></div>
+                                    <div style="font-size:12px;color:var(--primary);font-weight:500;margin-top:4px;">{{ tx.vehicle_type or 'AVANZA' }} &middot; {{ tx.bbm_type or 'PERTALITE' }}</div>
+                                </td>
+                                
+                                <td style="text-align:right;">
+                                    <div style="color:#475569;">{{ "{:,}".format(tx.km_awal|int) }} &rarr; {{ "{:,}".format(tx.km_akhir|int) }}</div>
+                                    <div style="font-weight:700;font-size:12px;margin-top:2px;">{{ tx.total_km|int }} KM</div>
+                                </td>
+                                
+                                <td style="text-align:right;">
+                                    <div style="color:#475569;">{{ tx.liter }} L</div>
+                                    <div style="font-weight:700;font-size:12px;margin-top:2px;color:{% if tx.rata_rata >= 11 %}#059669{% elif tx.rata_rata <= 9 %}#dc2626{% else %}#d97706{% endif %};">
+                                        {{ "%.2f"|format(tx.rata_rata or 0) if tx.rata_rata else '-' }} KM/L
+                                        {% if tx.get('is_multifill') %}
+                                        <div style="margin-top:3px;">
+                                            <span style="background:#dbeafe;color:#1e40af;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;">⛽ TOP-UP</span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                
+                                <td style="text-align:center;">
+                                    <span style="background:#eff6ff;color:var(--primary);padding:4px 10px;border-radius:20px;font-weight:700;font-size:12px;">
+                                        {{ tx.jumlah_appointment or 0 }}
+                                    </span>
+                                </td>
+                                
+                                <td style="text-align:right;font-weight:700;font-size:14px;">Rp {{ "{:,.0f}".format(tx.nominal) }}</td>
+                                
+                                <td style="text-align:center;">
+                                    {% if tx.status == 'archived' %}
+                                        <span class="badge-status badge-complete">COMPLETE</span>
+                                    {% elif tx.status == 'rejected' %}
+                                        <span class="badge-status badge-rejected">REJECTED</span>
+                                        <div style="font-size:10px;color:#ef4444;margin-top:4px;max-width:120px;">{{ tx.rejection_reason or '-' }}</div>
+                                    {% elif tx.status == 'os_finance' %}
+                                        <span class="badge-status badge-os">OS FINANCE</span>
+                                    {% elif tx.status == 'verified_ga' %}
+                                        <span class="badge-status badge-verified">VERIFIED</span>
+                                    {% else %}
+                                        <span class="badge-status" style="background:#e2e8f0;color:#64748b;">{{ tx.status|upper }}</span>
+                                    {% endif %}
+                                </td>
+                                
+                                <td class="sticky-col" style="text-align:center;">
+                                    <div style="display:flex;gap:4px;justify-content:center;">
+                                        <a href="/admin/report/{{ tx.id }}" class="btn btn-info btn-sm">Nota</a>
+                                        <a href="/admin/unverify/{{ tx.id }}" class="btn btn-warning btn-sm" onclick="return confirm('Reset?')">Reset</a>
+                                        <a href="/admin/delete/{{ tx.id }}" class="btn btn-danger btn-sm" onclick="return confirm('Hapus?')">Hapus</a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% if pagination and pagination.total_pages > 1 %}
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:15px;border-top:1px solid var(--gray-200);flex-wrap:wrap;gap:12px;">
+                    <span style="font-size:13px;color:var(--gray-500);">
+                        Menampilkan <strong>{{ transactions|length }}</strong> dari <strong>{{ pagination.total_count }}</strong> transaksi
+                    </span>
+                    <div style="display:inline-flex;gap:6px;align-items:center;">
+                        {% if pagination.has_prev %}
+                            <a href="/admin/rekap?page={{ pagination.prev_page }}&start_date={{ filters.start_date }}&end_date={{ filters.end_date }}&nopol={{ filters.nopol }}&driver={{ filters.driver }}" class="btn btn-outline btn-sm" style="padding:6px 14px;">&laquo; Sebelumnya</a>
+                        {% else %}
+                            <span class="btn btn-outline btn-sm" style="padding:6px 14px;opacity:0.4;cursor:not-allowed;">&laquo; Sebelumnya</span>
+                        {% endif %}
+                        
+                        <span style="font-size:13px;font-weight:600;color:var(--gray-700);padding:0 10px;">
+                            Hal {{ pagination.page }} / {{ pagination.total_pages }}
+                        </span>
+                        
+                        {% if pagination.has_next %}
+                            <a href="/admin/rekap?page={{ pagination.next_page }}&start_date={{ filters.start_date }}&end_date={{ filters.end_date }}&nopol={{ filters.nopol }}&driver={{ filters.driver }}" class="btn btn-outline btn-sm" style="padding:6px 14px;">Berikutnya &raquo;</a>
+                        {% else %}
+                            <span class="btn btn-outline btn-sm" style="padding:6px 14px;opacity:0.4;cursor:not-allowed;">Berikutnya &raquo;</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% else %}
+                <div class="empty">
+                    <p style="font-weight:600;font-size:16px;color:var(--gray-900);">Tidak ada data</p>
+                    <p style="font-size:13px;margin-top:4px;">Sesuaikan filter di atas.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <!-- Service Worker Auto-Update -->
+    <script>
+    if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js?v=20260720_FINAL").then(function(reg) {
+            reg.addEventListener("updatefound", function() {
+                var newWorker = reg.installing;
+                newWorker.addEventListener("statechange", function() {
+                    if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                        if (confirm("Pembaruan tersedia. Muat ulang?")) window.location.reload();
+                    }
+                });
+            });
+        });
+    }
+    </script>
+
+    <!-- ============================================================ -->
+    <!-- PROFESSIONAL FOOTER - PT BESTPROFIT FUTURES -->
+    <!-- ============================================================ -->
+        <footer style="margin-top:40px;background:linear-gradient(180deg,#ffffff,#f1f5f9);border-top:1px solid #e2e8f0;padding:20px;text-align:center;font-family:Inter,system-ui,sans-serif;">
+        <div style="max-width:1200px;margin:0 auto;">
+            <div style="display:flex;justify-content:center;align-items:center;gap:10px;margin-bottom:6px;">
+                <span style="font-weight:700;font-size:13px;color:#1e293b;">PT BESTPROFIT FUTURES</span>
+                <span style="color:#94a3b8;">|</span>
+                <span style="font-size:11px;color:#64748b;">Surabaya</span>
+            </div>
+            <div style="font-size:10px;color:#94a3b8;">
+                BPF BBM System v1.0 · Developed by <span style="color:#2563eb;font-weight:600;">IT BPF Surabaya</span> · © 2026
+            </div>
+        </div>
+    </footer>
+
+    <!-- AUTO-REFRESH POLLING (30 detik) -->
+    
+
+</body>
+
+
+</html>

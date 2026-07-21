@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit Trail - BPF BBM System</title>
+    <link rel="manifest" href="/manifest.json?v=20260720_FINAL">
+    <meta name="theme-color" content="#1d4ed8">
+    <link rel="icon" type="image/png" href="/static/icon-192.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #2563eb; --primary-dark: #1d4ed8; --success: #059669; --success-light: #d1fae5; --warning: #d97706; --warning-light: #fef3c7; --danger: #dc2626; --danger-light: #fee2e2; --info: #0891b2; --info-light: #cffafe; --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-500: #6b7280; --gray-700: #374151; --gray-800: #1f2937; --gray-900: #111827; --white: #ffffff; --shadow: 0 1px 3px rgba(0,0,0,0.1); --radius: 10px; --radius-sm: 6px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Inter", sans-serif; background: var(--gray-50); color: var(--gray-800); }
+        .navbar { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.07); position: sticky; top: 0; z-index: 100; }
+        .navbar h1 { font-size: 18px; font-weight: 700; }
+        .navbar .nav-links { display: flex; gap: 4px; flex-wrap: wrap; }
+        .navbar .nav-links a { color: rgba(255,255,255,0.85); text-decoration: none; padding: 7px 14px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 500; }
+        .navbar .nav-links a:hover { background: rgba(255,255,255,0.12); color: white; }
+        .navbar .nav-links a.active { background: rgba(255,255,255,0.2); color: white; font-weight: 600; }
+        .container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
+        
+        /* Legend */
+        .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; padding: 12px 16px; background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--gray-200); }
+        .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+        
+        /* Summary Cards */
+        .summary-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
+        .summary-card { background: var(--white); padding: 14px 16px; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--gray-200); text-align: center; }
+        .summary-card .num { font-size: 22px; font-weight: 700; color: var(--primary); }
+        .summary-card .lbl { font-size: 10px; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        /* Table */
+        .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--gray-200); overflow: hidden; }
+        .card-header { padding: 14px 18px; border-bottom: 1px solid var(--gray-200); font-weight: 600; background: var(--gray-50); font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+        .card-body { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 900px; }
+        th { background: var(--gray-100); color: var(--gray-700); font-weight: 600; padding: 10px 12px; text-align: left; border-bottom: 2px solid var(--gray-200); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+        td { padding: 10px 12px; border-bottom: 1px solid var(--gray-100); }
+        tr:hover td { background: #f8fafc; }
+        .mono { font-family: 'Courier New', monospace; font-size: 11px; }
+        
+        /* Action badges */
+        .action-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .action-create { background: #dbeafe; color: #1e40af; }
+        .action-approve { background: #d1fae5; color: #065f46; }
+        .action-payout { background: #fef3c7; color: #92400e; }
+        .action-archive { background: #e0e7ff; color: #3730a3; }
+        .action-reject { background: #fee2e2; color: #991b1b; }
+        .action-delete { background: #fce7f3; color: #9d174d; }
+        .action-settings { background: #f3e8ff; color: #6b21a8; }
+        .action-import { background: #cffafe; color: #155e75; }
+        .action-other { background: #f1f5f9; color: #475569; }
+        
+        .role-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+        .role-driver { background: #dbeafe; color: #1e40af; }
+        .role-ga { background: #d1fae5; color: #065f46; }
+        .role-finance { background: #fef3c7; color: #92400e; }
+        .role-admin { background: #fee2e2; color: #991b1b; }
+        
+        /* PIN Gate */
+        .pin-gate { display: flex; justify-content: center; align-items: center; min-height: 50vh; }
+        .pin-box { background: white; padding: 36px; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); text-align: center; max-width: 360px; width: 100%; }
+        .pin-box h2 { margin-bottom: 6px; }
+        .pin-box input { width: 140px; padding: 10px; font-size: 20px; text-align: center; letter-spacing: 8px; border: 1.5px solid #d1d5db; border-radius: 8px; margin: 12px 0; }
+        .btn { padding: 8px 20px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: 13px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .empty { text-align: center; padding: 48px; color: var(--gray-500); }
+        
+        /* Filter */
+        .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .filter-bar select, .filter-bar input { padding: 6px 10px; border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm); font-size: 11px; }
+        
+        @media (max-width: 768px) { .summary-row { grid-template-columns: 1fr 1fr; } }
+    </style>
+</head>
+<body>
+        <nav class="navbar">
+        <h1>🚛 BPF BBM System</h1>
+        <div class="nav-links">
+            <a href="/admin">📊 Dashboard</a>
+            <a href="/ga/assignments">🚛 Assignments</a>
+            <a href="/admin/rekap">📋 Rekap</a>
+            <a href="/admin/analytics">📈 Analytics</a>
+            <a href="/admin/trips">🗺️ Trips</a>
+            <a href="/admin/logs" class="active">📝 Audit Log</a>
+            <a href="/admin/settings">⚙️ Settings</a>
+        </div>
+    </nav>
+    
+    <!-- PIN GATE -->
+    <div id="pinGate" class="pin-gate">
+        <div class="pin-box">
+            <div style="font-size:40px;margin-bottom:8px;">🔐</div>
+            <h2>Audit Trail Access</h2>
+            <p style="color:#64748b;font-size:13px;margin-bottom:4px;">Masukkan PIN Admin untuk melihat jejak audit</p>
+            <input type="password" id="pinInput" placeholder="••••••" maxlength="6" inputmode="numeric">
+            <p id="pinError" style="color:#dc2626;font-size:11px;display:none;"></p>
+            <button class="btn btn-primary" onclick="verifyPin()">Buka Audit Log</button>
+            <p style="font-size:10px;color:#94a3b8;margin-top:12px;">
+                💡 <strong>Audit Trail</strong> mencatat <em>siapa</em>, <em>apa</em>, dan <em>kapan</em> setiap tindakan di sistem.<br>
+                Digunakan untuk investigasi, compliance, dan keamanan data.
+            </p>
+        </div>
+    </div>
+    
+    <div id="mainContent" style="display:none;">
+    <div class="container">
+        <!-- LEGEND -->
+        <div class="legend">
+            <span style="font-weight:700;font-size:12px;">📋 Tipe Aksi:</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#1e40af;"></span> Create</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#065f46;"></span> Approve</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#92400e;"></span> Payout</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#3730a3;"></span> Archive</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#991b1b;"></span> Reject/Delete</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#6b21a8;"></span> Settings</span>
+        </div>
+        
+        <!-- SUMMARY -->
+        <div class="summary-row" id="logSummary"></div>
+        
+        <!-- FILTER -->
+        <div class="filter-bar">
+            <select id="filterAction" onchange="applyFilter()">
+                <option value="all">Semua Aksi</option>
+                <option value="create">Create</option>
+                <option value="ga_approve">GA Approve</option>
+                <option value="finance_payout">Finance Payout</option>
+                <option value="archive">Archive</option>
+                <option value="reject">Reject</option>
+                <option value="delete">Delete</option>
+                <option value="settings_save">Settings</option>
+                <option value="import_excel">Import Excel</option>
+            </select>
+            <select id="filterRole" onchange="applyFilter()">
+                <option value="all">Semua Role</option>
+                <option value="driver">Driver</option>
+                <option value="ga">GA</option>
+                <option value="finance">Finance</option>
+                <option value="admin">Admin</option>
+            </select>
+            <span style="font-size:11px;color:var(--gray-500);margin-left:auto;" id="recordCount"></span>
+        </div>
+        
+        <!-- TABLE -->
+        <div class="card">
+            <div class="card-header">
+                <span>📜 Jejak Audit Sistem</span>
+                <span style="font-size:11px;color:var(--gray-500);">Data disimpan permanen • Tidak dapat dihapus</span>
+            </div>
+            <div class="card-body">
+                <table id="logTable">
+                    <thead>
+                        <tr>
+                            <th>Waktu</th>
+                            <th>Pelaku</th>
+                            <th>Role</th>
+                            <th>Aksi</th>
+                            <th>Deskripsi</th>
+                            <th>ID Transaksi</th>
+                            <th>IP Address</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logBody">
+                        <tr><td colspan="7" class="empty">Memuat data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    </div>
+    
+        <footer style="margin-top:40px;background:linear-gradient(180deg,#ffffff,#f1f5f9);border-top:1px solid #e2e8f0;padding:20px;text-align:center;font-family:Inter,system-ui,sans-serif;">
+        <div style="max-width:1200px;margin:0 auto;">
+            <div style="display:flex;justify-content:center;align-items:center;gap:10px;margin-bottom:6px;">
+                <span style="font-weight:700;font-size:13px;color:#1e293b;">PT BESTPROFIT FUTURES</span>
+                <span style="color:#94a3b8;">|</span>
+                <span style="font-size:11px;color:#64748b;">Surabaya</span>
+            </div>
+            <div style="font-size:10px;color:#94a3b8;">
+                BPF BBM System v1.0 · Developed by <span style="color:#2563eb;font-weight:600;">IT BPF Surabaya</span> · © 2026
+            </div>
+        </div>
+    </footer>
+
+    <script>
+    var allLogs = [];
+    
+    async function verifyPin() {
+        var pin = document.getElementById('pinInput').value;
+        var err = document.getElementById('pinError');
+        if (pin.length !== 6 || !/^\d{6}$/.test(pin)) { err.textContent = 'PIN harus 6 digit angka'; err.style.display = 'block'; return; }
+        err.style.display = 'none';
+        try {
+            var r = await fetch('/api/verify-pin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:'admin',pin:pin}) });
+            var d = await r.json();
+            if (d.status === 'success') {
+                document.getElementById('pinGate').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                loadLogs();
+            } else { err.textContent = 'PIN salah!'; err.style.display = 'block'; }
+        } catch(e) { err.textContent = 'Error koneksi'; err.style.display = 'block'; }
+    }
+    
+    async function loadLogs() {
+        try {
+            var r = await fetch('/api/audit-logs');
+            allLogs = await r.json();
+            renderSummary(allLogs);
+            renderTable(allLogs);
+        } catch(e) { console.error(e); }
+    }
+    
+    function renderSummary(logs) {
+        var total = logs.length;
+        var today = logs.filter(function(l) { return new Date(l.created_at).toDateString() === new Date().toDateString(); }).length;
+        var uniqueUsers = new Set(logs.map(function(l) { return l.user_name; })).size;
+        var actions = new Set(logs.map(function(l) { return l.action; })).size;
+        
+        document.getElementById('logSummary').innerHTML = 
+            '<div class="summary-card"><div class="num">'+total+'</div><div class="lbl">Total Aktivitas</div></div>' +
+            '<div class="summary-card"><div class="num">'+today+'</div><div class="lbl">Hari Ini</div></div>' +
+            '<div class="summary-card"><div class="num">'+uniqueUsers+'</div><div class="lbl">Unique Users</div></div>' +
+            '<div class="summary-card"><div class="num">'+actions+'</div><div class="lbl">Jenis Aksi</div></div>';
+    }
+    
+    function getActionClass(action) {
+        var map = {
+            'create': 'action-create', 'ga_approve': 'action-approve', 'finance_payout': 'action-payout',
+            'archive': 'action-archive', 'reject': 'action-reject', 'delete': 'action-delete',
+            'settings_save': 'action-settings', 'import_excel': 'action-import',
+            'driver_sync': 'action-settings', 'user_sync': 'action-settings'
+        };
+        return map[action] || 'action-other';
+    }
+    
+    function getActionLabel(action) {
+        var map = {
+            'create': '📝 Submit Klaim', 'ga_approve': '✅ GA Approve', 'finance_payout': '💰 Finance Payout',
+            'archive': '📦 Archive', 'reject': '❌ Reject', 'delete': '🗑️ Delete',
+            'unverify': '↩️ Unverify', 'settings_save': '⚙️ Settings Save', 'import_excel': '📥 Import Excel',
+            'excel_import': '📥 Import Excel', 'backup_download': '💾 Backup', 'template_download': '📄 Template',
+            'driver_sync': '👤 Driver Sync', 'user_sync': '🔑 User Sync', 'dummy_toggle': '🎭 Dummy Toggle',
+            'trip_submit': '🗺️ Trip Submit', 'trip_verify': '✅ Trip Verify', 'trip_reject': '❌ Trip Reject'
+        };
+        return map[action] || action;
+    }
+    
+    function getRoleClass(role) {
+        var map = { 'driver': 'role-driver', 'ga': 'role-ga', 'finance': 'role-finance', 'admin': 'role-admin' };
+        return map[role] || 'role-driver';
+    }
+    
+    function renderTable(logs) {
+        var filterAction = document.getElementById('filterAction').value;
+        var filterRole = document.getElementById('filterRole').value;
+        
+        var filtered = logs.filter(function(l) {
+            if (filterAction !== 'all' && l.action !== filterAction) return false;
+            if (filterRole !== 'all' && l.user_type !== filterRole) return false;
+            return true;
+        });
+        
+        document.getElementById('recordCount').textContent = filtered.length + ' records';
+        
+        var html = '';
+        filtered.forEach(function(l) {
+            var txLink = l.transaction_id && l.transaction_id > 0 ? '<span class="mono">#' + l.transaction_id + '</span>' : '<span style="color:#94a3b8;">-</span>';
+            html += '<tr>' +
+                '<td class="mono">' + new Date(l.created_at).toLocaleString('id-ID') + '</td>' +
+                '<td><strong>' + (l.user_name || 'System') + '</strong></td>' +
+                '<td><span class="role-badge ' + getRoleClass(l.user_type) + '">' + (l.user_type || '-').toUpperCase() + '</span></td>' +
+                '<td><span class="action-badge ' + getActionClass(l.action) + '">' + getActionLabel(l.action) + '</span></td>' +
+                '<td style="font-size:11px;color:#64748b;">' + getActionLabel(l.action) + ' oleh ' + (l.user_name || 'System') + '</td>' +
+                '<td>' + txLink + '</td>' +
+                '<td class="mono" style="color:#94a3b8;">' + (l.ip_address || '-') + '</td>' +
+                '</tr>';
+        });
+        
+        document.getElementById('logBody').innerHTML = html || '<tr><td colspan="7" class="empty">Tidak ada data dengan filter ini</td></tr>';
+    }
+    
+    function applyFilter() { renderTable(allLogs); }
+    
+    document.getElementById('pinInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') verifyPin(); });
+    </script>
+</body>
+</html>

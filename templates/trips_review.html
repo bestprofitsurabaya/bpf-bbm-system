@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trip Logs - BPF BBM System</title>
+    <link rel="manifest" href="/manifest.json?v=20260720_FINAL">
+    <meta name="theme-color" content="#1d4ed8">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #2563eb; --primary-dark: #1d4ed8; --primary-light: #dbeafe; --success: #059669; --success-light: #d1fae5; --warning: #d97706; --warning-light: #fef3c7; --danger: #dc2626; --danger-light: #fee2e2; --info: #0891b2; --info-light: #cffafe; --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-500: #6b7280; --gray-700: #374151; --gray-800: #1f2937; --gray-900: #111827; --white: #ffffff; --shadow: 0 1px 3px rgba(0,0,0,0.1); --radius: 10px; --radius-sm: 6px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Inter", sans-serif; background: var(--gray-50); color: var(--gray-800); }
+        .navbar { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.07); position: sticky; top: 0; z-index: 100; }
+        .navbar h1 { font-size: 20px; font-weight: 700; }
+        .navbar .nav-links { display: flex; gap: 4px; flex-wrap: wrap; }
+        .navbar .nav-links a { color: rgba(255,255,255,0.85); text-decoration: none; padding: 7px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; }
+        .navbar .nav-links a:hover { background: rgba(255,255,255,0.12); color: white; }
+        .navbar .nav-links a.active { background: rgba(255,255,255,0.2); color: white; font-weight: 600; }
+        .container { max-width: 1400px; margin: 24px auto; padding: 0 20px; }
+        .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--gray-200); margin-bottom: 20px; }
+        .card-header { padding: 16px 22px; border-bottom: 1px solid var(--gray-200); font-weight: 600; background: var(--gray-50); display: flex; justify-content: space-between; align-items: center; }
+        .card-body { padding: 20px; }
+        .filter-form { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; padding: 14px; background: var(--gray-50); border-radius: var(--radius-sm); }
+        .filter-form input, .filter-form select { padding: 8px 12px; border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm); font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { background: var(--gray-100); color: var(--gray-700); font-weight: 600; padding: 10px; border-bottom: 2px solid var(--gray-200); text-align: left; }
+        td { padding: 10px; border-bottom: 1px solid var(--gray-100); }
+        tr:hover td { background: var(--gray-50); }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .badge-pending { background: var(--warning-light); color: var(--warning); }
+        .badge-ga { background: var(--success-light); color: var(--success); }
+        .badge-reject { background: var(--danger-light); color: var(--danger); }
+        .btn { padding: 6px 14px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: 12px; text-decoration: none; display: inline-block; margin: 2px; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-info { background: #0284c7; color: white; }
+        .btn-primary { background: var(--primary); color: white; }
+        .alert { padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 14px; font-size: 13px; }
+        .alert-success { background: var(--success-light); color: #065f46; border-left: 4px solid var(--success); }
+        .alert-warning { background: var(--warning-light); color: #92400e; border-left: 4px solid var(--warning); }
+        .alert-error { background: var(--danger-light); color: #991b1b; border-left: 4px solid var(--danger); }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: white; border-radius: var(--radius); padding: 24px; width: 90%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .modal-box textarea { width: 100%; padding: 10px; border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm); min-height: 80px; font-size: 13px; }
+        .empty { text-align: center; padding: 48px 20px; color: var(--gray-500); }
+        @media (max-width: 768px) { .filter-form { flex-direction: column; } }
+    </style>
+</head>
+<body>
+        <nav class="navbar">
+        <h1>🚛 BPF BBM System</h1>
+        <div class="nav-links">
+            <a href="/admin">📊 Dashboard</a>
+            <a href="/ga/assignments">🚛 Assignments</a>
+            <a href="/admin/rekap">📋 Rekap</a>
+            <a href="/admin/analytics">📈 Analytics</a>
+            <a href="/admin/trips" class="active">🗺️ Trips</a>
+            <a href="/admin/logs">📝 Audit Log</a>
+            <a href="/admin/settings">⚙️ Settings</a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message|safe }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="card">
+            <div class="card-header">
+                <span>📋 Log Perjalanan Harian (Logsheet)</span>
+                <span style="font-size:12px;color:var(--gray-500);">{{ trips|length }} logs</span>
+            </div>
+            <div class="card-body">
+                <form class="filter-form" method="GET">
+                    <input type="text" name="driver" placeholder="Nama Driver" value="{{ filters.driver }}" style="width:180px;">
+                    <input type="date" name="date" value="{{ filters.date }}">
+                    <select name="status">
+                        <option value="pending" {% if filters.status=='pending' %}selected{% endif %}>Pending</option>
+                        <option value="verified_ga" {% if filters.status=='verified_ga' %}selected{% endif %}>Verified</option>
+                        <option value="rejected" {% if filters.status=='rejected' %}selected{% endif %}>Rejected</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                </form>
+                
+                {% if trips %}
+                <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th><th>Tgl</th><th>Driver</th><th>Nopol</th>
+                            <th>Jam Berangkat</th><th>Jam Tiba</th>
+                            <th>KM Awal</th><th>KM Akhir</th><th>Rute</th>
+                            <th>Status</th><th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in trips %}
+                        <tr>
+                            <td><strong>#{{ t.id }}</strong></td>
+                            <td>{{ t.trip_date }}</td>
+                            <td><strong>{{ t.driver_name }}</strong></td>
+                            <td>{{ t.nopol }}</td>
+                            <td>{{ t.jam_keberangkatan }}</td>
+                            <td>{{ t.jam_tiba or '-' }}</td>
+                            <td>{{ t.km_awal }}</td>
+                            <td>{{ t.km_akhir or '-' }}</td>
+                            <td><span style="background:var(--primary-light);color:var(--primary-dark);padding:2px 8px;border-radius:10px;font-weight:700;">{{ t.total_routes }} rute</span></td>
+                            <td>
+                                <span class="badge {% if t.status=='verified_ga' %}badge-ga{% elif t.status=='rejected' %}badge-reject{% else %}badge-pending{% endif %}">
+                                    {{ t.status|replace('_',' ')|upper }}
+                                </span>
+                                {% if t.status=='rejected' and t.rejection_reason %}
+                                <div style="font-size:10px;color:var(--danger);margin-top:2px;">{{ t.rejection_reason }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if t.status == 'pending' %}
+                                <a href="/admin/trips/verify/{{ t.id }}?admin=GA" class="btn btn-success btn-sm" onclick="return confirm('Verifikasi trip #{{ t.id }}?')">Verify</a>
+                                <button class="btn btn-danger btn-sm" onclick="showRejectModal({{ t.id }})">Reject</button>
+                                {% endif %}
+                                <a href="/admin/trips/export/{{ t.id }}" class="btn btn-info btn-sm">📥 Excel</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+                {% else %}
+                <div class="empty">
+                    <p style="font-size:16px;font-weight:600;">Tidak ada log perjalanan</p>
+                    <p style="font-size:13px;margin-top:4px;">Sesuaikan filter atau minta driver untuk submit log.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- REJECT MODAL -->
+    <div class="modal-overlay" id="rejectModal">
+        <div class="modal-box">
+            <h3 style="margin-bottom:12px;">Tolak Trip Log</h3>
+            <form id="rejectForm" method="POST">
+                <label style="font-size:13px;font-weight:600;">Alasan Penolakan:</label>
+                <textarea name="reason" placeholder="Tulis alasan..." required></textarea>
+                <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+                    <button type="button" class="btn" style="background:var(--gray-200);" onclick="closeReject()">Batal</button>
+                    <button type="submit" class="btn btn-danger">Tolak</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        function showRejectModal(tripId) {
+            document.getElementById('rejectForm').action = '/admin/trips/reject/' + tripId;
+            document.getElementById('rejectModal').classList.add('active');
+        }
+        function closeReject() { document.getElementById('rejectModal').classList.remove('active'); }
+        document.getElementById('rejectModal').addEventListener('click', function(e) { if(e.target===this) closeReject(); });
+        document.addEventListener('keydown', function(e) { if(e.key==='Escape') closeReject(); });
+    </script>
+    
+    <!-- Service Worker Auto-Update -->
+    <script>
+    if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js?v=20260720_FINAL").then(function(reg) {
+            reg.addEventListener("updatefound", function() {
+                var newWorker = reg.installing;
+                newWorker.addEventListener("statechange", function() {
+                    if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                        if (confirm("Pembaruan tersedia. Muat ulang?")) window.location.reload();
+                    }
+                });
+            });
+        });
+    }
+    </script>
+    
+    <!-- PROFESSIONAL FOOTER -->
+        <footer style="margin-top:40px;background:linear-gradient(180deg,#ffffff,#f1f5f9);border-top:1px solid #e2e8f0;padding:20px;text-align:center;font-family:Inter,system-ui,sans-serif;">
+        <div style="max-width:1200px;margin:0 auto;">
+            <div style="display:flex;justify-content:center;align-items:center;gap:10px;margin-bottom:6px;">
+                <span style="font-weight:700;font-size:13px;color:#1e293b;">PT BESTPROFIT FUTURES</span>
+                <span style="color:#94a3b8;">|</span>
+                <span style="font-size:11px;color:#64748b;">Surabaya</span>
+            </div>
+            <div style="font-size:10px;color:#94a3b8;">
+                BPF BBM System v1.0 · Developed by <span style="color:#2563eb;font-weight:600;">IT BPF Surabaya</span> · © 2026
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
