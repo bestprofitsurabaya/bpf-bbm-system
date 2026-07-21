@@ -237,33 +237,27 @@
     <div id="settingsContent" style="display:none;">
     <div class="container">
         
-        <!-- DRIVERS -->
+        <!-- 👤 DRIVER MANAGEMENT -->
         <div class="card">
-            <div class="card-header">Driver & Kendaraan</div>
+            <div class="card-header">
+                <span>👤 Driver Management</span>
+                <span style="font-size:11px;color:#94a3b8;">Kelola data driver. Assignment kendaraan oleh GA.</span>
+            </div>
             <div class="card-body">
-                <p class="note" style="margin-bottom:14px;">Kelola data driver. Toggle untuk aktif/nonaktifkan.</p>
                 <table>
-                    <thead><tr><th>Driver</th><th>Nopol</th><th>Kendaraan</th><th>BBM</th><th>Status</th><th>Aksi</th></tr></thead>
+                    <thead><tr><th>Driver</th><th>Status</th><th>Aksi</th></tr></thead>
                     <tbody id="driver-table">
-                        <tr><td colspan="6" style="text-align:center;color:#9ca3af;">Loading...</td></tr>
+                        <tr><td colspan="3" style="text-align:center;color:#9ca3af;">Loading...</td></tr>
                     </tbody>
                 </table>
-                <div style="margin-top:16px;padding:14px;background:#f3f4f6;border-radius:10px;">
-                    <strong>Tambah/Update Driver:</strong>
-                    <div class="row-4" style="margin-top:8px;">
-                        <input type="text" id="newDriverName" class="form-control" placeholder="Nama Driver">
-                        <input type="text" id="newDriverNopol" class="form-control" placeholder="No. Polisi">
-                        <select id="newDriverVehicle" class="form-control">
-                            <option value="">Kendaraan</option>
-                            {% for v in vehicles %}<option value="{{ v.vehicle_type }}">{{ v.vehicle_type }}</option>{% endfor %}
-                        </select>
-                        <select id="newDriverBBM" class="form-control">
-                            <option value="">BBM</option>
-                            {% for b in bbm_types %}<option value="{{ b.name }}">{{ b.name }}</option>{% endfor %}
-                        </select>
+                <div style="margin-top:14px;padding:14px;background:#f8fafc;border-radius:10px;border:1px dashed #e2e8f0;">
+                    <strong>➕ Tambah Driver Baru:</strong>
+                    <div style="display:flex;gap:10px;margin-top:8px;align-items:center;">
+                        <input type="text" id="newDriverName" class="form-control" placeholder="Nama Driver (wajib)" style="max-width:300px;">
+                        <button class="btn btn-primary btn-sm" onclick="syncDriver()" style="white-space:nowrap;">+ Tambah Driver</button>
                     </div>
-                    <button class="btn-add" onclick="syncDriver()">+ Simpan Driver</button>
-                    <span id="syncStatus" style="font-size:12px;margin-left:10px;"></span>
+                    <span id="syncStatus" style="font-size:11px;margin-left:10px;"></span>
+                    <p class="note" style="margin-top:6px;">💡 Driver tidak perlu nopol. Nopol & kendaraan akan di-assign melalui <a href="/ga/assignments" style="color:#2563eb;">GA Assignments</a>.</p>
                 </div>
             </div>
         </div>
@@ -357,9 +351,12 @@
                 </div>
             </div>
             
-            <!-- Vehicles -->
-            <div class="card"><div class="card-header">🚗 Fleet Kendaraan</div><div class="card-body">
-                <div style="margin-bottom:16px;padding:14px;background:#f3f4f6;border-radius:10px;">
+            <!-- 🚗 FLEET KENDARAAN -->
+            <div class="card"><div class="card-header">
+                <span>🚗 Fleet Kendaraan</span>
+                <span style="font-size:11px;color:#94a3b8;" id="fleetCount">8 unit</span>
+            </div><div class="card-body">
+                <div style="margin-bottom:16px;padding:14px;background:#f8fafc;border-radius:10px;border:1px dashed #e2e8f0;">
                     <strong>➕ Tambah Kendaraan Baru:</strong>
                     <div class="row-4" style="margin-top:8px;">
                         <input type="text" id="newNopol" class="form-control" placeholder="No. Polisi (L 1906 TF)">
@@ -370,10 +367,10 @@
                             <option value="PERTAMAX">PERTAMAX</option>
                         </select>
                     </div>
-                    <button class="btn-add" onclick="addVehicle()">+ Tambah Kendaraan</button>
-                    <span id="addVehicleStatus" style="font-size:12px;margin-left:10px;"></span>
+                    <button class="btn btn-primary btn-sm" onclick="addVehicle()" style="margin-top:8px;">+ Tambah Kendaraan</button>
+                    <span id="addVehicleStatus" style="font-size:11px;margin-left:10px;"></span>
                 </div>
-                <table><thead><tr><th>Nopol</th><th>Tipe</th><th>Brand</th><th>Kap (L)</th><th>BBM</th><th>Aktif</th><th></th></tr></thead>
+                <table><thead><tr><th>Nopol</th><th>Tipe</th><th>Brand</th><th>Kap (L)</th><th>BBM</th><th>Driver</th><th>Aktif</th><th></th></tr></thead>
                 <tbody id="vehicle-table">
                     {% for v in vehicles %}
                     <tr>
@@ -429,6 +426,30 @@
                 loadDrivers();
                 loadUsers();
                 checkDummyStatus();
+    // Load driver aktif untuk fleet table
+    async function loadFleetDrivers() {
+        try {
+            var res = await fetch('/api/assignments/active');
+            var assignments = await res.json();
+            var rows = document.querySelectorAll('#vehicle-table tr');
+            rows.forEach(function(row) {
+                var nopolCell = row.querySelector('td:first-child span');
+                if (!nopolCell) return;
+                var nopol = nopolCell.textContent.trim();
+                var assign = null;
+                for (var i = 0; i < assignments.length; i++) {
+                    if (assignments[i].nopol === nopol) { assign = assignments[i]; break; }
+                }
+                var driverCell = row.querySelector('td:nth-child(6)');
+                if (driverCell) {
+                    driverCell.innerHTML = assign ? '<span style="color:#2563eb;font-weight:500;">' + assign.driver_name + '</span>' : '<span style="color:#94a3b8;">-</span>';
+                }
+            });
+        } catch(e) {}
+    }
+    // Panggil setelah load
+    setTimeout(loadFleetDrivers, 1000);
+
                 loadMultifillThreshold();
             } else { 
                 err.textContent = 'PIN salah!'; 
@@ -449,7 +470,7 @@
         var data = await res.json();
         var tbody = document.getElementById('driver-table');
         if (!data || data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9ca3af;">Tidak ada driver</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#9ca3af;">Tidak ada driver</td></tr>';
             return;
         }
         var rows = '';
@@ -457,14 +478,11 @@
             var d = data[i];
             if (!d.name) continue;
             var isActive = (d.is_active === 1 || d.is_active === true);
-            var statusBadge = isActive ? '<span class="badge badge-good">Aktif</span>' : '<span class="badge badge-danger">Nonaktif</span>';
+            var statusBadge = isActive ? '<span class="badge badge-success">✅ Aktif</span>' : '<span class="badge badge-danger">⛔ Nonaktif</span>';
             var toggleLabel = isActive ? 'Nonaktifkan' : 'Aktifkan';
             var toggleClass = isActive ? 'off' : 'on';
             rows += '<tr>' +
                 '<td><strong>' + d.name + '</strong></td>' +
-                '<td>' + (d.nopol || '-') + '</td>' +
-                '<td>' + (d.vehicle_type || '-') + '</td>' +
-                '<td>' + (d.bbm_type || '-') + '</td>' +
                 '<td>' + statusBadge + '</td>' +
                 '<td>' +
                     '<button class="btn-toggle ' + toggleClass + '" onclick="toggleDriver(\'' + d.name + '\', ' + isActive + ')">' + toggleLabel + '</button>' +
@@ -510,16 +528,13 @@
     
     async function syncDriver() {
         var n = document.getElementById('newDriverName').value.trim().toUpperCase();
-        var p = document.getElementById('newDriverNopol').value.trim().toUpperCase();
-        var v = document.getElementById('newDriverVehicle').value;
-        var b = document.getElementById('newDriverBBM').value;
         var s = document.getElementById('syncStatus');
-        if(!n||!p){s.textContent='Nama+Nopol wajib!';s.style.color='red';return;}
-        var res = await fetch('/api/drivers/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({driver_name:n, nopol:p, vehicle_type:v||'AVANZA', bbm_type:b||'PERTALITE'})});
+        if(!n){s.textContent='Nama driver wajib!';s.style.color='red';return;}
+        var res = await fetch('/api/drivers/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({driver_name:n, nopol:'', vehicle_type:'AVANZA', bbm_type:'PERTALITE'})});
         var d = await res.json();
-        s.textContent = d.status==='success'?'Berhasil!':'Gagal';
+        s.textContent = d.status==='success'?'✅ Driver ditambahkan!':'❌ Gagal';
         s.style.color = d.status==='success'?'green':'red';
-        if(d.status==='success'){document.getElementById('newDriverName').value='';document.getElementById('newDriverNopol').value='';loadDrivers();}
+        if(d.status==='success'){document.getElementById('newDriverName').value='';loadDrivers();}
     }
     
     // ============================================================
@@ -678,7 +693,31 @@
             var enable = !data.enabled;
             var toggleRes = await fetch('/api/dummy-data/toggle', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({enable:enable}) });
             var result = await toggleRes.json();
-            if (result.status === 'success') { checkDummyStatus(); document.getElementById('dummyStatus').textContent = result.msg; document.getElementById('dummyStatus').style.color = 'green'; }
+            if (result.status === 'success') { checkDummyStatus();
+    // Load driver aktif untuk fleet table
+    async function loadFleetDrivers() {
+        try {
+            var res = await fetch('/api/assignments/active');
+            var assignments = await res.json();
+            var rows = document.querySelectorAll('#vehicle-table tr');
+            rows.forEach(function(row) {
+                var nopolCell = row.querySelector('td:first-child span');
+                if (!nopolCell) return;
+                var nopol = nopolCell.textContent.trim();
+                var assign = null;
+                for (var i = 0; i < assignments.length; i++) {
+                    if (assignments[i].nopol === nopol) { assign = assignments[i]; break; }
+                }
+                var driverCell = row.querySelector('td:nth-child(6)');
+                if (driverCell) {
+                    driverCell.innerHTML = assign ? '<span style="color:#2563eb;font-weight:500;">' + assign.driver_name + '</span>' : '<span style="color:#94a3b8;">-</span>';
+                }
+            });
+        } catch(e) {}
+    }
+    // Panggil setelah load
+    setTimeout(loadFleetDrivers, 1000);
+ document.getElementById('dummyStatus').textContent = result.msg; document.getElementById('dummyStatus').style.color = 'green'; }
         } catch(e) { document.getElementById('dummyStatus').textContent = 'Error'; document.getElementById('dummyStatus').style.color = 'red'; }
         finally { btn.disabled = false; }
     }
@@ -692,6 +731,30 @@
     }
     
     checkDummyStatus();
+    // Load driver aktif untuk fleet table
+    async function loadFleetDrivers() {
+        try {
+            var res = await fetch('/api/assignments/active');
+            var assignments = await res.json();
+            var rows = document.querySelectorAll('#vehicle-table tr');
+            rows.forEach(function(row) {
+                var nopolCell = row.querySelector('td:first-child span');
+                if (!nopolCell) return;
+                var nopol = nopolCell.textContent.trim();
+                var assign = null;
+                for (var i = 0; i < assignments.length; i++) {
+                    if (assignments[i].nopol === nopol) { assign = assignments[i]; break; }
+                }
+                var driverCell = row.querySelector('td:nth-child(6)');
+                if (driverCell) {
+                    driverCell.innerHTML = assign ? '<span style="color:#2563eb;font-weight:500;">' + assign.driver_name + '</span>' : '<span style="color:#94a3b8;">-</span>';
+                }
+            });
+        } catch(e) {}
+    }
+    // Panggil setelah load
+    setTimeout(loadFleetDrivers, 1000);
+
     loadMultifillThreshold();
     
     // ============================================================
@@ -728,7 +791,7 @@
     
     <script>
     if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("/sw.js?v=20260720_FINAL").then(function(reg) {
+        navigator.serviceWorker.register("/sw.js?v=20260721_FINAL").then(function(reg) {
             reg.addEventListener("updatefound", function() {
                 var newWorker = reg.installing;
                 newWorker.addEventListener("statechange", function() {

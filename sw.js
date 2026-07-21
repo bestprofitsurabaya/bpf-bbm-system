@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bpf-bbm-20260720_FINAL';
+const CACHE_NAME = 'bpf-bbm-20260721_FINAL';
 const STATIC_ASSETS = [
     '/',
     '/driver',

@@ -1,4 +1,4 @@
-# 📖 Panduan Pengguna BPF BBM System v1.0
+# 📖 Panduan Pengguna BPF Fleet & BBM System v1.1
 
 **PT. Bestprofit Futures - Surabaya**
 
@@ -33,12 +33,9 @@
 | Finance Officer | `finance_officer` | `123456` |
 
 ### Install PWA di HP (Driver)
-1. Buka Chrome di HP
-2. Akses URL Driver
-3. Klik menu ⋮ (pojok kanan atas)
-4. Pilih **"Add to Home Screen"**
-5. Aplikasi terpasang seperti app native
-6. Buka dari icon di homescreen
+1. Buka Chrome di HP → akses URL Driver
+2. Klik menu ⋮ → **"Add to Home Screen"**
+3. Aplikasi terpasang seperti app native
 
 ---
 
@@ -49,291 +46,138 @@
 - **🗺️ Trip** — Log perjalanan harian
 - **📊 Rapor** — Cek performa kendaraan
 
-### 2.2 Mengajukan Klaim BBM (Step-by-Step)
+### 2.2 Mengajukan Klaim BBM
+1. Buka tab ⛽ BBM, tunggu GPS hijau ✅
+2. **Pilih Nama Driver** dari dropdown
+3. Nopol & Kendaraan terisi otomatis dari assignment GA
+4. Pilih Jenis BBM → harga otomatis
+5. Isi Nominal, Appointment, Odometer, SPBU
+6. Upload 3 foto (📷 kamera atau 🖼️ galeri) → watermark otomatis
+7. Klik **📤 Kirim Laporan BBM**
 
-1. **Buka aplikasi** → tab ⛽ BBM
-2. **Tunggu GPS** sampai kotak hijau: ✅ Lokasi Terdeteksi
-3. **Pilih Nama Driver** dari dropdown:
-   - Nopol & Kendaraan terisi otomatis
-   - Pilih jenis BBM (PERTALITE/PERTAMAX) → harga otomatis
-4. **Isi data transaksi:**
-   - Nominal (Rp) → Volume (L) terhitung otomatis
-   - Jumlah Appointment
-   - Odometer (KM) — lihat di dashboard mobil
-   - SPBU: Rekanan / Non-Rekanan
-5. **Upload 3 Foto:**
-   - Foto ODO (speedometer)
-   - Foto ODO + Struk (bersebelahan)
-   - Foto Struk (close-up)
-   - Jika SPBU Non-Rekanan: + Foto Dispenser
-   - Klik 📷 untuk kamera, 🖼️ untuk galeri
-   - **Watermark otomatis** ditambahkan (GPS + Waktu + Perusahaan)
-   - Lihat badge ✅ Watermarked
-6. **Klik 📤 Kirim Laporan BBM**
-7. **Popup sukses** muncul dengan ID Transaksi
-
-### 2.3 Log Perjalanan (Step-by-Step)
-
-1. Tab **🗺️ Trip**
-2. **Pilih Nama Driver** → Nopol terisi otomatis
-3. **Isi:** Tanggal, KM Awal, Jam Berangkat
-4. **Klik + Tambah Rute** untuk setiap tujuan:
-   - Isi lokasi manual, atau
-   - **Klik 📍 GPS** → lokasi + jam + KM terisi otomatis
-5. **Klik 📋 Kirim Log Perjalanan**
+### 2.3 Log Perjalanan
+1. Tab 🗺️ Trip → pilih driver → isi KM Awal, Jam
+2. Klik **+ Tambah Rute** → isi atau klik 📍 GPS
+3. Klik **📋 Kirim Log Perjalanan**
 
 ### 2.4 Mode Offline
-- Jika sinyal hilang: 🟡 Offline — Data tersimpan lokal
-- Counter antrean muncul di kanan atas
-- Data otomatis terkirim saat sinyal kembali
+- 🟡 Offline: data tersimpan lokal, auto-sync saat online
 
-### 2.5 Cek Performa Kendaraan
-1. Tab **📊 Rapor**
-2. Masukkan No. Polisi → **Cek**
-3. Lihat: KM/L, Status (BOROS/CUKUP/BAIK/SANGAT BAIK), Saran AI
-
-### 2.6 Konfirmasi Serah Terima Kendaraan
-1. Saat GA assign kendaraan → notifikasi kuning muncul
-2. Klik **✅ Konfirmasi Serah Terima**
-3. Status berubah jadi hijau "Dikonfirmasi"
+### 2.5 Cek Performa
+- Tab 📊 Rapor → masukkan No. Polisi → Cek
 
 ---
 
 ## 3. Panduan GA (General Affairs)
 
-### 3.1 Dashboard Admin
-Buka `/admin` — 4 tab:
-- 🔴 **Antrean GA** — Klaim menunggu approval (berkedip jika ada)
-- 💰 **Finance** — Siap dicairkan
-- ✍️ **Driver TTD** — Menunggu tanda tangan
-- 📦 **Arsip** — Selesai
+### 3.1 Dashboard
+Buka `/admin` — 4 tab: Antrean GA, Finance, Driver TTD, Arsip
 
-### 3.2 Approve Klaim (Step-by-Step)
+### 3.2 Approve Klaim
+1. Tab Antrean GA → klik **🔍 Approve**
+2. Modal Cross-Check: Health Score, Flags, Budget
+3. Klik **Lanjut Approve** → PIN → OK
 
-1. Tab **Antrean GA**
-2. Lihat transaksi: foto, nominal, ODO, KM/L
-3. Klik **🔍 Approve**
-4. **Modal Cross-Check** muncul:
-   - 🏥 Health Score kendaraan (0-100)
-   - 📋 Detail transaksi + ODO sebelumnya
-   - 🚩 Flags (ODO mundur, KM/L rendah, budget)
-   - ✅ Rekomendasi: AMAN / PERLU PERHATIAN / INVESTIGASI
-5. Klik **Lanjut Approve** → masukkan PIN → OK
-
-### 3.3 Menolak Klaim
-1. Klik **Tolak** pada transaksi
-2. Masukkan PIN
-3. Isi alasan penolakan
-4. Klik **Tolak**
-
-### 3.4 Manajemen Kendaraan (GA Assignments) — FITUR BARU
+### 3.3 Manajemen Kendaraan (GA Assignments)
 
 Buka `/ga/assignments`
 
-#### A. Assign Kendaraan Kosong ke Driver
-1. Lihat panel **➕ Assign Kendaraan Kosong** (kanan)
-2. **Pilih Kendaraan** dari dropdown (nopol + tipe)
-3. **Pilih Driver** dari dropdown
-4. Isi Catatan (opsional)
-5. Klik **➕ Assign Kendaraan**
-6. Kendaraan muncul di tabel **Assignment Aktif**
+#### A. Assign Kendaraan Kosong
+1. Pilih Kendaraan (nopol + tipe) dari dropdown
+2. Pilih Driver dari dropdown
+3. Klik **➕ Assign Kendaraan**
 
-#### B. Tukar Kendaraan Antar Driver
-1. Lihat panel **🔄 Tukar Kendaraan** (kiri)
-2. **Pilih Kendaraan** dari dropdown → Driver saat ini terisi otomatis
-3. **Pilih Driver Baru** dari dropdown
-4. **Pilih Kategori Alasan:**
-   - 👤 Kendala Driver (sakit, cuti, dll)
-   - 🚗 Kendala Kendaraan (rusak, servis, dll)
-   - 🔄 Rotasi Biasa
-   - 📝 Lainnya
-5. **Isi Alasan Lengkap**
-6. **Isi Nama GA**
-7. Klik **🔄 Tukar Kendaraan**
-8. Riwayat tercatat di tabel **📜 Riwayat Penukaran**
+#### B. Tukar Kendaraan
+1. Pilih Kendaraan (dropdown terisi dari assignment aktif)
+2. Driver Saat Ini terisi otomatis
+3. Pilih Driver Baru + Kategori Alasan + Alasan Lengkap
+4. Klik **🔄 Tukar Kendaraan**
 
-#### C. Lepas Kendaraan (Release)
-1. Di tabel **Assignment Aktif**, klik **✕ Lepas**
-2. Isi alasan di popup (contoh: "Masuk bengkel")
-3. Klik OK
-4. Kendaraan kembali ke pool "Assign Kosong"
-5. Nopol driver dikembalikan ke nopol sebelumnya
-
-### 3.5 Review Trip Log
-1. Menu **🗺️ Trips**
-2. Lihat log perjalanan driver
-3. Verify atau Reject
+#### C. Lepas Kendaraan
+1. Di tabel Assignment Aktif, klik **✕ Lepas**
+2. Isi alasan → OK
+3. Kendaraan kembali ke pool kosong
 
 ---
 
 ## 4. Panduan Finance
 
-### 4.1 Finance Review Panel (Step-by-Step)
+### 4.1 Finance Review
+1. Tab Finance → klik **🔍 Review**
+2. Split-screen: foto (kiri) + data (kanan)
+3. Tambah remark → klik **💰 Keluarkan Dana** → PIN
 
-1. Tab **💰 Finance**
-2. Klik **🔍 Review** pada transaksi
-3. **Split-screen muncul:**
-   - **Kiri:** Semua foto (klik untuk zoom)
-   - **Kanan:** Data transaksi lengkap + Budget usage
-4. Tambah **Remark** jika perlu
-5. Klik **💰 Keluarkan Dana** → PIN → OK
+### 4.2 Edit ODO
+1. Klik ✏️ di samping ODO → isi ODO baru + alasan + PIN
 
-### 4.2 Edit ODO (Koreksi)
-1. Klik **✏️** di samping ODO pada transaksi
-2. Masukkan ODO baru
-3. Isi alasan perubahan
-4. Masukkan PIN Finance
-5. Klik **Simpan Perubahan ODO**
-6. Tercatat di Audit Log
-
-### 4.3 Archive (Step-by-Step)
-1. Tab **✍️ Driver TTD**
-2. Pastikan driver sudah tanda tangan fisik
-3. Klik **TTD & Arsip** → PIN → OK
-4. Download **ZIP** untuk arsip digital (semua foto + info)
-
-### 4.4 Rekapitulasi
-1. Menu **📋 Rekap**
-2. Default: 7 hari terakhir
-3. Filter: tanggal, nopol, driver
-4. **Cetak PDF** → klik Print
-5. **Export ZIP** → download semua rapor driver
+### 4.3 Archive
+1. Tab Driver TTD → pastikan TTD fisik
+2. Klik **TTD & Arsip** → PIN → Download ZIP
 
 ---
 
 ## 5. Panduan Admin
 
-### 5.1 Settings — Akses
-1. Buka **⚙️ Settings**
-2. Masukkan **PIN Admin** (`123456`)
-3. Halaman Settings terbuka
+### 5.1 Settings (PIN: 123456)
 
-### 5.2 Driver Management
+#### 👤 Driver Management
+- **Tabel:** Driver | Status | Aksi
+- **Tambah Driver:** Isi nama → klik + Tambah Driver
+- **Nonaktifkan:** Klik toggle (tidak memengaruhi assignment)
+- **Hapus:** Klik 🗑
+- 💡 Assignment kendaraan dilakukan oleh GA
 
-#### Lihat Daftar Driver
-- Tabel: Driver | Nopol | Kendaraan | BBM | Status | Aksi
+#### 🚗 Fleet Kendaraan
+- **Tabel:** Nopol | Tipe | Brand | Kap | BBM | Driver | Aktif
+- **Tambah Kendaraan:** Isi nopol, tipe → + Tambah Kendaraan
+- Kolom Driver menampilkan driver aktif (read-only dari GA)
 
-#### Aktifkan/Nonaktifkan Driver
-- Klik tombol **Nonaktifkan** (merah) / **Aktifkan** (hijau)
-- Konfirmasi popup → OK
+#### 👥 User Management
+- **Tabel:** Username | Nama | Role | Status | Login | Aksi
+- **Reset PIN:** Klik 🔑 PIN → isi PIN baru 6 digit → Simpan
+- **Nonaktifkan/Hapus:** Toggle atau 🗑
 
-#### Hapus Driver Permanen
-- Klik tombol **🗑**
-- Konfirmasi popup → OK
+#### 📊 Data Demo
+- Klik Aktifkan/Nonaktifkan Data Demo
 
-#### Tambah Driver Baru
-1. Isi form **Tambah/Update Driver:**
-   - Nama Driver (wajib)
-   - No. Polisi (wajib)
-   - Kendaraan (dropdown)
-   - BBM (dropdown)
-2. Klik **+ Simpan Driver**
+#### 📥 Import Excel
+- Unduh Template → isi → Upload
 
-### 5.3 Fleet Kendaraan — FITUR BARU
+#### ⛽ Multi-Fill Threshold
+- Atur batas KM deteksi top-up (default: 40)
 
-#### Lihat Semua Kendaraan
-- Tabel: Nopol | Tipe | Brand | Kap (L) | BBM | Aktif | 🗑
-- Nopol tampil sebagai tag monospace kuning
+#### 📊 Batas Konsumsi
+- Atur Good/Warning/Min/Max KM/L per kendaraan
 
-#### Tambah Kendaraan Baru (Tanpa Driver)
-1. Isi form **➕ Tambah Kendaraan Baru:**
-   - No. Polisi (wajib, contoh: L 1906 TF)
-   - Tipe (contoh: AVANZA)
-   - Brand (default: Toyota)
-   - BBM Default (PERTALITE/PERTAMAX)
-2. Klik **+ Tambah Kendaraan**
-3. Kendaraan langsung tersedia di GA Assignments
-
-### 5.4 User Management
-
-#### Lihat Daftar User
-- Tabel: Username | Nama | Role | Status | Login | Aksi
-
-#### Aktifkan/Nonaktifkan User
-- Klik tombol toggle (hijau/merah)
-
-#### Reset PIN User
-1. Klik tombol **🔑 PIN**
-2. Popup muncul → isi PIN baru (6 digit)
-3. Konfirmasi PIN
-4. Klik **💾 Simpan PIN Baru**
-
-#### Hapus User
-- Klik tombol **🗑**
-
-#### Tambah User Baru
-1. Isi form **Tambah/Update User:**
-   - Username
-   - Nama Lengkap
-   - Role (GA/Finance/Admin)
-   - PIN (6 digit)
-2. Klik **+ Simpan User**
-
-### 5.5 Data Demo
-- Klik **Aktifkan Data Demo** untuk menampilkan data dummy
-- Data demo tidak muncul di dashboard utama
-- Klik lagi untuk menonaktifkan
-
-### 5.6 Import Excel
-1. Klik **Unduh Template**
-2. Isi data transaksi historis di Excel
-3. Upload file .xlsx
-4. Sistem otomatis mendaftarkan driver, kendaraan, BBM baru
-
-### 5.7 Batas Konsumsi
-- Atur Good/Warning/Min/Max KM/L per kombinasi Kendaraan+BBM
-- Centang **Default** untuk menjadikan default
-
-### 5.8 Multi-Fill Threshold
-- Atur batas KM untuk deteksi top-up (default: 40 KM)
-- Transaksi di bawah threshold → badge ⛽ TOP-UP
-
-### 5.9 Backup Database
-- Klik **Download Backup** untuk mengunduh file .sql
-
-### 5.10 Audit Trail
-1. Menu **📝 Audit Log**
-2. Masukkan PIN Admin
-3. Lihat semua aktivitas: create, approve, payout, archive, reject, swap, release, reset_pin, dll
+#### 💾 Backup
+- Klik Download Backup (.sql)
 
 ---
 
 ## 6. FAQ
 
-### Q: Watermark tidak muncul?
-**A:** Pastikan GPS HP aktif. Watermark diproses otomatis setelah foto dipilih. Lihat badge status.
+**Q: Dropdown driver di PWA kosong?**
+A: Pastikan driver sudah ditambahkan di Settings → Driver Management.
 
-### Q: Kenapa KM/L = 0?
-**A:** Transaksi pertama selalu 0. Transaksi berikutnya akan terhitung.
+**Q: Nopol tidak muncul saat pilih driver?**
+A: Driver belum di-assign kendaraan. GA harus assign dulu via GA Assignments.
 
-### Q: Lupa PIN?
-**A:** Admin bisa mereset PIN user lain via Settings → 🔑 PIN.
-Jika Admin lupa PIN, hubungi IT untuk reset via database.
+**Q: Dropdown Tukar Kendaraan kosong?**
+A: Belum ada assignment aktif. Assign kendaraan dulu via "Assign Kosong".
 
-### Q: Offline, data aman?
-**A:** Ya, data disimpan di IndexedDB HP. Otomatis terkirim saat online. Lihat counter antrean.
+**Q: Beda Tukar dan Lepas?**
+A: **Tukar** = ganti driver. **Lepas** = kendaraan kembali ke pool.
 
-### Q: Import Excel gagal?
-**A:** Pastikan format tanggal: DD/MM/YYYY HH:MM. Format file: .xlsx.
+**Q: Nonaktifkan driver, kendaraannya gimana?**
+A: Assignment tidak terpengaruh. GA yang mengatur pelepasan kendaraan.
 
-### Q: Dropdown Tukar Kendaraan kosong?
-**A:** Assign kendaraan dulu via "Assign Kosong". Dropdown hanya menampilkan kendaraan yang sedang aktif dipegang driver.
-
-### Q: Bagaimana menambah kendaraan tanpa driver?
-**A:** Settings → Fleet Kendaraan → isi form ➕ Tambah Kendaraan Baru → cukup isi nopol & tipe.
-
-### Q: Kendaraan menganggur, apakah bisa digunakan?
-**A:** Ya. Kendaraan tanpa driver muncul di GA Assignments → Assign Kosong. Bisa langsung di-assign ke driver manapun.
-
-### Q: Apa perbedaan Tukar dan Lepas?
-**A:** **Tukar** = ganti driver (kendaraan tetap aktif dengan driver baru). **Lepas** = kendaraan dikembalikan ke pool kosong (tidak ada driver).
+**Q: Tambah kendaraan tanpa driver?**
+A: Settings → Fleet Kendaraan → isi nopol + tipe → + Tambah.
 
 ---
 
 ## 📞 Kontak
 
 **PT. Bestprofit Futures - Surabaya**  
-BPF BBM System v1.0  
-Developed & Maintained by **IT BPF Surabaya**
-
-> **Catatan:** Semua perubahan di sistem tercatat di Audit Log. Setiap aksi memerlukan PIN sesuai role.
+BPF Fleet & BBM System v1.1  
+Developed by **IT BPF Surabaya**
