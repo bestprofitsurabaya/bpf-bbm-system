@@ -82,6 +82,118 @@ class BPFBasePDF(FPDF):
         self.cell(0, 4, f'BPF Fleet & BBM System v1.1 | Generated: {datetime.now().strftime("%d-%m-%Y %H:%M")} | Page {self.page_no()}/{{nb}}', align="C")
         self.set_text_color(0, 0, 0)
     
+
+    def add_photo_grid_2x2(self, photos, upload_folder='uploads'):
+        '''Add 4 photos in 2x2 grid with labels'''
+        if not photos:
+            self.set_font(self._font(), 'I', 8)
+            self.cell(0, 5, '(Tidak ada foto)', align='C')
+            return
+        
+        # Grid dimensions
+        margin = self.l_margin
+        page_w = self.w - self.l_margin - self.r_margin
+        cell_w = page_w / 2 - 4  # 2 columns with gap
+        cell_h = 65  # Fixed cell height
+        gap = 4
+        
+        y_start = self.get_y()
+        max_y = y_start
+        
+        for idx, photo in enumerate(photos):
+            col = idx % 2
+            row = idx // 2
+            
+            x = margin + col * (cell_w + gap)
+            y = y_start + row * (cell_h + 12)  # +12 for label
+            
+            # Check page break
+            if y + cell_h > self.h - 25:
+                self.add_page()
+                y_start = self.get_y()
+                y = y_start
+                max_y = y_start
+                # Recalculate for new page
+                col = idx % 2
+                row = 0
+                x = margin + col * (cell_w + gap)
+                y = y_start
+            
+            # Draw border
+            self.set_draw_color(200, 200, 200)
+            self.set_line_width(0.3)
+            self.rect(x, y, cell_w, cell_h)
+            
+            # Add photo
+            if photo.get('path'):
+                filepath = os.path.join(upload_folder, photo['path'])
+                if os.path.exists(filepath):
+                    try:
+                        # Get image dimensions
+                        from PIL import Image
+                        with Image.open(filepath) as img:
+                            img_w, img_h = img.size
+                        
+                        # Calculate fit
+                        ratio = min(cell_w / img_w, cell_h / img_h)
+                        new_w = img_w * ratio
+                        new_h = img_h * ratio
+                        
+                        # Center in cell
+                        img_x = x + (cell_w - new_w) / 2
+                        img_y = y + (cell_h - new_h) / 2
+                        
+                        # Compress & resize
+                        import io, base64
+                        with Image.open(filepath) as img:
+                            # Resize to max 800px wide
+                            if img_w > 800:
+                                ratio = 800 / img_w
+                                img = img.resize((800, int(img_h * ratio)), Image.LANCZOS)
+                            
+                            # Convert to JPEG with compression
+                            buffer = io.BytesIO()
+                            img.convert('RGB').save(buffer, format='JPEG', quality=85, optimize=True)
+                            buffer.seek(0)
+                            
+                            # Add to PDF
+                            self.image(buffer, x=img_x, y=img_y, w=new_w, h=new_h)
+                        
+                        # Add zoom link
+                        self.set_font(self._font(), '', 5)
+                        self.set_text_color(37, 99, 235)
+                        self.cell(cell_w, 3, '', border=0)
+                    except Exception as e:
+                        self.set_font(self._font(), 'I', 7)
+                        self.set_text_color(148, 163, 184)
+                        self.cell(cell_w, cell_h/2, '(Error)', align='C')
+            
+            # Label
+            self.set_xy(x, y + cell_h + 1)
+            self.set_font(self._font(), 'B', 6)
+            self.set_text_color(71, 85, 105)
+            self.cell(cell_w, 4, photo.get('label', ''), align='C')
+            self.set_text_color(0, 0, 0)
+            
+            if y + cell_h > max_y:
+                max_y = y + cell_h + 12
+        
+        self.set_y(max_y + 4)
+    
+    def get_photos_from_tx(self, tx):
+        '''Extract photo list from transaction'''
+        photos = []
+        photo_fields = [
+            ('foto_odo_sebelum', '📷 ODO Sebelum'),
+            ('foto_nota_odo_sesudah', '📷 Nota + ODO'),
+            ('foto_struk', '📷 Struk BBM'),
+            ('foto_struk_dispenser', '📷 Dispenser'),
+        ]
+        for field, label in photo_fields:
+            if tx.get(field):
+                photos.append({'path': tx[field], 'label': label})
+        return photos
+
     def section_title(self, title):
         self.set_font(self._font(), 'B', 9)
         self.set_fill_color(37, 99, 235)
@@ -101,6 +213,99 @@ class BPFBasePDF(FPDF):
         self.set_text_color(0, 0, 0)
 
 
+
+
+    def resize_image(self, image_path, max_width=800):
+        '''Resize image to max_width (maintain aspect ratio) using PIL'''
+        try:
+            from PIL import Image
+            img = Image.open(image_path)
+            w, h = img.size
+            if w > max_width:
+                ratio = max_width / w
+                new_w = max_width
+                new_h = int(h * ratio)
+                img = img.resize((new_w, new_h), Image.LANCZOS)
+                # Save to temp
+                temp_path = image_path + '.resized.jpg'
+                img.save(temp_path, 'JPEG', quality=85)
+                return temp_path
+        except:
+            pass
+        return image_path
+    
+    def fit_image_to_cell(self, image_path, x, y, cell_w, cell_h, label=''):
+        '''Draw image fitting within cell, maintaining aspect ratio'''
+        if not image_path or not os.path.exists(image_path):
+            self.set_xy(x, y)
+            self.set_font(self._font(), 'I', 7)
+            self.set_text_color(148, 163, 184)
+            self.cell(cell_w, cell_h, 'No image', border=1, align='C')
+            self.set_text_color(0, 0, 0)
+            return
+        
+        # Resize image
+        img_path = self.resize_image(image_path)
+        
+        try:
+            from PIL import Image
+            img = Image.open(img_path)
+            img_w, img_h = img.size
+            
+            # Calculate fit dimensions
+            ratio_w = cell_w / img_w
+            ratio_h = cell_h / img_h
+            ratio = min(ratio_w, ratio_h)
+            
+            fit_w = img_w * ratio
+            fit_h = img_h * ratio
+            
+            # Center in cell
+            pos_x = x + (cell_w - fit_w) / 2
+            pos_y = y + (cell_h - fit_h) / 2
+            
+            # Border
+            self.set_draw_color(226, 232, 240)
+            self.rect(x, y, cell_w, cell_h)
+            
+            # Image
+            self.image(img_path, x=pos_x, y=pos_y, w=fit_w, h=fit_h)
+            
+            # Cleanup temp
+            if img_path.endswith('.resized.jpg'):
+                try:
+                    os.remove(img_path)
+                except:
+                    pass
+                    
+        except:
+            # Fallback: try direct insert
+            self.set_draw_color(226, 232, 240)
+            self.rect(x, y, cell_w, cell_h)
+            try:
+                self.image(image_path, x=x+2, y=y+2, w=cell_w-4, h=cell_h-4)
+            except:
+                pass
+        
+        # Label
+        if label:
+            self.set_xy(x, y + cell_h - 5)
+            self.set_font(self._font(), '', 6)
+            self.set_fill_color(15, 23, 42)
+            self.set_text_color(255, 255, 255)
+            self.cell(cell_w, 5, ' ' + label, fill=True)
+            self.set_text_color(0, 0, 0)
+
+
+
+    def _empty_cell(self, x, y, w, h, text=''):
+        self.set_draw_color(226, 232, 240)
+        self.rect(x, y, w, h)
+        self.set_xy(x, y)
+        self.set_font(self._font(), 'I', 7)
+        self.set_text_color(148, 163, 184)
+        self.cell(w, h, text, align='C')
+        self.set_text_color(0, 0, 0)
 
 class PDFReportCompact(BPFBasePDF):
     """Single transaction PDF report"""
@@ -307,41 +512,11 @@ class PDFReportCompact(BPFBasePDF):
             x += bar_w + 4
         self.set_y(y + bar_h + 6)
         
-        # Photos
-        photos = [
-            ('ODO Sebelum', tx.get('foto_odo_sebelum')),
-            ('ODO + Nota', tx.get('foto_nota_odo_sesudah')),
-            ('Struk BBM', tx.get('foto_struk')),
-            ('Dispenser', tx.get('foto_struk_dispenser')),
-            ('MyPertamina', tx.get('foto_mypertamina_admin')),
-        ]
-        existing = [(l, p) for l, p in photos if p]
-        if existing:
+        # Photos - Grid 2x2
+        photos = self.get_photos_from_tx(tx)
+        if photos:
             self.section_title('BUKTI VISUAL')
-            img_w, img_h, gap = 55, 42, 3
-            for i in range(0, len(existing), 3):
-                row = existing[i:i+3]
-                x = self.l_margin
-                y = self.get_y()
-                if y > 245:
-                    self.add_page()
-                    y = self.get_y()
-                for label, path in row:
-                    self.set_xy(x, y)
-                    self.set_fill_color(248, 250, 252)
-                    self.set_draw_color(203, 213, 225)
-                    self.rect(x, y, img_w, img_h + 8)
-                    self.set_font(self._font(), 'B', 5)
-                    self.set_xy(x + 1, y + 1)
-                    self.cell(img_w - 2, 3, self.clean_text(label), align='C')
-                    try:
-                        filepath = os.path.join(upload_folder, path)
-                        if os.path.exists(filepath):
-                            self.image(filepath, x=x+2, y=y+4, w=img_w-4, h=img_h-6)
-                    except:
-                        pass
-                    x += img_w + gap
-                self.set_y(y + img_h + 10)
+            self.add_photo_grid_2x2(photos, upload_folder)
 
 
 class BBMReportPDF(BPFBasePDF):

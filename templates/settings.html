@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings - BPF BBM System</title>
-    <link rel="manifest" href="/manifest.json?v=20260720_FINAL">
+    <link rel="manifest" href="/manifest.json?v=20260722_172752">
     <meta name="theme-color" content="#1d4ed8">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -791,7 +791,7 @@
     
     <script>
     if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("/sw.js?v=20260721_FINAL").then(function(reg) {
+        navigator.serviceWorker.register("/sw.js?v=20260722_172752").then(function(reg) {
             reg.addEventListener("updatefound", function() {
                 var newWorker = reg.installing;
                 newWorker.addEventListener("statechange", function() {
