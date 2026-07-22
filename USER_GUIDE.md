@@ -4,180 +4,309 @@
 
 ---
 
+Halo! Selamat datang di sistem manajemen armada dan BBM kami. Panduan ini akan memandumu langkah demi langkah, dari hal paling dasar sampai fitur-fitur canggih. Tenang saja, kami tulis dengan bahasa yang mudah dipahami. 😊
+
+---
+
 ## Daftar Isi
-1. [Akses Aplikasi](#1-akses-aplikasi)
-2. [Panduan Driver (PWA)](#2-panduan-driver-pwa)
-3. [Panduan GA (General Affairs)](#3-panduan-ga-general-affairs)
-4. [Panduan Finance](#4-panduan-finance)
-5. [Panduan Admin](#5-panduan-admin)
-6. [FAQ](#6-faq)
+1. [Mulai dari Mana?](#1-mulai-dari-mana)
+2. [Untuk Driver (di HP)](#2-untuk-driver-di-hp)
+3. [Untuk GA (General Affairs)](#3-untuk-ga-general-affairs)
+4. [Untuk Finance](#4-untuk-finance)
+5. [Untuk Admin](#5-untuk-admin)
+6. [Pertanyaan yang Sering Muncul](#6-pertanyaan-yang-sering-muncul)
 
 ---
 
-## 1. Akses Aplikasi
+## 1. Mulai dari Mana?
 
-### URL
-| Pengguna | URL | Device |
-|----------|-----|--------|
-| Driver | `https://nasbpfsby.duckdns.org:5000/driver` | HP Android/iPhone |
-| Admin/GA/Finance | `https://nasbpfsby.duckdns.org:5000/admin` | PC/Laptop |
-| GA Assignments | `https://nasbpfsby.duckdns.org:5000/ga/assignments` | PC/Laptop |
-| Analytics | `https://nasbpfsby.duckdns.org:5000/admin/analytics` | PC/Laptop |
-| Settings | `https://nasbpfsby.duckdns.org:5000/admin/settings` | PC/Laptop |
+### Alamat yang Perlu Kamu Tahu
 
-### Default PIN
-| Role | Username | PIN |
-|------|----------|-----|
+| Kamu Siapa? | Buka Alamat Ini | Pakai Apa? |
+|-------------|-----------------|------------|
+| **Driver** | `https://nasbpfsby.duckdns.org:5000/driver` | HP Android/iPhone |
+| **GA / Finance / Admin** | `https://nasbpfsby.duckdns.org:5000/admin` | Komputer atau Laptop |
+| **GA (Atur Kendaraan)** | `https://nasbpfsby.duckdns.org:5000/ga/assignments` | Komputer atau Laptop |
+| **Lihat Grafik & Data** | `https://nasbpfsby.duckdns.org:5000/admin/analytics` | Komputer atau Laptop |
+| **Pengaturan Sistem** | `https://nasbpfsby.duckdns.org:5000/admin/settings` | Komputer atau Laptop |
+
+### PIN Bawaan (Jangan Lupa Diganti ya!)
+
+| Peran | Username | PIN Awal |
+|-------|----------|----------|
 | Admin | `admin` | `123456` |
-| GA Officer | `ga_officer` | `123456` |
-| Finance Officer | `finance_officer` | `123456` |
+| GA | `ga_officer` | `123456` |
+| Finance | `finance_officer` | `123456` |
 
-### Install PWA di HP (Driver)
-1. Buka Chrome di HP → akses URL Driver
-2. Klik menu ⋮ → **"Add to Home Screen"**
-3. Aplikasi terpasang seperti app native
+> ⚠️ **Penting:** Ganti PIN setelah login pertama. Keamanan data tanggung jawab bersama.
+
+### Tips: Pasang Aplikasi di HP (Driver)
+
+1. Buka Chrome di HP kamu
+2. Kunjungi alamat Driver di atas
+3. Tap menu ⋮ (pojok kanan atas) → pilih **"Add to Home Screen"**
+4. Selesai! Sekarang kamu punya icon aplikasi di layar HP. Keren kan? 😎
 
 ---
 
-## 2. Panduan Driver (PWA)
+## 2. Untuk Driver (di HP)
 
-### 2.1 Tiga Tab Navigasi
-- **⛽ BBM** — Form klaim BBM
-- **🗺️ Trip** — Log perjalanan harian
-- **📊 Rapor** — Cek performa kendaraan
+Sebagai driver, kamu bisa mengajukan klaim BBM, mencatat perjalanan, dan melihat performa kendaraan — semua dari HP.
 
-### 2.2 Mengajukan Klaim BBM
-1. Buka tab ⛽ BBM, tunggu GPS hijau ✅
-2. **Pilih Nama Driver** dari dropdown
-3. Nopol & Kendaraan terisi otomatis dari assignment GA
-4. Pilih Jenis BBM → harga otomatis
-5. Isi Nominal, Appointment, Odometer, SPBU
-6. Upload 3 foto (📷 kamera atau 🖼️ galeri) → watermark otomatis
+### 2.1 Tiga Menu Utama
+
+Di bagian bawah layar, ada 3 tombol:
+- **⛽ BBM** — Buat laporan klaim BBM
+- **🗺️ Trip** — Catat log perjalanan harian
+- **📊 Rapor** — Lihat performa kendaraanmu
+
+Tab yang sedang aktif ditandai dengan garis biru di atasnya. Gampang dikenali!
+
+### 2.2 Cara Mengajukan Klaim BBM
+
+1. Buka tab **⛽ BBM**
+2. Tunggu sampai GPS mendeteksi lokasimu (kotak hijau ✅)
+3. **Pilih nama kamu** dari dropdown. Nopol dan tipe kendaraan akan muncul otomatis
+4. Pilih **jenis BBM** (PERTALITE atau PERTAMAX) — harga terisi otomatis
+5. Isi data:
+   - **Nominal** (Rp) — volume akan dihitung otomatis
+   - **Jumlah Appointment** — berapa klien yang kamu temui hari itu
+   - **Odometer (KM)** — lihat angka di dashboard mobilmu
+   - **SPBU** — Rekanan atau Non-Rekanan
+6. **Upload 3 foto:**
+   - Foto ODO (speedometer)
+   - Foto ODO + Struk (berdampingan)
+   - Foto Struk (close-up)
+   - Kalau SPBU Non-Rekanan: tambah foto dispenser
+   - Klik 📷 untuk kamera, 🖼️ untuk memilih dari galeri
+   - Setiap foto akan diberi **watermark otomatis** (GPS + waktu)
 7. Klik **📤 Kirim Laporan BBM**
+8. 🎉 Selesai! Data kamu sudah masuk ke sistem.
 
-### 2.3 Log Perjalanan
-1. Tab 🗺️ Trip → pilih driver → isi KM Awal, Jam
-2. Klik **+ Tambah Rute** → isi atau klik 📍 GPS
-3. Klik **📋 Kirim Log Perjalanan**
+### 2.3 Mencatat Perjalanan Harian
 
-### 2.4 Mode Offline
-- 🟡 Offline: data tersimpan lokal, auto-sync saat online
+1. Buka tab **🗺️ Trip**
+2. Pilih nama kamu
+3. Isi **KM Awal** dan **Jam Berangkat**
+4. Klik **+ Tambah Rute** untuk setiap tujuan
+5. Kamu bisa isi manual, atau klik **📍 GPS** — lokasi, jam, dan KM akan terisi otomatis!
+6. Klik **📋 Kirim Log Perjalanan**
 
-### 2.5 Cek Performa
-- Tab 📊 Rapor → masukkan No. Polisi → Cek
+### 2.4 Bagaimana Kalau Sinyal Hilang?
 
----
+Tenang! Sistem kami sudah **offline-first**. Artinya:
+- Kalau sinyal hilang, data tetap tersimpan di HP kamu
+- Ada badge counter yang menunjukkan berapa data yang antre dikirim
+- Begitu sinyal kembali, data akan terkirim otomatis
+- **Tidak ada data yang hilang.** Janji! 🤝
 
-## 3. Panduan GA (General Affairs)
+### 2.5 Cek Performa Kendaraan
 
-### 3.1 Dashboard
-Buka `/admin` — 4 tab: Antrean GA, Finance, Driver TTD, Arsip
-
-### 3.2 Approve Klaim
-1. Tab Antrean GA → klik **🔍 Approve**
-2. Modal Cross-Check: Health Score, Flags, Budget
-3. Klik **Lanjut Approve** → PIN → OK
-
-### 3.3 Manajemen Kendaraan (GA Assignments)
-
-Buka `/ga/assignments`
-
-#### A. Assign Kendaraan Kosong
-1. Pilih Kendaraan (nopol + tipe) dari dropdown
-2. Pilih Driver dari dropdown
-3. Klik **➕ Assign Kendaraan**
-
-#### B. Tukar Kendaraan
-1. Pilih Kendaraan (dropdown terisi dari assignment aktif)
-2. Driver Saat Ini terisi otomatis
-3. Pilih Driver Baru + Kategori Alasan + Alasan Lengkap
-4. Klik **🔄 Tukar Kendaraan**
-
-#### C. Lepas Kendaraan
-1. Di tabel Assignment Aktif, klik **✕ Lepas**
-2. Isi alasan → OK
-3. Kendaraan kembali ke pool kosong
+1. Buka tab **📊 Rapor**
+2. Masukkan nomor polisi
+3. Klik **Cek**
+4. Kamu akan lihat: skor KM/L, status (BOROS/CUKUP/BAIK/SANGAT BAIK), dan saran dari AI
 
 ---
 
-## 4. Panduan Finance
+## 3. Untuk GA (General Affairs)
 
-### 4.1 Finance Review
-1. Tab Finance → klik **🔍 Review**
-2. Split-screen: foto (kiri) + data (kanan)
-3. Tambah remark → klik **💰 Keluarkan Dana** → PIN
+Sebagai GA, tugasmu adalah memverifikasi klaim BBM dan mengatur kendaraan siapa pakai apa.
 
-### 4.2 Edit ODO
-1. Klik ✏️ di samping ODO → isi ODO baru + alasan + PIN
+### 3.1 Dashboard — Pusat Kendali
 
-### 4.3 Archive
-1. Tab Driver TTD → pastikan TTD fisik
-2. Klik **TTD & Arsip** → PIN → Download ZIP
+Buka `/admin`. Kamu akan lihat 4 tab:
+- 🔴 **Antrean GA** — Klaim yang menunggu persetujuanmu (berkedip merah kalau ada)
+- 💰 **Finance** — Klaim yang sudah kamu setujui, menunggu pencairan dana
+- ✍️ **Driver TTD** — Menunggu tanda tangan fisik driver
+- 📦 **Arsip** — Semua yang sudah selesai
 
----
+### 3.2 Menyetujui Klaim BBM
 
-## 5. Panduan Admin
+1. Buka tab **Antrean GA**
+2. Lihat detail transaksi: foto, nominal, ODO
+3. Klik **🔍 Approve**
+4. Kamu akan lihat **Cross-Check Verifikasi**:
+   - 🏥 Health Score kendaraan (0-100)
+   - 📋 Perbandingan ODO dengan sebelumnya
+   - 🚩 Flags (kalau ada yang mencurigakan: ODO mundur, KM/L rendah, budget hampir habis)
+   - ✅ Rekomendasi: AMAN / PERLU PERHATIAN / INVESTIGASI
+5. Kalau yakin, klik **Lanjut Approve** → masukkan PIN → selesai!
 
-### 5.1 Settings (PIN: 123456)
+### 3.3 Menolak Klaim
 
-#### 👤 Driver Management
-- **Tabel:** Driver | Status | Aksi
-- **Tambah Driver:** Isi nama → klik + Tambah Driver
-- **Nonaktifkan:** Klik toggle (tidak memengaruhi assignment)
-- **Hapus:** Klik 🗑
-- 💡 Assignment kendaraan dilakukan oleh GA
+1. Klik **Tolak** pada transaksi yang mencurigakan
+2. Masukkan PIN
+3. Tulis alasan penolakan (ini penting untuk audit)
+4. Klik **Tolak**
 
-#### 🚗 Fleet Kendaraan
-- **Tabel:** Nopol | Tipe | Brand | Kap | BBM | Driver | Aktif
-- **Tambah Kendaraan:** Isi nopol, tipe → + Tambah Kendaraan
-- Kolom Driver menampilkan driver aktif (read-only dari GA)
+### 3.4 Mengatur Kendaraan (GA Assignments) — FITUR PENTING!
 
-#### 👥 User Management
-- **Tabel:** Username | Nama | Role | Status | Login | Aksi
-- **Reset PIN:** Klik 🔑 PIN → isi PIN baru 6 digit → Simpan
-- **Nonaktifkan/Hapus:** Toggle atau 🗑
+Buka `/ga/assignments`. Di sini kamu mengatur **siapa pakai kendaraan apa**.
 
-#### 📊 Data Demo
-- Klik Aktifkan/Nonaktifkan Data Demo
+#### A. Assign Kendaraan ke Driver
 
-#### 📥 Import Excel
-- Unduh Template → isi → Upload
+1. Lihat panel **➕ Assign Kendaraan Kosong** (bagian bawah)
+2. Pilih **Kendaraan** dari dropdown (nopol + tipe)
+3. Pilih **Driver** dari dropdown
+4. Klik **➕ Assign Kendaraan**
+5. Selesai! Kendaraan sekarang terhubung ke driver itu.
 
-#### ⛽ Multi-Fill Threshold
-- Atur batas KM deteksi top-up (default: 40)
+#### B. Tukar Kendaraan Antar Driver
 
-#### 📊 Batas Konsumsi
-- Atur Good/Warning/Min/Max KM/L per kendaraan
+Misalnya: mobil ABIEM masuk bengkel, mau dipinjami mobil lain.
 
-#### 💾 Backup
-- Klik Download Backup (.sql)
+1. Lihat panel **🔄 Tukar Kendaraan** (bagian tengah)
+2. Pilih **Kendaraan** yang mau ditukar → driver saat ini muncul otomatis
+3. Pilih **Driver Baru** yang akan memakai
+4. Pilih **Kategori Alasan:**
+   - 👤 Kendala Driver (sakit, cuti, dll)
+   - 🚗 Kendala Kendaraan (rusak, servis, dll)
+   - 🔄 Rotasi Biasa
+   - 📝 Lainnya
+5. Tulis **alasan lengkap** (ini dicatat di history)
+6. Isi **nama kamu** sebagai GA
+7. Klik **🔄 Tukar Kendaraan**
 
----
+#### C. Lepas Kendaraan (Tanpa Driver Baru)
 
-## 6. FAQ
+Misalnya: mobil masuk bengkel lama, belum ada pengganti.
 
-**Q: Dropdown driver di PWA kosong?**
-A: Pastikan driver sudah ditambahkan di Settings → Driver Management.
+1. Di tabel **Assignment Aktif**, klik **✕ Lepas**
+2. Tulis alasan (contoh: "Masuk bengkel 2 minggu")
+3. Klik OK
+4. Kendaraan kembali ke daftar "Kosong", siap di-assign nanti.
 
-**Q: Nopol tidak muncul saat pilih driver?**
-A: Driver belum di-assign kendaraan. GA harus assign dulu via GA Assignments.
-
-**Q: Dropdown Tukar Kendaraan kosong?**
-A: Belum ada assignment aktif. Assign kendaraan dulu via "Assign Kosong".
-
-**Q: Beda Tukar dan Lepas?**
-A: **Tukar** = ganti driver. **Lepas** = kendaraan kembali ke pool.
-
-**Q: Nonaktifkan driver, kendaraannya gimana?**
-A: Assignment tidak terpengaruh. GA yang mengatur pelepasan kendaraan.
-
-**Q: Tambah kendaraan tanpa driver?**
-A: Settings → Fleet Kendaraan → isi nopol + tipe → + Tambah.
+> 💡 **Penting:** Semua perubahan (assign, tukar, lepas) tercatat di **Riwayat Penukaran** dan **Audit Log**. Jadi semua bisa dipertanggungjawabkan.
 
 ---
 
-## 📞 Kontak
+## 4. Untuk Finance
+
+Sebagai Finance, kamu yang mencairkan dana dan mengarsipkan dokumen.
+
+### 4.1 Review Sebelum Cairkan Dana
+
+1. Buka tab **💰 Finance**
+2. Klik **🔍 Review** pada transaksi
+3. Kamu akan lihat **split-screen**:
+   - **Kiri:** Semua foto (bisa diklik untuk zoom)
+   - **Kanan:** Data lengkap transaksi + pemakaian budget bulan ini
+4. Kalau perlu, tambah **remark** (catatan)
+5. Kalau semua OK, klik **💰 Keluarkan Dana** → PIN → selesai!
+
+### 4.2 Koreksi ODO (Kalau Ada Kesalahan)
+
+1. Klik ikon **✏️** di samping angka ODO
+2. Masukkan ODO yang benar
+3. Tulis alasan perubahan
+4. Masukkan PIN Finance
+5. Klik **Simpan Perubahan**
+6. Semua perubahan tercatat di Audit Log.
+
+### 4.3 Arsip & Download
+
+1. Buka tab **✍️ Driver TTD**
+2. Pastikan driver sudah tanda tangan fisik
+3. Klik **TTD & Arsip** → PIN → selesai
+4. Kamu bisa **download ZIP** berisi semua foto + info transaksi
+
+### 4.4 Cetak Rekap & PDF
+
+1. Buka menu **📋 Rekap**
+2. Filter berdasarkan tanggal, nopol, atau driver
+3. Klik **PDF** untuk cetak rekap dalam format profesional dengan kop surat
+4. Atau klik **PDF** di setiap transaksi untuk laporan detail per klaim
+
+---
+
+## 5. Untuk Admin
+
+Sebagai Admin, kamu yang mengatur data master: driver, kendaraan, user, dan konfigurasi sistem.
+
+### 5.1 Cara Masuk Settings
+
+1. Buka **⚙️ Settings**
+2. Masukkan **PIN Admin** (`123456` bawaan)
+3. Halaman Settings akan terbuka
+
+### 5.2 Mengelola Driver
+
+Di bagian **👤 Driver Management**, kamu bisa:
+- **Lihat** semua driver (nama + status)
+- **Nonaktifkan** driver yang sudah tidak aktif (ini TIDAK mempengaruhi assignment kendaraan)
+- **Aktifkan** kembali driver yang sudah nonaktif
+- **Hapus** driver (hati-hati, ini permanen!)
+- **Tambah driver baru** — cukup isi nama, tidak perlu nopol. Nopol diatur oleh GA.
+
+### 5.3 Mengelola Kendaraan (Fleet)
+
+Di bagian **🚗 Fleet Kendaraan**, kamu bisa:
+- **Lihat** semua kendaraan (nopol, tipe, brand, kapasitas, BBM default)
+- **Lihat driver** yang sedang memakai (dari assignment GA)
+- **Tambah kendaraan baru** — isi nopol, tipe, brand, BBM default. Tidak perlu driver!
+- **Nonaktifkan** kendaraan yang sudah tidak dipakai
+
+> 💡 Kendaraan yang kamu tambah di sini akan langsung muncul di dropdown GA Assignments. Praktis!
+
+### 5.4 Mengelola User & PIN
+
+Di bagian **👥 User & PIN**, kamu bisa:
+- **Lihat** semua user (username, nama, role, status, login terakhir)
+- **Reset PIN** — klik 🔑 PIN, masukkan PIN baru 6 digit, konfirmasi, simpan
+- **Nonaktifkan/Aktifkan** user
+- **Tambah user baru** — isi username, nama, role (GA/Finance/Admin), dan PIN
+
+### 5.5 Fitur Lainnya
+
+- **📊 Data Demo** — klik untuk menampilkan/menyembunyikan data dummy (buat testing)
+- **📥 Import Excel** — unduh template, isi data historis, upload. Sistem akan otomatis mendaftarkan driver/kendaraan/BBM baru.
+- **⛽ Multi-Fill Threshold** — atur batas KM untuk deteksi top-up (default: 40). Kalau driver isi BBM dengan jarak di bawah ini, sistem menandai sebagai top-up.
+- **📊 Batas Konsumsi** — atur standar KM/L per kendaraan (Baik, Warning, Min, Max)
+- **💾 Backup** — download seluruh database dalam format SQL
+
+### 5.6 Audit Log
+
+Buka menu **📝 Audit Log** (masukkan PIN Admin). Di sini kamu bisa melihat **semua aktivitas** di sistem: siapa melakukan apa, kapan, dari IP mana. Transparan dan akuntabel.
+
+---
+
+## 6. Pertanyaan yang Sering Muncul
+
+### Q: Kok nopol tidak muncul waktu saya pilih driver?
+**A:** Driver itu belum di-assign kendaraan oleh GA. Minta GA untuk assign dulu via menu GA Assignments.
+
+### Q: Dropdown "Tukar Kendaraan" kosong?
+**A:** Belum ada kendaraan yang di-assign. Assign dulu minimal 1 kendaraan lewat "Assign Kendaraan Kosong".
+
+### Q: Apa beda "Tukar" dan "Lepas"?
+**A:** **Tukar** = ganti driver (kendaraan tetap aktif, cuma drivernya ganti). **Lepas** = kendaraan dikembalikan ke pool kosong (tidak dipakai siapapun).
+
+### Q: Saya nonaktifkan driver, kendaraannya gimana?
+**A:** Aman. Kendaraan tidak terpengaruh. GA yang akan mengatur apakah kendaraan itu di-assign ke driver lain atau dilepas.
+
+### Q: Bisa tambah kendaraan tanpa driver?
+**A:** Bisa! Settings → Fleet Kendaraan → isi nopol + tipe → Tambah. Nanti GA yang akan assign ke driver.
+
+### Q: Lupa PIN?
+**A:** Kalau kamu Admin, PIN bisa direset dari database. Kalau kamu GA/Finance, minta Admin untuk reset PIN-mu lewat Settings → 🔑 PIN.
+
+### Q: HP offline, data ilang?
+**A:** Tidak. Data tersimpan di HP dan akan otomatis terkirim begitu sinyal kembali. Ada counter yang menunjukkan antrean data.
+
+### Q: Format import Excel gimana?
+**A:** Unduh template dari Settings → Bulk Import. Isi dengan format: Tanggal (DD/MM/YYYY HH:MM), Nama Driver, No Polisi, Tipe Kendaraan, Jenis BBM, Nominal, Harga/Liter, Odometer, Jumlah Appointment, Alamat GPS.
+
+### Q: PDF yang dicetak seperti apa?
+**A:** Profesional! Ada kop surat PT Bestprofit Futures, logo, grid foto 2×2, cross-check verifikasi, health score, status approval bar. Semua dalam satu halaman yang rapi.
+
+---
+
+## 📞 Butuh Bantuan?
 
 **PT. Bestprofit Futures - Surabaya**  
 BPF Fleet & BBM System v1.1  
-Developed by **IT BPF Surabaya**
+Dikembangkan oleh **IT BPF Surabaya**
+
+> *"Sistem yang baik adalah sistem yang memudahkan, bukan menyulitkan."*  
+> — Tim IT BPF Surabaya
