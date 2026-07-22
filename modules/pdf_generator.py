@@ -8,6 +8,34 @@ from fpdf import FPDF
 class BPFBasePDF(FPDF):
     '''Base PDF with standard BPF letterhead'''
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Register Unicode font
+        font_dir = os.path.join(os.path.dirname(__file__), '..', 'fonts')
+        os.makedirs(font_dir, exist_ok=True)
+        
+        # Gunakan DejaVu Sans (Unicode support)
+        dejavu_regular = os.path.join(font_dir, 'DejaVuSans.ttf')
+        dejavu_bold = os.path.join(font_dir, 'DejaVuSans-Bold.ttf')
+        dejavu_italic = os.path.join(font_dir, 'DejaVuSans-Oblique.ttf')
+        
+        if os.path.exists(dejavu_regular):
+            self.add_font('DejaVu', '', dejavu_regular, uni=True)
+            if os.path.exists(dejavu_bold):
+                self.add_font('DejaVu', 'B', dejavu_bold, uni=True)
+            # Italic: gunakan regular kalau oblique tidak ada
+            italic_font = dejavu_italic if os.path.exists(dejavu_italic) else dejavu_regular
+            self.add_font('DejaVu', 'I', italic_font, uni=True)
+            self._use_unicode_font = True
+        else:
+            self._use_unicode_font = False
+    
+    def _font(self, style=''):
+        '''Return font name based on availability'''
+        if hasattr(self, '_use_unicode_font') and self._use_unicode_font:
+            return 'DejaVu'
+        return 'helvetica'
+    
     def _get_logo_path(self):
         '''Cari logo di beberapa kemungkinan path'''
         paths = [
@@ -29,10 +57,10 @@ class BPFBasePDF(FPDF):
                 pass
         
         self.set_x(self.l_margin + 16)
-        self.set_font('helvetica', 'B', 13)
+        self.set_font(self._font(), 'B', 13)
         self.set_text_color(30, 64, 175)
         self.cell(0, 6, 'PT BESTPROFIT FUTURES', align="C", new_x="LMARGIN", new_y="NEXT")
-        self.set_font('helvetica', '', 8)
+        self.set_font(self._font(), '', 8)
         self.set_text_color(71, 85, 105)
         self.cell(0, 4, 'Fleet & BBM Management System | Surabaya', align="C", new_x="LMARGIN", new_y="NEXT")
         
@@ -49,13 +77,13 @@ class BPFBasePDF(FPDF):
         self.set_line_width(0.3)
         self.line(self.l_margin, self.get_y(), self.w - self.r_margin, self.get_y())
         self.set_y(-13)
-        self.set_font('helvetica', 'I', 6)
+        self.set_font(self._font(), 'I', 6)
         self.set_text_color(148, 163, 184)
         self.cell(0, 4, f'BPF Fleet & BBM System v1.1 | Generated: {datetime.now().strftime("%d-%m-%Y %H:%M")} | Page {self.page_no()}/{{nb}}', align="C")
         self.set_text_color(0, 0, 0)
     
     def section_title(self, title):
-        self.set_font('helvetica', 'B', 9)
+        self.set_font(self._font(), 'B', 9)
         self.set_fill_color(37, 99, 235)
         self.set_text_color(255, 255, 255)
         self.cell(0, 6, '  ' + title, fill=True, new_x="LMARGIN", new_y="NEXT")
@@ -64,11 +92,11 @@ class BPFBasePDF(FPDF):
     
     def info_row(self, label, value, x, y, w_label, w_value):
         self.set_xy(x, y)
-        self.set_font('helvetica', '', 8)
+        self.set_font(self._font(), '', 8)
         self.set_text_color(100, 116, 139)
         self.cell(w_label, 5, label + ':', align="R")
         self.set_text_color(30, 41, 59)
-        self.set_font('helvetica', 'B', 8)
+        self.set_font(self._font(), 'B', 8)
         self.cell(w_value, 5, str(value) if value else '-')
         self.set_text_color(0, 0, 0)
 
@@ -95,7 +123,7 @@ class PDFReportCompact(BPFBasePDF):
     def generate_compact_report(self, tx, upload_folder='uploads'):
         """Generate complete single-page report"""
         # Header
-        self.set_font('helvetica', 'B', 11)
+        self.set_font(self._font(), 'B', 11)
         self.set_text_color(15, 23, 42)
         nopol_text = self.clean_text(str(tx.get('nopol', '-')).upper())
         self.cell(0, 7, f'TRANSAKSI {tx.get("display_id", "#"+str(tx["id"]))} | {nopol_text}', align="L", new_x="LMARGIN", new_y="NEXT")
@@ -115,6 +143,8 @@ class PDFReportCompact(BPFBasePDF):
             [('Kendaraan', self.clean_text(str(tx.get('vehicle_type', '-')))), ('BBM', self.clean_text(str(tx.get('bbm_type', '-'))))],
             [('Nominal', f'Rp {tx["nominal"]:,.0f}'), ('Volume', f'{tx["liter"]} L')],
             [('Harga/L', f'Rp {tx.get("price_per_liter", 0):,.0f}'), ('ODO', f'{tx["odo_km"]:,} km')],
+            [('Appointment', f'{tx.get("jumlah_appointment", 0)}x'), ('KM/L', f'{tx.get("km_per_liter", 0):.1f}')],
+            [('GPS', tx.get('gps_address', '-')[:80]), ('SPBU', tx.get('spbu_type', '-').replace('_', ' ').title())],
             [('SPBU', self.clean_text(str(tx.get('spbu_type', '-')).replace('_', ' ').title())), ('Appt', f'{tx.get("jumlah_appointment", 0)}x')],
         ]
         
@@ -127,7 +157,7 @@ class PDFReportCompact(BPFBasePDF):
         
         # Location
         gps_addr = self.clean_text(str(tx.get('gps_address', '') or 'Tidak tersedia'))
-        self.set_font('helvetica', 'I', 6)
+        self.set_font(self._font(), 'I', 6)
         self.set_text_color(100, 116, 139)
         self.cell(0, 4, f'Lokasi: {gps_addr[:120]}', new_x="LMARGIN", new_y="NEXT")
         self.ln(2)
@@ -200,7 +230,7 @@ class PDFReportCompact(BPFBasePDF):
             cur.close()
             conn_check.close()
             
-            self.set_font('helvetica', '', 7)
+            self.set_font(self._font(), '', 7)
             self.set_text_color(51, 65, 85)
             
             y = self.get_y()
@@ -208,29 +238,29 @@ class PDFReportCompact(BPFBasePDF):
             
             # Left column
             self.set_xy(self.l_margin, y)
-            self.set_font('helvetica', 'B', 7)
+            self.set_font(self._font(), 'B', 7)
             self.cell(col_w, 5, 'Health Score: ' + str(health_score) + '/100', border=0)
             self.set_xy(self.l_margin, y+5)
-            self.set_font('helvetica', '', 6)
+            self.set_font(self._font(), '', 6)
             self.cell(col_w, 4, 'Rata-rata KM/L: ' + str(health_data['avg_kml'] if health_data else 'N/A'), border=0)
             
             if prev:
                 self.set_xy(self.l_margin, y+9)
                 odo_diff = tx['odo_km'] - prev['odo_km']
-                self.set_font('helvetica', '', 6)
+                self.set_font(self._font(), '', 6)
                 self.cell(col_w, 4, f'ODO Sebelumnya: {prev["odo_km"]:,} km (selisih {odo_diff:+d} km)', border=0)
             
             # Right column
             self.set_xy(self.l_margin + col_w, y)
-            self.set_font('helvetica', 'B', 7)
+            self.set_font(self._font(), 'B', 7)
             self.cell(col_w, 5, 'Budget Bulanan', border=0)
             self.set_xy(self.l_margin + col_w, y+5)
-            self.set_font('helvetica', '', 6)
+            self.set_font(self._font(), '', 6)
             self.cell(col_w, 4, f'Rp {monthly["total"]:,.0f}' if monthly else 'N/A', border=0)
             
             if notes_row and notes_row['driver_notes']:
                 self.set_xy(self.l_margin, y+14)
-                self.set_font('helvetica', 'I', 6)
+                self.set_font(self._font(), 'I', 6)
                 self.set_text_color(217, 119, 6)
                 self.cell(0, 4, 'Catatan GA: ' + notes_row['driver_notes'], border=0)
             
@@ -238,91 +268,11 @@ class PDFReportCompact(BPFBasePDF):
             self.ln(20)
         except:
             self.ln(5)
-            self.set_font('helvetica', 'I', 6)
+            self.set_font(self._font(), 'I', 6)
             self.cell(0, 4, 'Data cross-check tidak tersedia', border=0)
             self.ln(5)
         
-        # ===== CROSS-CHECK SUMMARY (Fitur #1) =====
-        self.section_title('CROSS-CHECK VERIFIKASI')
-        
-        # Fetch health data
-        try:
-            import mysql.connector
-            conn_check = mysql.connector.connect(
-                host=os.environ.get('DB_HOST', 'db'),
-                user=os.environ.get('DB_USER', 'bpf_user'),
-                password=os.environ.get('DB_PASSWORD', 'bpf_pass'),
-                database=os.environ.get('DB_NAME', 'bpf_asset_system')
-            )
-            cur = conn_check.cursor(dictionary=True)
-            
-            # Previous ODO
-            cur.execute("SELECT odo_km, created_at FROM transactions WHERE nopol=%s AND status='archived' AND id<%s ORDER BY id DESC LIMIT 1", (tx['nopol'], tx['id']))
-            prev = cur.fetchone()
-            
-            # Avg KM/L
-            cur.execute("SELECT ROUND(AVG(NULLIF(km_per_liter,0)),2) as avg FROM transactions WHERE nopol=%s AND status='archived' AND km_per_liter>0", (tx['nopol'],))
-            avg = cur.fetchone()
-            
-            # Monthly budget
-            cur.execute("SELECT COALESCE(SUM(nominal),0) as total FROM transactions WHERE driver_name=%s AND MONTH(created_at)=MONTH(CURDATE())", (tx['driver_name'],))
-            monthly = cur.fetchone()
-            
-            # Health score
-            cur.execute("SELECT ROUND(AVG(NULLIF(km_per_liter,0)),2) as avg_kml, COUNT(*) as cnt FROM transactions WHERE nopol=%s AND status='archived' AND km_per_liter>0", (tx['nopol'],))
-            health_data = cur.fetchone()
-            health_score = min(100, int(((health_data['avg_kml'] or 10) / 14) * 100)) if health_data else 50
-            
-            # Driver notes
-            cur.execute("SELECT driver_notes FROM vehicle_assignments WHERE nopol=%s ORDER BY id DESC LIMIT 1", (tx['nopol'],))
-            notes_row = cur.fetchone()
-            
-            cur.close()
-            conn_check.close()
-            
-            self.set_font('helvetica', '', 7)
-            self.set_text_color(51, 65, 85)
-            
-            y = self.get_y()
-            col_w = (self.w - self.l_margin - self.r_margin) / 2
-            
-            # Left column
-            self.set_xy(self.l_margin, y)
-            self.set_font('helvetica', 'B', 7)
-            self.cell(col_w, 5, 'Health Score: ' + str(health_score) + '/100', border=0)
-            self.set_xy(self.l_margin, y+5)
-            self.set_font('helvetica', '', 6)
-            self.cell(col_w, 4, 'Rata-rata KM/L: ' + str(health_data['avg_kml'] if health_data else 'N/A'), border=0)
-            
-            if prev:
-                self.set_xy(self.l_margin, y+9)
-                odo_diff = tx['odo_km'] - prev['odo_km']
-                self.set_font('helvetica', '', 6)
-                self.cell(col_w, 4, f'ODO Sebelumnya: {prev["odo_km"]:,} km (selisih {odo_diff:+d} km)', border=0)
-            
-            # Right column
-            self.set_xy(self.l_margin + col_w, y)
-            self.set_font('helvetica', 'B', 7)
-            self.cell(col_w, 5, 'Budget Bulanan', border=0)
-            self.set_xy(self.l_margin + col_w, y+5)
-            self.set_font('helvetica', '', 6)
-            self.cell(col_w, 4, f'Rp {monthly["total"]:,.0f}' if monthly else 'N/A', border=0)
-            
-            if notes_row and notes_row['driver_notes']:
-                self.set_xy(self.l_margin, y+14)
-                self.set_font('helvetica', 'I', 6)
-                self.set_text_color(217, 119, 6)
-                self.cell(0, 4, 'Catatan GA: ' + notes_row['driver_notes'], border=0)
-            
-            self.set_text_color(51, 65, 85)
-            self.ln(20)
-        except:
-            self.ln(5)
-            self.set_font('helvetica', 'I', 6)
-            self.cell(0, 4, 'Data cross-check tidak tersedia', border=0)
-            self.ln(5)
-        
-        self.set_font('helvetica', '', 7)
+        self.set_font(self._font(), '', 7)
         self.set_text_color(51, 65, 85)
         self.multi_cell(0, 4, narrative, align='J')
         self.ln(2)
@@ -347,11 +297,11 @@ class PDFReportCompact(BPFBasePDF):
                 self.set_fill_color(226, 232, 240)
                 self.set_text_color(148, 163, 184)
             self.set_xy(x, y)
-            self.set_font('helvetica', 'B', 5)
+            self.set_font(self._font(), 'B', 5)
             self.cell(bar_w, bar_h, label, border=0, fill=True, align='C')
             if who:
                 self.set_xy(x, y + bar_h + 1)
-                self.set_font('helvetica', '', 4)
+                self.set_font(self._font(), '', 4)
                 self.set_text_color(100, 116, 139)
                 self.cell(bar_w, 3, who, align='C')
             x += bar_w + 4
@@ -381,7 +331,7 @@ class PDFReportCompact(BPFBasePDF):
                     self.set_fill_color(248, 250, 252)
                     self.set_draw_color(203, 213, 225)
                     self.rect(x, y, img_w, img_h + 8)
-                    self.set_font('helvetica', 'B', 5)
+                    self.set_font(self._font(), 'B', 5)
                     self.set_xy(x + 1, y + 1)
                     self.cell(img_w - 2, 3, self.clean_text(label), align='C')
                     try:
@@ -399,7 +349,7 @@ class BBMReportPDF(BPFBasePDF):
 
     def header(self):
         super().header()
-        self.set_font('helvetica', 'B', 11)
+        self.set_font(self._font(), 'B', 11)
         self.set_text_color(37, 99, 235)
         self.cell(0, 6, self.clean_text(self.title), align="C", new_x="LMARGIN", new_y="NEXT")
         self.set_text_color(0, 0, 0)
@@ -409,7 +359,7 @@ class BBMReportPDF(BPFBasePDF):
         super().__init__(orientation='L', unit='mm', format='A4')
         self.title = title
         self.set_auto_page_break(auto=True, margin=15)
-        self.set_font('helvetica', '', 10)
+        self.set_font(self._font(), '', 10)
     
     def clean_text(self, text):
         if not text:
@@ -420,55 +370,48 @@ class BBMReportPDF(BPFBasePDF):
 
     def generate_table(self, data):
         if not data:
-            self.set_font('helvetica', 'I', 12)
+            self.set_font(self._font(), 'I', 12)
             self.cell(0, 10, "Tidak ada data", align="C")
             return
-        
-        self.set_font('helvetica', 'B', 7)
-        headers = ['NO', 'TANGGAL', 'NO POLISI', 'AMOUNT', 'KM ISI BBM', 
-                   'KM AWAL', 'KM AKHIR', 'TOTAL KM', 'RATA-RATA KM', 'HEALTH', 'DRIVER', 'LITER']
-        widths = [8, 22, 24, 24, 20, 20, 20, 16, 18, 14, 34, 14]
-        
-        self.set_fill_color(200, 200, 200)
+
+        self.set_font(self._font(), 'B', 7)
+        headers = ['NO', 'TANGGAL', 'NO POLISI', 'DRIVER', 'AMOUNT', 'LITER', 'KM ISI BBM', 'KM/L', 'HEALTH']
+        widths = [8, 24, 24, 34, 26, 16, 22, 16, 16]
+
+        self.set_fill_color(37, 99, 235)
+        self.set_text_color(255, 255, 255)
         for i, h in enumerate(headers):
             self.cell(widths[i], 7, h, border=1, align='C', fill=True)
+        self.set_text_color(0, 0, 0)
         self.ln()
-        
-        self.set_font('helvetica', '', 7)
+
+        self.set_font(self._font(), '', 7)
         fill = False
         for idx, tx in enumerate(data, 1):
-            self.set_fill_color(240 if fill else 255)
-            jam = tx['created_at'].strftime('%H:%M') if tx.get('created_at') else '-'
+            if fill:
+                self.set_fill_color(241, 245, 249)
+            else:
+                self.set_fill_color(255, 255, 255)
+            
+            # Health score
+            health = 'N/A'
+            try:
+                kml = tx.get('km_per_liter', 0) or 0
+                if float(kml) > 0:
+                    health = str(min(100, int((float(kml) / 14) * 100)))
+            except:
+                pass
+            
             self.cell(widths[0], 6, str(idx), border=1, align='C', fill=True)
-            self.cell(widths[1], 6, tx['created_at'].strftime('%d %b %Y') if tx.get('created_at') else '-', border=1, align='C', fill=True)
+            self.cell(widths[1], 6, tx['created_at'].strftime('%d/%m/%y %H:%M') if tx.get('created_at') else '-', border=1, align='C', fill=True)
             self.cell(widths[2], 6, self.clean_text(str(tx['nopol'])), border=1, align='C', fill=True)
-            self.cell(widths[3], 6, f"Rp {tx['nominal']:,.0f}" if tx.get('nominal') else 'Rp 0', border=1, align='R', fill=True)
-            self.cell(widths[4], 6, f"{tx['odo_km']:,}" if tx.get('odo_km') else '0', border=1, align='C', fill=True)
-            self.cell(widths[5], 6, f"{tx.get('km_awal', 0):,}", border=1, align='C', fill=True)
-            self.cell(widths[6], 6, f"{tx.get('km_akhir', 0):,}", border=1, align='C', fill=True)
-            self.cell(widths[7], 6, f"{tx.get('total_km', 0):,}", border=1, align='C', fill=True)
-            self.cell(widths[8], 6, f"{tx.get('rata_rata', 0):.2f}", border=1, align='C', fill=True)
-            # Health score placeholder replaced
-            self.cell(widths[9], 6, f"{tx.get('rata_rata', 0):.2f}", border=1, align='C', fill=True)
-            self.cell(widths[10], 6, self.clean_text(str(tx['driver_name']).upper() if tx.get('driver_name') else '-'), border=1, fill=True)
-            # Health score
-            health = 'N/A'
-            try:
-                if tx.get('km_per_liter') and tx['km_per_liter'] > 0:
-                    health = str(min(100, int((tx['km_per_liter'] / 14) * 100)))
-            except:
-                pass
-            self.cell(widths[9], 6, health, border=1, align='C', fill=True)
-            self.cell(widths[10], 6, self.clean_text(str(tx['driver_name']).upper() if tx.get('driver_name') else '-'), border=1, fill=True)
-            # Health score
-            health = 'N/A'
-            try:
-                if tx.get('km_per_liter') and tx['km_per_liter'] > 0:
-                    health = str(min(100, int((tx['km_per_liter'] / 14) * 100)))
-            except:
-                pass
-            self.cell(widths[9], 6, health, border=1, align='C', fill=True)
-            self.cell(widths[10], 6, self.clean_text(str(tx['driver_name']).upper() if tx.get('driver_name') else '-'), border=1, fill=True)
-            self.cell(widths[11], 6, str(tx.get('liter', 0)), border=1, align='C', fill=True)
+            self.cell(widths[3], 6, self.clean_text(str(tx.get('driver_name', '-')).upper()), border=1, fill=True)
+            self.cell(widths[4], 6, f"Rp {float(tx['nominal']):,.0f}" if tx.get('nominal') else 'Rp 0', border=1, align='R', fill=True)
+            self.cell(widths[5], 6, f"{float(tx.get('liter', 0)):.1f}L", border=1, align='C', fill=True)
+            self.cell(widths[6], 6, f"{int(tx.get('odo_km', 0)):,}", border=1, align='C', fill=True)
+            self.cell(widths[7], 6, f"{float(tx.get('km_per_liter', 0)):.1f}" if tx.get('km_per_liter') else '-', border=1, align='C', fill=True)
+            self.cell(widths[8], 6, health, border=1, align='C', fill=True)
             self.ln()
             fill = not fill
+        
+        self.ln(4)
