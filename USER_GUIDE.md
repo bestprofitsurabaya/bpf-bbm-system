@@ -310,3 +310,27 @@ Dikembangkan oleh **IT BPF Surabaya**
 
 > *"Sistem yang baik adalah sistem yang memudahkan, bukan menyulitkan."*  
 > — Tim IT BPF Surabaya
+
+---
+
+## 7. Panduan Arsip (Tab Archive)
+
+### 7.1 Akses Arsip
+1. Buka Dashboard → klik tab **📦 Arsip**
+2. Default menampilkan **1 minggu terakhir**
+
+### 7.2 Fitur Pencarian & Filter
+- **🔍 Search**: Cari berdasarkan **nopol** ATAU **nama driver** (cukup ketik sebagian)
+- **📅 Rentang Tanggal**: Pilih tanggal mulai dan akhir
+- **⛽ Filter BBM**: Pilih PERTALITE, PERTAMAX, atau Semua
+- **📊 Summary**: Menampilkan jumlah data + total nominal
+
+### 7.3 Pagination
+- Maksimal **50 data per halaman**
+- Navigasi: ◀ Sebelumnya | 1 2 3 ... | Selanjutnya ▶
+- Klik nomor halaman untuk berpindah
+
+### 7.4 Aksi di Arsip
+- **📦 ZIP**: Download semua foto dalam 1 file
+- **🔍 Review**: Lihat detail transaksi (Finance Review Panel)
+- **📄 PDF**: Download laporan PDF profesional

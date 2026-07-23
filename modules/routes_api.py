@@ -6,6 +6,40 @@ from modules.engine import generate_human_insight, PerformanceAnalyzer
 from datetime import datetime, timedelta
 
 def register_api_routes(app):
+    @app.route('/api/transactions/archive')
+    def api_archive_transactions():
+        try:
+            page = request.args.get('page', 1, type=int)
+            limit = request.args.get('limit', 50, type=int)
+            search = request.args.get('search', '').strip()
+            start_date = request.args.get('start_date', '')
+            end_date = request.args.get('end_date', '')
+            bbm_type = request.args.get('bbm_type', '')
+            conn = get_db_connection()
+            if not conn: return jsonify({'error': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            where = ["status = 'archived'"]
+            params = []
+            if not start_date: where.append("created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)")
+            if start_date: where.append("DATE(created_at) >= %s"); params.append(start_date)
+            if end_date: where.append("DATE(created_at) <= %s"); params.append(end_date)
+            if search: where.append("(nopol LIKE %s OR driver_name LIKE %s)"); params.extend([f"%{search}%", f"%{search}%"])
+            if bbm_type: where.append("bbm_type = %s"); params.append(bbm_type)
+            wc = " AND ".join(where)
+            cursor.execute(f"SELECT COUNT(*) as total FROM transactions WHERE {wc}", params)
+            total = cursor.fetchone()['total']
+            cursor.execute(f"SELECT COALESCE(SUM(nominal),0) as total_nominal FROM transactions WHERE {wc}", params)
+            s = cursor.fetchone()
+            cursor.execute(f"SELECT * FROM transactions WHERE {wc} ORDER BY created_at DESC LIMIT %s OFFSET %s", params + [limit, (page-1)*limit])
+            data = cursor.fetchall()
+            for row in data:
+                for k in ['nominal','liter','price_per_liter','odo_km','km_per_liter']:
+                    if row.get(k) is not None: row[k] = float(row[k])
+            cursor.close(); conn.close()
+            return jsonify({'data': data, 'total': total, 'page': page, 'limit': limit, 'total_pages': max(1,(total+limit-1)//limit), 'summary': {'total_nominal': float(s['total_nominal'])}})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
     
     @app.route('/api/vehicles')
     def api_vehicles():

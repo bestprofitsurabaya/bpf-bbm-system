@@ -376,6 +376,55 @@
             .card-body { padding: 14px 16px; }
         }
 
+    
+        /* ============================================================ */
+        /* ADMIN UX ENHANCEMENTS */
+        /* ============================================================ */
+        
+        /* Filter bar */
+        .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; background: #f8fafc; padding: 10px 14px; border-radius: 10px; border: 1px solid #e8ecf1; }
+        .filter-bar input, .filter-bar select { height: 36px; }
+        
+        /* Transaction items - cleaner */
+        .tx-item { transition: all 0.15s; border-left: 3px solid transparent; }
+        .tx-item:hover { border-left-color: #2563eb; background: #fafbfc; }
+        .tx-item .nopol { font-family: 'SF Mono', 'Consolas', monospace; letter-spacing: 0.5px; }
+        
+        /* Quick action toolbar */
+        .quick-actions { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+        .quick-actions .btn { white-space: nowrap; }
+        
+        /* Pagination */
+        .pagination { display: flex; gap: 4px; justify-content: center; align-items: center; margin-top: 16px; }
+        .pagination .btn { min-width: 36px; text-align: center; }
+        .pagination .btn.active { background: #2563eb; color: white; font-weight: 700; }
+        
+        /* Empty state */
+        .empty-state { text-align: center; padding: 40px 20px; }
+        .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+        .empty-state h3 { color: #64748b; margin-bottom: 4px; }
+        .empty-state p { color: #94a3b8; font-size: 13px; }
+        
+        /* Summary info */
+        .summary-info { background: linear-gradient(135deg, #dbeafe, #eff6ff); padding: 12px 16px; border-radius: 10px; margin-bottom: 14px; border-left: 4px solid #2563eb; font-size: 13px; color: #1e40af; }
+        
+        /* Loading skeleton */
+        .skeleton { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; height: 16px; margin: 8px 0; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        
+        /* Tooltip */
+        [data-tooltip] { position: relative; }
+        [data-tooltip]:hover::after { content: attr(data-tooltip); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px; white-space: nowrap; z-index: 1000; margin-bottom: 4px; }
+        
+        /* Fade in animation */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .tx-item { animation: fadeIn 0.3s ease; }
+        .tx-item:nth-child(1) { animation-delay: 0s; }
+        .tx-item:nth-child(2) { animation-delay: 0.05s; }
+        .tx-item:nth-child(3) { animation-delay: 0.1s; }
+        .tx-item:nth-child(4) { animation-delay: 0.15s; }
+        .tx-item:nth-child(5) { animation-delay: 0.2s; }
+
     </style>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
@@ -572,7 +621,35 @@
                         {% endif %}
 
         
-        <div class="card">
+        <div class="card" id="archiveCard" style="display:none;">
+            <div class="card-header">
+                <span>📦 Arsip</span>
+                <span style="font-size:12px;color:var(--gray-500);" id="archiveSummary">Memuat...</span>
+            </div>
+            <div class="card-body">
+                <!-- Filter Bar -->
+                <div class="filter-bar">
+                    <input type="text" id="archiveSearch" class="form-control" placeholder="🔍 Cari nopol/driver..." style="flex:1;min-width:180px;" onkeyup="debounceArchive()">
+                    <input type="date" id="archiveStartDate" class="form-control" style="width:140px;" onchange="loadArchive()">
+                    <span style="color:#94a3b8;">s/d</span>
+                    <input type="date" id="archiveEndDate" class="form-control" style="width:140px;" onchange="loadArchive()">
+                    <select id="archiveBbmType" class="form-control" style="width:130px;" onchange="loadArchive()">
+                        <option value="">Semua BBM</option>
+                        <option value="PERTALITE">PERTALITE</option>
+                        <option value="PERTAMAX">PERTAMAX</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" onclick="loadArchive()">Cari</button>
+                </div>
+                <!-- Data -->
+                <div id="archiveTableBody">
+                    <div class="empty-state"><div class="icon">📦</div><h3>Memuat Arsip</h3><p>Mengambil data transaksi...</p></div>
+                </div>
+                <!-- Pagination -->
+                <div id="archivePagination"></div>
+            </div>
+        </div>
+        
+        <div class="card" id="otherTabsCard">
             <div class="card-header">
                 <span>{% if stats.tab == 'ga_queue' %}Antrean GA{% elif stats.tab == 'finance' %}Disburse Finance{% elif stats.tab == 'driver_confirm' %}Konfirmasi Driver{% else %}Arsip{% endif %}</span>
                 <span style="font-size:12px;color:var(--gray-500);">{{ transactions|length }} transaksi</span>
@@ -627,6 +704,7 @@
                 {% endif %}
             </div>
         </div>
+    </div>
     </div>
     
     <!-- PIN MODAL -->
@@ -1132,6 +1210,40 @@
         }
     });
 </script>
+<script src="/static/archive.js?v=20260723"></script>
+
+<script>
+var archiveTimer = null;
+function debounceArchive() {
+    clearTimeout(archiveTimer);
+    archiveTimer = setTimeout(loadArchive, 500);
+}
+
+// Auto-load archive saat tab archive aktif
+(function() {
+    var tab = new URLSearchParams(window.location.search).get('tab');
+    if (tab === 'archive') {
+        document.getElementById('archiveCard').style.display = 'block';
+        document.getElementById('otherTabsCard').style.display = 'none';
+        loadArchive();
+    }
+})();
+
+// Override tab click untuk archive
+document.querySelectorAll('.tab-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+        if (this.textContent.includes('Arsip')) {
+            e.preventDefault();
+            document.getElementById('archiveCard').style.display = 'block';
+            document.getElementById('otherTabsCard').style.display = 'none';
+            loadArchive();
+            // Update URL
+            history.pushState({}, '', '?tab=archive');
+        }
+    });
+});
+</script>
+
 </body>
 
 
