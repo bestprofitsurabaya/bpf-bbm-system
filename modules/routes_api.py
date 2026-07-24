@@ -632,6 +632,25 @@ def register_api_routes(app):
             return jsonify({'status': 'success', 'msg': f'{driver_name} ditugaskan ke {nopol} ({vehicle_type})'})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
+    @app.route('/api/trip-detail/<int:trip_id>')
+    def api_trip_detail(trip_id):
+        try:
+            conn = get_db_connection()
+            if not conn: return jsonify({'error': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM trip_masters WHERE id = %s", (trip_id,))
+            master = cursor.fetchone()
+            if not master:
+                cursor.close(); conn.close()
+                return jsonify({'error': 'Trip not found'}), 404
+            cursor.execute("SELECT * FROM trip_details WHERE trip_master_id = %s ORDER BY no_urut", (trip_id,))
+            details = cursor.fetchall()
+            cursor.close(); conn.close()
+            return jsonify({'master': master, 'details': details})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+
 
     @app.route('/api/assignments/history')
     def api_assignment_history():

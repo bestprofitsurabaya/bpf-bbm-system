@@ -30,16 +30,26 @@ def resolve_driver_form_context(driver_data, driver_name, nopol, vehicle_type, b
     }
 
 def generate_display_id(prefix='BPF', conn=None):
-    """Generate professional display ID: BPF-YYYYMMDD-XXXX"""
-    today = datetime.now().strftime('%Y%m%d')
+    """Generate unique display ID: BPF-YYYYMMDD-XXXXXX (timestamp-based)"""
+    import random, string
+    now = datetime.now()
+    date_part = now.strftime('%Y%m%d')
+    time_part = now.strftime('%H%M%S')
+    random_part = ''.join(random.choices(string.digits, k=2))
+    unique_id = f"{prefix}-{date_part}-{time_part}{random_part}"
+    
+    # Double-check uniqueness in DB
     if conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) as c FROM transactions WHERE DATE(created_at) = CURDATE()")
-        count = cursor.fetchone()[0] + 1
+        cursor.execute("SELECT COUNT(*) as c FROM transactions WHERE display_id = %s", (unique_id,))
+        exists = cursor.fetchone()[0]
         cursor.close()
-    else:
-        count = 1
-    return f"{prefix}-{today}-{count:04d}"
+        if exists > 0:
+            # Very rare collision: add more random
+            extra = ''.join(random.choices(string.digits, k=3))
+            unique_id = f"{prefix}-{date_part}-{time_part}{extra}"
+    
+    return unique_id
 
 def generate_trip_display_id(conn=None):
     """Generate trip display ID: TRIP-YYYYMMDD-XXXX"""

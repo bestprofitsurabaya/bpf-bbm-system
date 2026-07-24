@@ -197,6 +197,161 @@
             .card-body { padding: 14px 16px; }
         }
 
+    
+        /* ============================================================ */
+        /* TRIPS ENTERPRISE ENHANCEMENTS */
+        /* ============================================================ */
+        
+        /* Summary Cards */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .summary-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px 20px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            border: 1px solid #e8ecf1;
+            transition: transform 0.2s;
+        }
+        .summary-card:hover { transform: translateY(-2px); }
+        .summary-card.pending { border-left: 4px solid #d97706; }
+        .summary-card.verified { border-left: 4px solid #059669; }
+        .summary-card.rejected { border-left: 4px solid #dc2626; }
+        .summary-card.total { border-left: 4px solid #2563eb; }
+        .summary-number { font-size: 28px; font-weight: 800; color: #0f172a; }
+        .summary-label { font-size: 11px; color: #64748b; margin-top: 4px; font-weight: 500; }
+        
+        /* Filter Bar */
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 10px;
+            align-items: center;
+        }
+        .filter-bar input, .filter-bar select {
+            padding: 8px 12px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 12px;
+            background: white;
+        }
+        .filter-bar input:focus, .filter-bar select:focus {
+            border-color: #93c5fd;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.08);
+        }
+        .btn-outline {
+            background: white;
+            color: #64748b;
+            border: 1.5px solid #e2e8f0;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .btn-outline:hover { border-color: #93c5fd; color: #2563eb; }
+        
+        /* Table enhancements */
+        .trip-row-clickable:hover td { background: #f0f4ff !important; }
+        .nopol-tag {
+            background: #1e293b;
+            color: #fbbf24;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+        .route-badge {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 11px;
+        }
+        
+        /* Trip Detail Modal */
+        .trip-detail-modal {
+            background: white;
+            border-radius: 14px;
+            width: 95%;
+            max-width: 650px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: popIn 0.2s;
+        }
+        .tdm-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 1;
+            border-radius: 14px 14px 0 0;
+        }
+        .tdm-header h3 { font-size: 15px; color: #0f172a; }
+        .tdm-header h3 span { color: #2563eb; }
+        .tdm-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #94a3b8; }
+        .tdm-close:hover { color: #dc2626; }
+        .tdm-body { padding: 16px 20px; }
+        .tdm-body .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 12px;
+        }
+        .tdm-body .info-row .lbl { color: #64748b; font-weight: 500; }
+        .tdm-body .info-row .val { font-weight: 600; color: #0f172a; }
+        .tdm-body .route-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 11px;
+        }
+        .tdm-body .route-table th {
+            background: #f1f5f9;
+            padding: 8px;
+            text-align: left;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .tdm-body .route-table td {
+            padding: 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .tdm-body .route-table .loc-cell { font-weight: 500; }
+        .tdm-footer {
+            padding: 12px 20px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .summary-cards { grid-template-columns: repeat(2, 1fr); }
+            .filter-bar { flex-direction: column; }
+            .filter-bar input, .filter-bar select { width: 100%; }
+        }
+
     </style>
 </head>
 <body>
@@ -220,7 +375,7 @@
         </div>
     </nav>
     
-    <div class="container">
+        <div class="container">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -229,21 +384,44 @@
             {% endif %}
         {% endwith %}
         
+        <!-- SUMMARY CARDS -->
+        <div class="summary-cards">
+            <div class="summary-card pending">
+                <div class="summary-number">{{ trips|selectattr('status','equalto','pending')|list|length }}</div>
+                <div class="summary-label">⏳ Pending</div>
+            </div>
+            <div class="summary-card verified">
+                <div class="summary-number">{{ trips|selectattr('status','equalto','verified_ga')|list|length }}</div>
+                <div class="summary-label">✅ Verified</div>
+            </div>
+            <div class="summary-card rejected">
+                <div class="summary-number">{{ trips|selectattr('status','equalto','rejected')|list|length }}</div>
+                <div class="summary-label">❌ Rejected</div>
+            </div>
+            <div class="summary-card total">
+                <div class="summary-number">{{ trips|length }}</div>
+                <div class="summary-label">📋 Total Logs</div>
+            </div>
+        </div>
+        
         <div class="card">
             <div class="card-header">
-                <span>📋 Log Perjalanan Harian (Logsheet)</span>
+                <span>📋 Log Perjalanan Harian</span>
                 <span style="font-size:12px;color:var(--gray-500);">{{ trips|length }} logs</span>
             </div>
             <div class="card-body">
-                <form class="filter-form" method="GET">
-                    <input type="text" name="driver" placeholder="Nama Driver" value="{{ filters.driver }}" style="width:180px;">
-                    <input type="date" name="date" value="{{ filters.date }}">
+                <!-- FILTER BAR -->
+                <form class="filter-bar" method="GET">
+                    <input type="text" name="driver" placeholder="🔍 Nama Driver" value="{{ filters.driver }}">
+                    <input type="date" name="date" value="{{ filters.date }}" title="Tanggal">
                     <select name="status">
-                        <option value="pending" {% if filters.status=='pending' %}selected{% endif %}>Pending</option>
-                        <option value="verified_ga" {% if filters.status=='verified_ga' %}selected{% endif %}>Verified</option>
-                        <option value="rejected" {% if filters.status=='rejected' %}selected{% endif %}>Rejected</option>
+                        <option value="pending" {% if filters.status=='pending' %}selected{% endif %}>⏳ Pending</option>
+                        <option value="verified_ga" {% if filters.status=='verified_ga' %}selected{% endif %}>✅ Verified</option>
+                        <option value="rejected" {% if filters.status=='rejected' %}selected{% endif %}>❌ Rejected</option>
+                        <option value="">Semua Status</option>
                     </select>
-                    <button type="submit" class="btn btn-primary">Filter</button>
+                    <button type="submit" class="btn btn-primary">🔍 Filter</button>
+                    <a href="/admin/trips" class="btn btn-outline">↻ Reset</a>
                 </form>
                 
                 {% if trips %}
@@ -252,37 +430,35 @@
                     <thead>
                         <tr>
                             <th>ID</th><th>Tgl</th><th>Driver</th><th>Nopol</th>
-                            <th>Jam Berangkat</th><th>Jam Tiba</th>
-                            <th>KM Awal</th><th>KM Akhir</th><th>Rute</th>
+                            <th>Jam</th><th>KM</th><th>Rute</th>
                             <th>Status</th><th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for t in trips %}
-                        <tr>
+                        <tr class="trip-row-clickable" onclick="showTripDetail({{ t.id }})" style="cursor:pointer;">
                             <td><strong>#{{ t.id }}</strong></td>
                             <td>{{ t.trip_date }}</td>
                             <td><strong>{{ t.driver_name }}</strong></td>
-                            <td>{{ t.nopol }}</td>
-                            <td>{{ t.jam_keberangkatan }}</td>
-                            <td>{{ t.jam_tiba or '-' }}</td>
-                            <td>{{ t.km_awal }}</td>
-                            <td>{{ t.km_akhir or '-' }}</td>
-                            <td><span style="background:var(--primary-light);color:var(--primary-dark);padding:2px 8px;border-radius:10px;font-weight:700;">{{ t.total_routes }} rute</span></td>
+                            <td><span class="nopol-tag">{{ t.nopol }}</span></td>
+                            <td style="font-size:11px;">{{ t.jam_keberangkatan }} - {{ t.jam_tiba or '-' }}</td>
+                            <td style="font-size:11px;">{{ t.km_awal }} - {{ t.km_akhir or '-' }}</td>
+                            <td><span class="route-badge">{{ t.total_routes }} rute</span></td>
                             <td>
                                 <span class="badge {% if t.status=='verified_ga' %}badge-ga{% elif t.status=='rejected' %}badge-reject{% else %}badge-pending{% endif %}">
                                     {{ t.status|replace('_',' ')|upper }}
                                 </span>
                                 {% if t.status=='rejected' and t.rejection_reason %}
-                                <div style="font-size:10px;color:var(--danger);margin-top:2px;">{{ t.rejection_reason }}</div>
+                                <div style="font-size:10px;color:var(--danger);margin-top:2px;">{{ t.rejection_reason[:30] }}</div>
                                 {% endif %}
                             </td>
-                            <td>
+                            <td onclick="event.stopPropagation();">
                                 {% if t.status == 'pending' %}
-                                <a href="/admin/trips/verify/{{ t.id }}?admin=GA" class="btn btn-success btn-sm" onclick="return confirm('Verifikasi trip #{{ t.id }}?')">Verify</a>
-                                <button class="btn btn-danger btn-sm" onclick="showRejectModal({{ t.id }})">Reject</button>
+                                <a href="/admin/trips/verify/{{ t.id }}?admin=GA" class="btn btn-success btn-sm" onclick="return confirm('Verifikasi trip #{{ t.id }}?')" title="Verify">✅</a>
+                                <button class="btn btn-danger btn-sm" onclick="showRejectModal({{ t.id }})" title="Reject">❌</button>
                                 {% endif %}
-                                <a href="/admin/trips/export/{{ t.id }}" class="btn btn-info btn-sm">📥 Excel</a>
+                                <a href="/admin/trips/export/{{ t.id }}" class="btn btn-info btn-sm" title="Excel">📥</a>
+                                <a href="/admin/trips/export-pdf/{{ t.id }}" class="btn btn-danger btn-sm" title="PDF">📄</a>
                             </td>
                         </tr>
                         {% endfor %}
@@ -291,6 +467,7 @@
                 </div>
                 {% else %}
                 <div class="empty">
+                    <div style="font-size:48px;">📭</div>
                     <p style="font-size:16px;font-weight:600;">Tidak ada log perjalanan</p>
                     <p style="font-size:13px;margin-top:4px;">Sesuaikan filter atau minta driver untuk submit log.</p>
                 </div>
@@ -299,7 +476,37 @@
         </div>
     </div>
     
+    <!-- TRIP DETAIL MODAL -->
+    <div class="modal-overlay" id="tripDetailModal">
+        <div class="trip-detail-modal">
+            <div class="tdm-header">
+                <h3>📋 Detail Perjalanan <span id="detailTripId">#-</span></h3>
+                <button onclick="closeTripDetail()" class="tdm-close">&times;</button>
+            </div>
+            <div class="tdm-body" id="tripDetailBody">
+                <p style="text-align:center;color:var(--gray-500);padding:20px;">⏳ Memuat detail rute...</p>
+            </div>
+            <div class="tdm-footer">
+                <button class="btn btn-primary btn-sm" onclick="printTripDetail()">🖨️ Print</button>
+                <button class="btn btn-outline btn-sm" onclick="closeTripDetail()">Tutup</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- REJECT MODAL -->
+    <div class="modal-overlay" id="rejectModal">
+        <div class="modal-box">
+            <h3 style="margin-bottom:12px;">Tolak Trip Log</h3>
+            <form id="rejectForm" method="POST">
+                <label style="font-size:13px;font-weight:600;">Alasan Penolakan:</label>
+                <textarea name="reason" placeholder="Tulis alasan..." required></textarea>
+                <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+                    <button type="button" class="btn" style="background:var(--gray-200);" onclick="closeReject()">Batal</button>
+                    <button type="submit" class="btn btn-danger">Tolak</button>
+                </div>
+            </form>
+        </div>
+    </div>
     <div class="modal-overlay" id="rejectModal">
         <div class="modal-box">
             <h3 style="margin-bottom:12px;">Tolak Trip Log</h3>
@@ -322,6 +529,78 @@
         function closeReject() { document.getElementById('rejectModal').classList.remove('active'); }
         document.getElementById('rejectModal').addEventListener('click', function(e) { if(e.target===this) closeReject(); });
         document.addEventListener('keydown', function(e) { if(e.key==='Escape') closeReject(); });
+
+    // ============================================================
+    // TRIP DETAIL MODAL
+    // ============================================================
+    async function showTripDetail(tripId) {
+        document.getElementById('detailTripId').textContent = '#' + tripId;
+        document.getElementById('tripDetailBody').innerHTML = '<p style="text-align:center;color:var(--gray-500);padding:20px;">⏳ Memuat...</p>';
+        document.getElementById('tripDetailModal').classList.add('active');
+        
+        try {
+            var r = await fetch('/api/trip-detail/' + tripId);
+            var d = await r.json();
+            if (d.error) { document.getElementById('tripDetailBody').innerHTML = '<p style="color:red;">' + d.error + '</p>'; return; }
+            
+            var master = d.master;
+            var details = d.details || [];
+            
+            var html = '<div class="info-row"><span class="lbl">Driver</span><span class="val">' + master.driver_name + '</span></div>';
+            html += '<div class="info-row"><span class="lbl">No. Polisi</span><span class="val"><span class="nopol-tag">' + master.nopol + '</span></span></div>';
+            html += '<div class="info-row"><span class="lbl">Tanggal</span><span class="val">' + master.trip_date + '</span></div>';
+            html += '<div class="info-row"><span class="lbl">Jam Berangkat</span><span class="val">' + (master.jam_keberangkatan || '-') + '</span></div>';
+            html += '<div class="info-row"><span class="lbl">Jam Tiba</span><span class="val">' + (master.jam_tiba || '-') + '</span></div>';
+            html += '<div class="info-row"><span class="lbl">KM Awal</span><span class="val">' + master.km_awal + ' km</span></div>';
+            html += '<div class="info-row"><span class="lbl">KM Akhir</span><span class="val">' + (master.km_akhir || '-') + ' km</span></div>';
+            html += '<div class="info-row"><span class="lbl">Total Rute</span><span class="val">' + details.length + ' rute</span></div>';
+            html += '<div class="info-row"><span class="lbl">Status</span><span class="val">' + master.status.toUpperCase() + '</span></div>';
+            
+            if (details.length > 0) {
+                html += '<h4 style="margin-top:14px;font-size:13px;">📍 Rute Perjalanan</h4>';
+                html += '<table class="route-table"><thead><tr><th>#</th><th>Lokasi Berangkat</th><th>Pukul</th><th>KM</th><th>Lokasi Tujuan</th><th>Pukul</th><th>KM</th></tr></thead><tbody>';
+                for (var i = 0; i < details.length; i++) {
+                    var d = details[i];
+                    html += '<tr>';
+                    html += '<td>' + (i+1) + '</td>';
+                    html += '<td class="loc-cell">📍 ' + d.lokasi_berangkat + '</td>';
+                    html += '<td>' + (d.pukul_berangkat || '-') + '</td>';
+                    html += '<td>' + d.km_berangkat + '</td>';
+                    html += '<td class="loc-cell">🏁 ' + d.lokasi_tujuan + '</td>';
+                    html += '<td>' + (d.pukul_tujuan || '-') + '</td>';
+                    html += '<td>' + d.km_tujuan + '</td>';
+                    html += '</tr>';
+                }
+                html += '</tbody></table>';
+            }
+            
+            document.getElementById('tripDetailBody').innerHTML = html;
+        } catch(e) {
+            document.getElementById('tripDetailBody').innerHTML = '<p style="color:red;">Error memuat detail</p>';
+        }
+    }
+    
+    function closeTripDetail() {
+        document.getElementById('tripDetailModal').classList.remove('active');
+    }
+    
+    function printTripDetail() {
+        var content = document.getElementById('tripDetailBody').innerHTML;
+        var win = window.open('', '_blank', 'width=800,height=600');
+        win.document.write('<html><head><title>Detail Perjalanan</title>');
+        win.document.write('<style>body{font-family:Inter,sans-serif;padding:20px;font-size:12px;} table{width:100%;border-collapse:collapse;} th,td{padding:6px;border:1px solid #ddd;text-align:left;} .info-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;} .lbl{color:#666;} .val{font-weight:600;} .nopol-tag{background:#1e293b;color:#fbbf24;padding:2px 8px;border-radius:4px;}</style>');
+        win.document.write('</head><body>' + content + '</body></html>');
+        win.document.close();
+        win.print();
+    }
+    
+    document.getElementById('tripDetailModal').addEventListener('click', function(e) {
+        if (e.target === this) closeTripDetail();
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') { closeTripDetail(); closeReject(); }
+    });
+
     </script>
     
     <!-- Service Worker Auto-Update -->

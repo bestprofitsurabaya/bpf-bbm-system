@@ -1,5 +1,5 @@
 """Admin Dashboard & Workflow Routes"""
-from flask import (render_template, request, redirect, url_for, flash, jsonify)
+from flask import (render_template, request, redirect, url_for, flash, jsonify, make_response)
 from modules.config import get_db_connection
 from modules.helpers import log_activity_async, save_file, generate_display_id, generate_trip_display_id
 from datetime import datetime, timedelta
@@ -292,6 +292,82 @@ def register_admin_routes(app):
             return response
         except Exception as e:
             return f"Error: {str(e)}", 500
+    @app.route('/admin/trips/export-pdf/<int:trip_id>')
+    def export_trip_pdf(trip_id):
+        try:
+            from modules.pdf_generator import BPFBasePDF
+            conn = get_db_connection()
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM trip_masters WHERE id=%s", (trip_id,))
+            master = cursor.fetchone()
+            if not master:
+                cursor.close(); conn.close()
+                return "Trip not found", 404
+            cursor.execute("SELECT * FROM trip_details WHERE trip_master_id=%s ORDER BY no_urut", (trip_id,))
+            details = cursor.fetchall()
+            cursor.close(); conn.close()
+            
+            pdf = BPFBasePDF()
+            pdf.add_page()
+            pdf.set_font(pdf._font(), 'B', 12)
+            pdf.cell(0, 8, f'LOG PERJALANAN #{master["display_id"]}', align='C', new_x="LMARGIN", new_y="NEXT")
+            pdf.ln(4)
+            
+            # Info header
+            pdf.set_font(pdf._font(), '', 8)
+            info = [
+                ('Driver', master['driver_name']),
+                ('Nopol', master['nopol']),
+                ('Tanggal', str(master['trip_date'])),
+                ('Jam Berangkat', master['jam_keberangkatan'] or '-'),
+                ('Jam Tiba', master['jam_tiba'] or '-'),
+                ('KM Awal', str(master['km_awal'])),
+                ('KM Akhir', str(master['km_akhir'] or 0)),
+                ('Status', master['status']),
+            ]
+            for label, value in info:
+                pdf.set_font(pdf._font(), 'B', 8)
+                pdf.cell(35, 5, label)
+                pdf.set_font(pdf._font(), '', 8)
+                pdf.cell(0, 5, ': ' + str(value), new_x="LMARGIN", new_y="NEXT")
+            pdf.ln(4)
+            
+            # Rute
+            pdf.set_font(pdf._font(), 'B', 9)
+            pdf.cell(0, 6, 'RUTE PERJALANAN', new_x="LMARGIN", new_y="NEXT")
+            pdf.ln(2)
+            
+            headers = ['NO', 'LOKASI BERANGKAT', 'PUKUL', 'KM', 'LOKASI TUJUAN', 'PUKUL', 'KM']
+            widths = [8, 40, 18, 14, 40, 18, 14]
+            pdf.set_fill_color(37, 99, 235)
+            pdf.set_text_color(255, 255, 255)
+            pdf.set_font(pdf._font(), 'B', 7)
+            for i, h in enumerate(headers):
+                pdf.cell(widths[i], 6, h, border=1, align='C', fill=True)
+            pdf.set_text_color(0, 0, 0)
+            pdf.ln()
+            
+            pdf.set_font(pdf._font(), '', 7)
+            for i, d in enumerate(details, 1):
+                pdf.cell(widths[0], 5, str(i), border=1, align='C')
+                pdf.cell(widths[1], 5, pdf.clean_text(str(d['lokasi_berangkat'])[:30]), border=1)
+                pdf.cell(widths[2], 5, str(d['pukul_berangkat'] or '-'), border=1, align='C')
+                pdf.cell(widths[3], 5, str(d['km_berangkat']), border=1, align='C')
+                pdf.cell(widths[4], 5, pdf.clean_text(str(d['lokasi_tujuan'])[:30]), border=1)
+                pdf.cell(widths[5], 5, str(d['pukul_tujuan'] or '-'), border=1, align='C')
+                pdf.cell(widths[6], 5, str(d['km_tujuan']), border=1, align='C')
+                pdf.ln()
+            
+            pdf_raw = pdf.output(dest='S')
+            pdf_bytes = pdf_raw.encode('latin-1') if isinstance(pdf_raw, str) else bytes(pdf_raw)
+            response = make_response(pdf_bytes)
+            response.headers['Content-Type'] = 'application/pdf'
+            response.headers['Content-Disposition'] = 'attachment; filename=BPF_Logsheet_' + str(master.get('display_id', master['id'])) + '_' + str(master['nopol']) + '_' + str(master['trip_date']) + '.pdf'
+            log_activity_async(trip_id, 'trip_export_pdf', 'ga', 'GA Officer', ip=request.remote_addr)
+            return response
+        except Exception as e:
+            return f"Error: {str(e)}", 500
+
 
     @app.route('/ga/assignments')
     def ga_assignments():
