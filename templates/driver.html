@@ -518,120 +518,19 @@
     </div>
 </div>
 
+
+<script src="/static/js/db.js?v=20260724"></script>
+<script src="/static/js/sync.js?v=20260724"></script>
+<script src="/static/js/drivers.js?v=20260724"></script>
 <script>
 // ============================================================
 // INDEXEDDB SETUP
 // ============================================================
-const DB_NAME = 'BPF_Driver_DB', DB_VER = 2;
-let db = null;
-
-function openDB() {
-    return new Promise((resolve, reject) => {
-        let req = indexedDB.open(DB_NAME, DB_VER);
-        req.onupgradeneeded = e => {
-            let d = e.target.result;
-            if (!d.objectStoreNames.contains('fuel_queue')) d.createObjectStore('fuel_queue', { keyPath: 'id', autoIncrement: true });
-            if (!d.objectStoreNames.contains('trip_queue')) d.createObjectStore('trip_queue', { keyPath: 'id', autoIncrement: true });
-        };
-        req.onsuccess = e => { db = e.target.result; resolve(db); };
-        req.onerror = e => reject(e);
-    });
-}
-
-function saveToQueue(store, data) {
-    return new Promise((resolve, reject) => {
-        let tx = db.transaction(store, 'readwrite');
-        let req = tx.objectStore(store).add(data);
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = e => reject(e);
-    });
-}
-
-function getAllFromQueue(store) {
-    return new Promise((resolve, reject) => {
-        let tx = db.transaction(store, 'readonly');
-        let req = tx.objectStore(store).getAll();
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = e => reject(e);
-    });
-}
-
-function deleteFromQueue(store, id) {
-    return new Promise((resolve, reject) => {
-        let tx = db.transaction(store, 'readwrite');
-        tx.objectStore(store).delete(id);
-        tx.oncomplete = () => resolve();
-        tx.onerror = e => reject(e);
-    });
-}
-
-function countQueue(store) {
-    return new Promise((resolve, reject) => {
-        let tx = db.transaction(store, 'readonly');
-        let req = tx.objectStore(store).count();
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = e => reject(e);
-    });
-}
 
 // ============================================================
 // CONNECTION STATUS
 // ============================================================
-function updateStatus() {
-    let bar = document.getElementById('statusBar');
-    let txt = document.getElementById('statusText');
-    if (navigator.onLine) {
-        bar.className = 'status-bar online';
-        txt.textContent = '🟢 Online';
-    } else {
-        bar.className = 'status-bar offline';
-        txt.textContent = '🟡 Offline - Data tersimpan lokal';
-    }
-    updateBadge();
-}
 
-async function updateBadge() {
-    let fuel = await countQueue('fuel_queue');
-    let trip = await countQueue('trip_queue');
-    let total = fuel + trip;
-    let badge = document.getElementById('queueBadge');
-    badge.textContent = total;
-    badge.className = total > 0 ? 'queue-count show' : 'queue-count';
-}
-
-// ============================================================
-// AUTO SYNC
-// ============================================================
-async function syncAll() {
-    if (!navigator.onLine || !db) return;
-    console.log('[SYNC] Starting...');
-    
-    let fuelItems = await getAllFromQueue('fuel_queue');
-    for (let item of fuelItems) {
-        try {
-            let fd = new FormData();
-            for (let k in item.data) fd.append(k, item.data[k]);
-            fd.append('gps_lat', item.data.gps_lat || '');
-            fd.append('gps_lon', item.data.gps_lon || '');
-            fd.append('gps_address', item.data.gps_address || '');
-            let r = await fetch('/driver', { method:'POST', body:fd, headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'} });
-            if (r.ok) await deleteFromQueue('fuel_queue', item.id);
-        } catch(e) {}
-    }
-    
-    let tripItems = await getAllFromQueue('trip_queue');
-    for (let item of tripItems) {
-        try {
-            let fd = new FormData();
-            for (let k in item.data) fd.append(k, item.data[k]);
-            let r = await fetch('/submit-trip', { method:'POST', body:fd, headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'} });
-            if (r.ok) await deleteFromQueue('trip_queue', item.id);
-        } catch(e) {}
-    }
-    
-    updateBadge();
-    console.log('[SYNC] Complete');
-}
 
 // ============================================================
 // SUBMIT (Online/Offline)
