@@ -144,6 +144,29 @@ Buka `/admin`. Kamu akan lihat 4 tab:
 
 Buka `/ga/assignments`. Di sini kamu mengatur **siapa pakai kendaraan apa**.
 
+### 3.5 Review Trip Log (Logsheet)
+
+Buka menu **🗺️ Trips**. Di sini kamu bisa melihat semua log perjalanan yang disubmit driver.
+
+#### Fitur di Halaman Trips:
+- **📊 Summary Cards** — Lihat sekilas: berapa Pending, Verified, Rejected, Total
+- **🔍 Filter** — Cari berdasarkan nama driver, tanggal, atau status
+- **🖱️ Klik Baris** — Muncul popup detail lengkap setiap rute perjalanan
+- **🖨️ Print** — Cetak detail perjalanan dari popup
+- **📥 Excel** — Unduh logsheet dalam format Excel
+- **📄 PDF** — Unduh logsheet dalam format PDF dengan kop surat
+
+#### Cara Verifikasi:
+1. Klik baris trip → lihat detail rute di popup
+2. Kalau sesuai, klik **✅ Verify**
+3. Kalau tidak, klik **❌ Reject** → isi alasan
+
+#### Detail yang Ditampilkan:
+- Nama driver, nopol, tanggal
+- Jam berangkat & tiba
+- KM awal & akhir
+- **Tabel rute**: lokasi berangkat, pukul, KM → lokasi tujuan, pukul, KM
+
 #### A. Assign Kendaraan ke Driver
 
 1. Lihat panel **➕ Assign Kendaraan Kosong** (bagian bawah)
@@ -334,26 +357,3 @@ Dikembangkan oleh **IT BPF Surabaya**
 
 > *"Sistem yang baik adalah sistem yang memudahkan, bukan menyulitkan."*  
 > — Tim IT BPF Surabaya
-
-### 3.5 Review Trip Log (Logsheet)
-
-Buka menu **🗺️ Trips**. Di sini kamu bisa melihat semua log perjalanan yang disubmit driver.
-
-#### Fitur di Halaman Trips:
-- **📊 Summary Cards** — Lihat sekilas: berapa Pending, Verified, Rejected, Total
-- **🔍 Filter** — Cari berdasarkan nama driver, tanggal, atau status
-- **🖱️ Klik Baris** — Muncul popup detail lengkap setiap rute perjalanan
-- **🖨️ Print** — Cetak detail perjalanan dari popup
-- **📥 Excel** — Unduh logsheet dalam format Excel
-- **📄 PDF** — Unduh logsheet dalam format PDF dengan kop surat
-
-#### Cara Verifikasi:
-1. Klik baris trip → lihat detail rute di popup
-2. Kalau sesuai, klik **✅ Verify**
-3. Kalau tidak, klik **❌ Reject** → isi alasan
-
-#### Detail yang Ditampilkan:
-- Nama driver, nopol, tanggal
-- Jam berangkat & tiba
-- KM awal & akhir
-- **Tabel rute**: lokasi berangkat, pukul, KM → lokasi tujuan, pukul, KM
