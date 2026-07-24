@@ -758,7 +758,16 @@
         let orig = btn.textContent;
         btn.textContent = '⏳...'; btn.disabled = true;
         try {
-            let r = await fetch(endpoint, { method:'POST', body:fd, headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'} });
+            // Replace file inputs with watermarked blobs
+            let wm_fd = new FormData();
+            for (let [k, v] of fd.entries()) {
+                if (v instanceof File && watermarkedBlobs[k]) {
+                    wm_fd.append(k, watermarkedBlobs[k], v.name);
+                } else {
+                    wm_fd.append(k, v);
+                }
+            }
+            let r = await fetch(endpoint, { method:'POST', body:wm_fd, headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'} });
             let result = await r.json();
             if (r.ok && result.status === 'success') {
                 showModal(successMsg, result.transaction_id || result.trip_id);
