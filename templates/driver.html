@@ -904,55 +904,6 @@ function updateGpsUI() {
 
 // ============================================================
 // DRIVERS
-// ============================================================
-function loadDrivers() {
-    // Load drivers + assignments + vehicles sekaligus
-    Promise.all([
-        fetch('/api/drivers').then(function(r) { return r.json(); }),
-        fetch('/api/assignments/active').then(function(r) { return r.json(); }),
-        fetch('/api/vehicles/with-nopol').then(function(r) { return r.json(); })
-    ]).then(function(results) {
-        var drivers = results[0];
-        var assignments = results[1];
-        var vehicles = results[2];
-        
-        window.allVehicles = vehicles;
-        window.allAssignments = assignments;
-        
-        [document.getElementById('driver_name'), document.getElementById('trip_driver')].forEach(function(sel) {
-            if (!sel) return;
-            while (sel.options.length > 1) { sel.remove(1); }
-            
-            drivers.forEach(function(drv) {
-                if (!drv.name || !drv.is_active) return;
-                
-                // Cari assignment aktif untuk driver ini
-                var assign = null;
-                for (var i = 0; i < assignments.length; i++) {
-                    if (assignments[i].driver_name === drv.name) {
-                        assign = assignments[i];
-                        break;
-                    }
-                }
-                
-                var o = document.createElement('option');
-                o.value = drv.name;
-                o.textContent = drv.name;  // HANYA nama, tanpa nopol
-                
-                if (assign) {
-                    o.dataset.nopol = assign.nopol;
-                    o.dataset.vehicle = assign.vehicle_type;
-                    o.dataset.bbm = assign.bbm_type;
-                } else {
-                    o.dataset.nopol = drv.nopol || '';
-                    o.dataset.vehicle = drv.vehicle_type || 'AVANZA';
-                    o.dataset.bbm = drv.bbm_type || 'PERTALITE';
-                }
-                sel.appendChild(o);
-            });
-        });
-    });
-}
 function autoFill() {
     var sel = document.getElementById('driver_name');
     var opt = sel.options[sel.selectedIndex];

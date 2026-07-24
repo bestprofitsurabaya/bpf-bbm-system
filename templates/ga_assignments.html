@@ -333,7 +333,6 @@
     // INIT
     // ============================================================
     async function loadAll() {
-        await fetch('/api/vehicles/sync', {method:'POST'});
         await loadDrivers();
         await loadActive();
         await loadUnassigned();

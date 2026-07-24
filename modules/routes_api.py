@@ -646,6 +646,16 @@ def register_api_routes(app):
             cursor.execute("SELECT * FROM trip_details WHERE trip_master_id = %s ORDER BY no_urut", (trip_id,))
             details = cursor.fetchall()
             cursor.close(); conn.close()
+            # Konversi timedelta ke string
+            if master.get('jam_keberangkatan'):
+                master['jam_keberangkatan'] = str(master['jam_keberangkatan'])
+            if master.get('jam_tiba'):
+                master['jam_tiba'] = str(master['jam_tiba'])
+            for d in details:
+                if d.get('pukul_berangkat'):
+                    d['pukul_berangkat'] = str(d['pukul_berangkat'])
+                if d.get('pukul_tujuan'):
+                    d['pukul_tujuan'] = str(d['pukul_tujuan'])
             return jsonify({'master': master, 'details': details})
         except Exception as e:
             return jsonify({'error': str(e)}), 500
