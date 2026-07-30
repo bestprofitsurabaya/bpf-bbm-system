@@ -432,7 +432,7 @@ Tabel berikut menjelaskan tindakan yang bisa dilakukan pada setiap status:
 ## 📞 Kontak & Dukungan
 
 **PT. Bestprofit Futures — Surabaya**  
-BPF Fleet & BBM System v1.2  
+BPF Fleet & BBM System v1.0  
 Dikembangkan oleh **Tim IT BPF Surabaya**
 
 > *"Sistem yang baik adalah sistem yang memudahkan pekerjaan, bukan menambah beban."*  

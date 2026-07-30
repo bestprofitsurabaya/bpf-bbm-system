@@ -206,9 +206,8 @@ docker exec bbm_mariadb mysql -uroot -ppassword_db bpf_asset_system \
 
 ---
 
-📝 Changelog
 
-v1.0 (Current)
+v1.0 
 
 · ✅ Modul Kasbon (Cash Request) dengan kode unik harian
 · ✅ Modular API architecture (3 API modules)
@@ -217,17 +216,11 @@ v1.0 (Current)
 · ✅ UX: Progress bar, Dark mode, Skeleton loading, Swipe, Pull-to-refresh
 · ✅ PDF: Grid foto 2×2, DejaVu Sans font, enterprise letterhead
 · ✅ Professional USER_GUIDE with troubleshooting + glossary
-
-v1.1
-
 · ✅ GA Assignments (assign, swap, release)
 · ✅ Driver toggle + delete + reset PIN
 · ✅ Fleet kendaraan mandiri
 · ✅ Unified navbar + footer
 · ✅ Enterprise PDF with BPFBasePDF
-
-v1.0
-
 · ✅ PWA Offline-First
 · ✅ Watermark otomatis
 · ✅ Cross-Check Verifikasi
@@ -250,5 +243,5 @@ Driver Submit BBM, Trip Log, Kasbon, Self-analytics -
 📄 License
 
 Internal use - PT. Bestprofit Futures Surabaya
-Version 1.2 | July 2026
+Version 1.0 | July 2026
 Developed & Maintained by IT BPF Surabaya
