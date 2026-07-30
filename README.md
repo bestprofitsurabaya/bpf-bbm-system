@@ -1,4 +1,4 @@
-# ⛽ BPF Fleet & BBM System v1.2
+# ⛽ BPF Fleet & BBM System v1.0
 
 **Sistem Manajemen Armada, Klaim BBM, Kasbon & Log Perjalanan**  
 **PT. Bestprofit Futures - Surabaya**
@@ -9,7 +9,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 
 ---
 
-## 🆕 Fitur Terbaru v1.2
+## 🆕 Fitur Terbaru v1.0
 
 ### 💰 Modul Kasbon (Cash Request)
 | Fitur | Deskripsi |
@@ -208,7 +208,7 @@ docker exec bbm_mariadb mysql -uroot -ppassword_db bpf_asset_system \
 
 📝 Changelog
 
-v1.2 (Current)
+v1.0 (Current)
 
 · ✅ Modul Kasbon (Cash Request) dengan kode unik harian
 · ✅ Modular API architecture (3 API modules)
