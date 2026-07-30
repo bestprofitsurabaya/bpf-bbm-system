@@ -1,4 +1,4 @@
-# 📖 Panduan Pengguna BPF Fleet & BBM System v1.2
+# 📖 Panduan Pengguna BPF Fleet & BBM System v1.0
 
 **PT. Bestprofit Futures — Surabaya**
 
