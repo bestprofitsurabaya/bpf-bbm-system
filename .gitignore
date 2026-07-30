@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.env
+venv/
+*.bak
+
+# Docker
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads (jangan commit foto asli)
+uploads/*
+!uploads/.gitkeep
+
+# Backup
+backup/
+*.sql.gz
+
+# IDE
+.vscode/
+.idea/

@@ -1,0 +1,254 @@
+"""API Routes - Master Data (Vehicles, BBM, Drivers, Users)"""
+from flask import request, jsonify
+from modules.config import get_db_connection
+from modules.helpers import log_activity_async
+
+def register_master_api(app):
+    
+    @app.route('/api/vehicles')
+    def api_vehicles():
+        try:
+            conn = get_db_connection()
+            if not conn: return jsonify({'error': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT vehicle_type, brand, fuel_capacity FROM vehicles WHERE is_active=TRUE ORDER BY vehicle_type")
+            data = cursor.fetchall()
+            cursor.close(); conn.close()
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/bbm_types')
+    def api_bbm_types():
+        try:
+            conn = get_db_connection()
+            if not conn: return jsonify({'error': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT name, price_per_liter FROM bbm_types WHERE is_active=TRUE ORDER BY name")
+            data = cursor.fetchall()
+            cursor.close(); conn.close()
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/drivers')
+    def api_drivers():
+        try:
+            conn = get_db_connection()
+            if not conn: return jsonify({'error': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT name, nopol, vehicle_type, bbm_type, is_active FROM drivers ORDER BY name")
+            data = cursor.fetchall()
+            cursor.close(); conn.close()
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/drivers/sync', methods=['POST'])
+    def sync_driver():
+        try:
+            data = request.get_json()
+            n = data.get('driver_name', '').strip().upper()
+            p = data.get('nopol', '').strip().upper()
+            v = data.get('vehicle_type', 'AVANZA')
+            b = data.get('bbm_type', 'PERTALITE')
+            if not n: return jsonify({'status': 'error', 'msg': 'Nama driver wajib'}), 400
+            if not p: p = n
+            conn = get_db_connection(); cursor = conn.cursor()
+            cursor.execute("INSERT INTO drivers (name, nopol, vehicle_type, bbm_type) VALUES (%s,%s,%s,%s) ON DUPLICATE KEY UPDATE nopol=VALUES(nopol), vehicle_type=VALUES(vehicle_type), bbm_type=VALUES(bbm_type), is_active=TRUE", (n, p, v, b))
+            conn.commit(); cursor.close(); conn.close()
+            log_activity_async(0, 'driver_sync', 'admin', 'Admin', new_data={'driver': n, 'nopol': p}, ip=request.remote_addr)
+            return jsonify({'status': 'success', 'msg': f'Driver {n} synced'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    @app.route('/api/drivers/<driver_name>/activate', methods=['POST'])
+    def activate_driver(driver_name):
+        try:
+            conn = get_db_connection(); cursor = conn.cursor()
+            cursor.execute("UPDATE drivers SET is_active = TRUE WHERE name = %s", (driver_name,))
+            conn.commit(); cursor.close(); conn.close()
+            return jsonify({'status': 'success', 'msg': f'Driver {driver_name} activated'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    @app.route('/api/drivers/<driver_name>/deactivate', methods=['POST'])
+    def deactivate_driver(driver_name):
+        try:
+            conn = get_db_connection(); cursor = conn.cursor()
+            cursor.execute("UPDATE drivers SET is_active=FALSE WHERE name=%s", (driver_name,))
+            conn.commit(); cursor.close(); conn.close()
+            return jsonify({'status': 'success', 'msg': f'Driver {driver_name} deactivated'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    @app.route('/api/drivers/<driver_name>/delete', methods=['POST', 'DELETE'])
+    def delete_driver(driver_name):
+        try:
+            conn = get_db_connection(); cursor = conn.cursor()
+            cursor.execute("DELETE FROM drivers WHERE name = %s", (driver_name,))
+            conn.commit(); affected = cursor.rowcount; cursor.close(); conn.close()
+            if affected > 0: return jsonify({'status': 'success', 'msg': f'Driver {driver_name} dihapus'})
+            return jsonify({'status': 'error', 'msg': 'Driver tidak ditemukan'}), 404
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    @app.route('/api/users')
+    def api_users():
+        try:
+            conn = get_db_connection(); cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT id, username, full_name, role, is_active, last_login FROM users ORDER BY role, username")
+            data = cursor.fetchall(); cursor.close(); conn.close()
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/users/sync', methods=['POST'])
+    def sync_user():
+        try:
+            data = request.get_json()
+            u = data.get('username', '').strip(); f = data.get('full_name', '').strip()
+            r = data.get('role', 'ga'); p = data.get('pin', '123456'); a = data.get('is_active', True)
+            if not u or not f: return jsonify({'status': 'error', 'msg': 'Username dan nama wajib'}), 400
+            conn = get_db_connection(); cursor = conn.cursor()
+            cursor.execute("INSERT INTO users (username, full_name, role, pin, is_active) VALUES (%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE full_name=VALUES(full_name), role=VALUES(role), pin=VALUES(pin), is_active=VALUES(is_active)", (u, f, r, p, a))
+            conn.commit(); cursor.close(); conn.close()
+            log_activity_async(0, 'user_sync', 'admin', 'Admin', new_data={'username': u, 'role': r}, ip=request.remote_addr)
+            return jsonify({'status': 'success', 'msg': f'User {u} saved'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    @app.route('/api/users/reset-pin', methods=['POST'])
+    def reset_user_pin():
+        try:
+            data = request.get_json()
+            username = data.get('username', '').strip(); new_pin = data.get('new_pin', '').strip()
+            if not username or not new_pin or len(new_pin) != 6:
+                return jsonify({'status': 'error', 'msg': 'Username dan PIN 6-digit wajib'}), 400
+            conn = get_db_connection(); cursor = conn.cursor()
+            cursor.execute("UPDATE users SET pin = %s WHERE username = %s", (new_pin, username))
+            affected = cursor.rowcount; conn.commit(); cursor.close(); conn.close()
+            if affected > 0:
+                log_activity_async(0, 'user_reset_pin', 'admin', 'Admin', new_data={'username': username})
+                return jsonify({'status': 'success', 'msg': f'PIN untuk {username} berhasil direset'})
+            return jsonify({'status': 'error', 'msg': 'User tidak ditemukan'}), 404
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    @app.route('/api/verify-pin', methods=['POST'])
+    def verify_pin():
+        try:
+            data = request.get_json()
+            username = data.get('username', '').strip(); pin = data.get('pin', '').strip()
+            if not username or not pin: return jsonify({'status': 'error', 'msg': 'Username dan PIN wajib'}), 400
+            conn = get_db_connection(); cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM users WHERE username=%s AND pin=%s AND is_active=TRUE", (username, pin))
+            user = cursor.fetchone()
+            if user:
+                cursor.execute("UPDATE users SET last_login=NOW() WHERE id=%s", (user['id'],))
+                conn.commit(); cursor.close(); conn.close()
+                return jsonify({'status': 'success', 'user': {'username': user['username'], 'full_name': user['full_name'], 'role': user['role']}})
+            cursor.close(); conn.close()
+            return jsonify({'status': 'error', 'msg': 'PIN salah'}), 401
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    @app.route('/api/vehicles/with-nopol')
+    def api_vehicles_with_nopol():
+        try:
+            conn = get_db_connection()
+            if not conn: return jsonify({'error': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT nopol, vehicle_type, bbm_default FROM vehicles WHERE is_active=1 AND nopol IS NOT NULL AND nopol != '' ORDER BY nopol")
+            data = cursor.fetchall(); cursor.close(); conn.close()
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/vehicles/add', methods=['POST'])
+    def api_add_vehicle():
+        try:
+            data = request.get_json()
+            nopol = data.get('nopol', '').strip().upper(); vehicle_type = data.get('vehicle_type', 'AVANZA').strip().upper()
+            brand = data.get('brand', 'Toyota').strip(); bbm_default = data.get('bbm_default', 'PERTALITE').strip().upper()
+            if not nopol: return jsonify({'status': 'error', 'msg': 'No. Polisi wajib'}), 400
+            conn = get_db_connection(); cursor = conn.cursor()
+            cursor.execute("INSERT INTO vehicles (vehicle_type, nopol, brand, fuel_capacity, bbm_default, is_active) VALUES (%s, %s, %s, 45, %s, 1) ON DUPLICATE KEY UPDATE vehicle_type=VALUES(vehicle_type), brand=VALUES(brand), bbm_default=VALUES(bbm_default), is_active=1", (vehicle_type, nopol, brand, bbm_default))
+            conn.commit(); cursor.close(); conn.close()
+            log_activity_async(0, 'vehicle_add', 'admin', 'Admin', new_data={'nopol': nopol, 'type': vehicle_type})
+            return jsonify({'status': 'success', 'msg': f'Kendaraan {nopol} ({vehicle_type}) ditambahkan'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    @app.route('/api/vehicle_bbm/<vehicle_type>')
+    def api_vehicle_bbm(vehicle_type):
+        try:
+            conn = get_db_connection()
+            if not conn: return jsonify({'error': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("""SELECT vba.bbm_type, vba.min_km_per_liter, vba.max_km_per_liter, vba.warning_km_per_liter, vba.good_km_per_liter, vba.is_default, bt.price_per_liter FROM vehicle_bbm_allowed vba JOIN bbm_types bt ON vba.bbm_type=bt.name WHERE vba.vehicle_type=%s AND bt.is_active=TRUE ORDER BY vba.is_default DESC""", (vehicle_type,))
+            data = cursor.fetchall(); cursor.close(); conn.close()
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/vehicle-allowed-bbm/<vehicle_type>')
+    def api_vehicle_allowed_bbm(vehicle_type):
+        try:
+            conn = get_db_connection()
+            if not conn: return jsonify({'error': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("""SELECT vba.bbm_type, bt.price_per_liter, vba.is_default FROM vehicle_bbm_allowed vba JOIN bbm_types bt ON vba.bbm_type=bt.name WHERE vba.vehicle_type=%s AND bt.is_active=TRUE ORDER BY vba.is_default DESC""", (vehicle_type,))
+            data = cursor.fetchall(); cursor.close(); conn.close()
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/system-config/<config_key>')
+    def api_system_config(config_key):
+        try:
+            conn = get_db_connection(); cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT config_value FROM system_config WHERE config_key=%s", (config_key,))
+            row = cursor.fetchone(); cursor.close(); conn.close()
+            return jsonify({'key': config_key, 'value': row['config_value'] if row else None})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/dummy-data/status')
+    def dummy_data_status():
+        try:
+            conn = get_db_connection(); cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT config_value FROM system_config WHERE config_key='dummy_data_enabled'")
+            row = cursor.fetchone(); cursor.close(); conn.close()
+            return jsonify({'enabled': row['config_value'] == 'true' if row else False})
+        except Exception as e:
+            return jsonify({'enabled': False, 'error': str(e)})
+
+    @app.route('/api/dummy-data/toggle', methods=['POST'])
+    def toggle_dummy_data():
+        try:
+            data = request.get_json(); enable = data.get('enable', False)
+            conn = get_db_connection(); cursor = conn.cursor()
+            if enable:
+                cursor.execute("""INSERT IGNORE INTO transactions (driver_name, nopol, vehicle_type, bbm_type, nominal, liter, price_per_liter, odo_km, spbu_type, status, km_per_liter, jumlah_appointment, is_dummy, gps_address) VALUES ('AKHAD','L 1413 CBI','AVANZA','PERTALITE',200000,20.00,10000,12936,'rekanan','archived',12.50,3,1,'Jl. Raya Darmo 45, Surabaya'),('AHMAT','B 2628 SRP','INNOVA','PERTAMAX',270000,20.00,13500,71126,'rekanan','archived',10.20,5,1,'Jl. Ahmad Yani 120, Surabaya')""")
+            else: cursor.execute("DELETE FROM transactions WHERE is_dummy=1")
+            cursor.execute("INSERT INTO system_config (config_key, config_value) VALUES ('dummy_data_enabled',%s) ON DUPLICATE KEY UPDATE config_value=VALUES(config_value)", ('true' if enable else 'false',))
+            conn.commit(); cursor.close(); conn.close()
+            return jsonify({'status': 'success', 'msg': f'Dummy data {"enabled" if enable else "disabled"}'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    @app.route('/api/system-config/<config_key>', methods=['PUT'])
+    def api_update_system_config(config_key):
+        try:
+            data = request.get_json()
+            value = data.get('value', '')
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO system_config (config_key, config_value) VALUES (%s, %s) ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)", (config_key, value))
+            conn.commit()
+            cursor.close(); conn.close()
+            log_activity_async(0, 'config_update', 'admin', 'Admin', new_data={config_key: value})
+            return jsonify({'status': 'success', 'msg': f'Konfigurasi {config_key} disimpan'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500

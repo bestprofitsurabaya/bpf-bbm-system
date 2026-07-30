@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - BPF BBM System</title>
+    <link rel="manifest" href="/manifest.json?v=20260722_172752">
+    <meta name="theme-color" content="#1d4ed8">
+    <link rel="icon" type="image/png" href="/static/icon-192.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root { --primary: #2563eb; --primary-dark: #1d4ed8; --primary-light: #dbeafe; --success: #059669; --success-light: #d1fae5; --warning: #d97706; --warning-light: #fef3c7; --danger: #dc2626; --danger-light: #fee2e2; --info: #0891b2; --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-500: #6b7280; --gray-700: #374151; --gray-800: #1f2937; --gray-900: #111827; --white: #ffffff; --shadow: 0 1px 3px rgba(0,0,0,0.1); --radius: 10px; --radius-sm: 6px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Inter", sans-serif; background: var(--gray-50); color: var(--gray-800); }
+        
+        
+        
+        
+        
+        
+        .container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
+        
+        /* Tabs */
+        .tab-nav { display: flex; gap: 0; margin-bottom: 20px; background: var(--gray-100); border-radius: var(--radius); padding: 4px; }
+        .tab-btn { flex: 1; padding: 12px 16px; border: none; background: transparent; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; font-size: 13px; color: var(--gray-500); }
+        .tab-btn.active { background: var(--white); color: var(--primary); box-shadow: var(--shadow); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* Stat cards */
+        .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px; }
+        .stat-card { background: var(--white); padding: 18px 20px; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--gray-200); border-left: 4px solid var(--primary); }
+        .stat-card .number { font-size: 24px; font-weight: 700; color: var(--gray-900); }
+        .stat-card .label { font-size: 11px; color: var(--gray-500); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card .sub { font-size: 12px; color: var(--success); margin-top: 4px; font-weight: 600; }
+        .stat-card .sub.down { color: var(--danger); }
+        
+        .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--gray-200); margin-bottom: 20px; }
+        .card-header { padding: 14px 18px; border-bottom: 1px solid var(--gray-200); font-weight: 600; background: var(--gray-50); font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+        .card-body { padding: 16px; }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { background: var(--gray-100); color: var(--gray-700); font-weight: 600; padding: 10px; text-align: left; border-bottom: 2px solid var(--gray-200); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+        td { padding: 10px; border-bottom: 1px solid var(--gray-100); }
+        tr:hover td { background: var(--gray-50); }
+        .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+        .badge-success { background: var(--success-light); color: var(--success); }
+        .badge-warning { background: var(--warning-light); color: var(--warning); }
+        .badge-danger { background: var(--danger-light); color: var(--danger); }
+        .empty { text-align: center; padding: 40px; color: var(--gray-500); }
+        
+        .btn { padding: 8px 16px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-outline { background: white; color: var(--primary); border: 1.5px solid var(--primary); }
+        
+        @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } .tab-btn { font-size: 11px; padding: 10px 8px; } }
+    
+        /* Navbar */
+        .navbar { background: #fff; color: #1e293b; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; z-index: 200; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border-bottom: 1px solid #e2e8f0; }
+        .nav-brand { display: flex; align-items: center; gap: 10px; }
+        .nav-logo { width: 36px; height: 36px; border-radius: 8px; }
+        .nav-company { font-size: 14px; font-weight: 700; color: #0f172a; letter-spacing: -0.2px; }
+        .nav-system { font-size: 11px; color: #64748b; font-weight: 400; display: block; margin-top: -1px; }
+        .nav-links { display: flex; align-items: center; gap: 4px; }
+        .nav-links a { color: #475569; text-decoration: none; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; transition: all 0.15s; }
+        .nav-links a:hover { background: #f1f5f9; color: #0f172a; }
+        .nav-links a.active { background: #2563eb; color: #fff !important; font-weight: 600; }
+        .nav-toggle { display: none; background: none; border: none; color: #1e293b; font-size: 24px; cursor: pointer; padding: 8px; }
+        
+        /* Footer */
+        .app-footer { background: #fff; border-top: 1px solid #e2e8f0; padding: 16px 24px; margin-top: 40px; }
+        .footer-content { display: flex; align-items: center; justify-content: center; gap: 10px; max-width: 1200px; margin: 0 auto; }
+        .footer-logo { width: 28px; height: 28px; border-radius: 6px; opacity: 0.6; }
+        .footer-text { text-align: left; }
+        .footer-company { font-size: 12px; font-weight: 700; color: #334155; }
+        .footer-info { font-size: 10px; color: #94a3b8; }
+        .footer-credit { font-size: 10px; color: #94a3b8; }
+        .footer-credit strong { color: #2563eb; font-weight: 600; }
+        
+        @media (max-width: 768px) {
+            .navbar { padding: 0 14px; height: 54px; }
+            .nav-logo { width: 30px; height: 30px; }
+            .nav-company { font-size: 12px; }
+            .nav-system { font-size: 9px; }
+            .nav-toggle { display: block; }
+            .nav-links { display: none; position: absolute; top: 60px; left: 0; right: 0; background: #fff; flex-direction: column; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-bottom: 1px solid #e2e8f0; }
+            .nav-links { display: flex; } @media (max-width: 768px) { .nav-links { display: none; } }
+            .nav-links a { width: 100%; padding: 12px 16px; font-size: 14px; }
+            .footer-content { flex-direction: column; text-align: center; }
+            .footer-text { text-align: center; }
+        }
+
+    
+        /* ============================================================ */
+        /* PREMIUM ENHANCEMENTS */
+        /* ============================================================ */
+        
+        /* Navbar - subtle gradient */
+        .navbar { 
+            background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+            border-bottom: 1px solid #e8ecf1;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.02);
+        }
+        
+        /* Navbar links - smooth hover */
+        .nav-links a {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        .nav-links a:hover {
+            background: linear-gradient(135deg, #eff6ff, #f0f9ff);
+            color: #1e40af;
+            transform: translateY(-1px);
+        }
+        .nav-links a.active {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+            box-shadow: 0 2px 8px rgba(37,99,235,0.3);
+        }
+        
+        /* Cards - elevated feel */
+        .card {
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+            border: 1px solid #e8ecf1;
+            transition: box-shadow 0.2s;
+        }
+        .card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.04);
+        }
+        .card-header {
+            background: linear-gradient(180deg, #fafbfc, #f8fafc);
+            border-bottom: 1px solid #edf2f7;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+        
+        /* Tables - cleaner */
+        th {
+            background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+            color: #475569;
+            letter-spacing: 0.3px;
+        }
+        tr:hover td {
+            background: linear-gradient(90deg, #f8fafc, #fff);
+        }
+        
+        /* Buttons - softer */
+        .btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .btn-primary { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+        .btn-success { background: linear-gradient(135deg, #059669, #047857); }
+        .btn-warning { background: linear-gradient(135deg, #d97706, #b45309); }
+        .btn-danger { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+        
+        /* Inputs - focus glow */
+        .form-control {
+            transition: all 0.2s;
+            border-color: #e2e8f0;
+        }
+        .form-control:focus {
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.08);
+        }
+        
+        /* Badges */
+        .badge {
+            letter-spacing: 0.2px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+        
+        /* Footer */
+        .app-footer {
+            background: linear-gradient(180deg, #fafbfc, #f1f5f9);
+            border-top: 1px solid #e8ecf1;
+        }
+        
+        /* Body background - subtle texture */
+        body {
+            background: #f8fafc;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(37,99,235,0.02) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(5,150,105,0.02) 0px, transparent 50%);
+        }
+        
+        /* PIN Gate - premium card */
+        #settingsGate > div {
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 8px 40px rgba(0,0,0,0.04);
+            border: 1px solid #e8ecf1;
+        }
+        
+        /* Smooth scrolling */
+        html { scroll-behavior: smooth; }
+        
+        /* Selection color */
+        ::selection { background: #dbeafe; color: #1e40af; }
+        
+        @media (max-width: 768px) {
+            .card { border-radius: 10px; }
+            .card-header { padding: 12px 16px; }
+            .card-body { padding: 14px 16px; }
+        }
+
+    </style>
+</head>
+<body>
+        <nav class="navbar">
+        <div class="nav-brand">
+            <img src="/static/icon-192.png" alt="BPF" class="nav-logo">
+            <div>
+                <span class="nav-company">BPF Fleet System</span>
+                <span class="nav-system">PT Bestprofit Futures</span>
+            </div>
+        </div>
+        <button class="nav-toggle" id="navToggle">☰</button>
+        <div class="nav-links">
+            <a href="/admin">Dashboard</a>
+            <a href="/ga/assignments">Assignments</a>
+            <a href="/admin/rekap">Rekap</a>
+            <a href="/admin/analytics" class="active">Analytics</a>
+            <a href="/admin/trips">Trips</a>
+            <a href="/admin/logs">Logs</a>
+            <a href="/admin/settings">Settings</a>
+        </div>
+    </nav>
+    
+    <div class="container">
+
+        <!-- ANALYTICS FILTER -->
+        <div class="analytics-filter">
+            <input type="date" id="analyticsStart" onchange="loadAnalytics()" title="Dari tanggal">
+            <span>s/d</span>
+            <input type="date" id="analyticsEnd" onchange="loadAnalytics()" title="Sampai tanggal">
+            <select id="analyticsType" onchange="loadAnalytics()">
+                <option value="">Semua Tipe</option>
+                <option value="CLAIM">🟢 Klaim Biasa</option>
+                <option value="CASH_LPJ">💰 Kasbon</option>
+            </select>
+            <select id="analyticsDriver" onchange="loadAnalytics()">
+                <option value="">Semua Driver</option>
+            </select>
+            <button class="btn btn-outline btn-sm" onclick="resetAnalyticsFilter()">↻ Reset</button>
+            <span id="analyticsPeriod" style="font-size:11px;color:#64748b;margin-left:auto;"></span>
+        </div>
+        <style>
+        .analytics-filter{background:white;padding:12px 16px;border-radius:10px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06);display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+        .analytics-filter input,.analytics-filter select{padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;}
+        .analytics-filter span{font-size:11px;color:#94a3b8;}
+        @media(max-width:768px){.analytics-filter{flex-direction:column;}.analytics-filter input,.analytics-filter select{width:100%;}}
+        </style>
+
+        <!-- TABS -->
+        <div class="tab-nav">
+            <button class="tab-btn active" data-tab="finance">💰 Pengeluaran (Finance)</button>
+            <button class="tab-btn" data-tab="ga">👥 Driver (GA)</button>
+            <button class="tab-btn" data-tab="fleet">🚗 Kendaraan (Manager)</button>
+        </div>
+        
+        <!-- ================================================================ -->
+        <!-- TAB 1: FINANCE VIEW -->
+        <!-- ================================================================ -->
+        <div id="tab-finance" class="tab-content active">
+            <div class="stat-row">
+                <div class="stat-card" style="border-left-color: var(--primary);">
+                    <div class="label">Total Pengeluaran Bulan Ini</div>
+                    <div class="number" id="totalMonth">Rp 0</div>
+                </div>
+                <div class="stat-card" style="border-left-color: var(--success);">
+                    <div class="label">Rata-rata per Hari</div>
+                    <div class="number" id="avgDay">Rp 0</div>
+                </div>
+                <div class="stat-card" style="border-left-color: var(--warning);">
+                    <div class="label">Rata-rata per Transaksi</div>
+                    <div class="number" id="avgTx">Rp 0</div>
+                </div>
+                <div class="stat-card" style="border-left-color: var(--info);">
+                    <div class="label">Total Transaksi</div>
+                    <div class="number" id="totalTx">0</div>
+                </div>
+            </div>
+            
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">📈 Trend Pengeluaran 6 Bulan</div>
+                    <div class="card-body"><canvas id="trendChart" height="250"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">🔝 Top 5 Driver (Pengeluaran)</div>
+                    <div class="card-body" id="topDrivers"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ================================================================ -->
+        <!-- TAB 2: GA VIEW -->
+        <!-- ================================================================ -->
+        <div id="tab-ga" class="tab-content">
+            <div class="stat-row">
+                <div class="stat-card"><div class="label">Total Driver Aktif</div><div class="number" id="gaDrivers">0</div></div>
+                <div class="stat-card"><div class="label">Total Klaim Bulan Ini</div><div class="number" id="gaClaims">0</div></div>
+                <div class="stat-card"><div class="label">Total Appointment</div><div class="number" id="gaAppt">0</div></div>
+                <div class="stat-card"><div class="label">Driver Paling Sering Klaim</div><div class="number" id="gaTopDriver" style="font-size:16px;">-</div></div>
+            </div>
+            
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">📊 Frekuensi Klaim per Driver</div>
+                    <div class="card-body"><canvas id="freqChart" height="250"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">📋 Appointment vs Klaim</div>
+                    <div class="card-body" id="apptVsClaim"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ================================================================ -->
+        <!-- TAB 3: FLEET VIEW -->
+        <!-- ================================================================ -->
+        <div id="tab-fleet" class="tab-content">
+            <div class="stat-row">
+                <div class="stat-card"><div class="label">Kendaraan Paling Efisien</div><div class="number" id="bestKml" style="font-size:16px;">-</div></div>
+                <div class="stat-card" style="border-left-color: var(--danger);"><div class="label">Kendaraan Paling Boros</div><div class="number" id="worstKml" style="font-size:16px;">-</div></div>
+                <div class="stat-card"><div class="label">Rata-rata KM/L Armada</div><div class="number" id="avgKml">0</div></div>
+                <div class="stat-card"><div class="label">Anomali Terdeteksi</div><div class="number" id="anomalyCount">0</div></div>
+            </div>
+            
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">🚗 Efisiensi per Kendaraan (KM/L)</div>
+                    <div class="card-body"><canvas id="efficiencyChart" height="250"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">⚠️ Indikasi Perlu Servis (KM/L < 9)</div>
+                    <div class="card-body" id="serviceAlert"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- FOOTER -->
+        <footer class="app-footer">
+        <div class="footer-content">
+            <img src="/static/icon-192.png" alt="BPF" class="footer-logo">
+            <div class="footer-text">
+                <div class="footer-company">PT BESTPROFIT FUTURES</div>
+                <div class="footer-info">Fleet & BBM System v1.0 · Surabaya</div>
+                <div class="footer-credit">Developed by <strong>IT BPF Surabaya</strong> · © 2026</div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+    // ============================================================
+    // TAB SWITCHING
+    // ============================================================
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+            document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+            document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+            this.classList.add('active');
+        });
+    });
+    
+    // ============================================================
+    // FETCH DATA
+    // ============================================================
+    // Data loaded via loadAnalytics() on page ready
+    
+    function renderFinance(d) {
+        var fin = d || {};
+        document.getElementById('totalMonth').textContent = 'Rp ' + (fin.total_month || 0).toLocaleString('id-ID');
+        document.getElementById('avgDay').textContent = 'Rp ' + (fin.avg_per_day || 0).toLocaleString('id-ID');
+        document.getElementById('avgTx').textContent = 'Rp ' + (fin.avg_per_tx || 0).toLocaleString('id-ID');
+        document.getElementById('totalTx').textContent = fin.total_tx || 0;
+        
+        // Trend chart
+        var months = fin.monthly_labels || [];
+        // Destroy existing chart
+        if (window._trendChart) { window._trendChart.destroy(); }
+        var amounts = fin.monthly_amounts || [];
+        var ctx = document.getElementById('trendChart');
+        if (ctx && months.length > 0) {
+            window._trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Pengeluaran (Rp)',
+                        data: amounts,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37,99,235,0.1)',
+                        fill: true, tension: 0.3
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } } }
+            });
+        }
+        
+        // Top 5 drivers
+        var top = fin.top_drivers || [];
+        var html = '<table><tr><th>Driver</th><th>Nopol</th><th>Total</th><th>Transaksi</th></tr>';
+        top.forEach(function(t) {
+            html += '<tr><td><strong>'+t.driver_name+'</strong></td><td>'+t.nopol+'</td><td>Rp '+(t.total||0).toLocaleString('id-ID')+'</td><td>'+(t.tx_count||t.total_tx||0)+'x</td></tr>';
+        });
+        html += '</table>';
+        document.getElementById('topDrivers').innerHTML = html || '<div class="empty">Belum ada data</div>';
+    }
+    
+    function renderGA(d) {
+        var ga = d || {};
+        document.getElementById('gaDrivers').textContent = ga.total_drivers || 0;
+        document.getElementById('gaClaims').textContent = ga.total_claims || 0;
+        document.getElementById('gaAppt').textContent = ga.total_appt || 0;
+        document.getElementById('gaTopDriver').textContent = ga.top_driver || '-';
+        
+        // Freq chart
+        var labels = ga.freq_labels || [];
+        if (window._freqChart) { window._freqChart.destroy(); }
+        var values = ga.freq_values || [];
+        var ctx = document.getElementById('freqChart');
+        if (ctx && labels.length > 0) {
+            window._trendChart = window._freqChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{ label: 'Klaim', data: values, backgroundColor: '#2563eb', borderRadius: 4 }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { ticks: { stepSize: 1 } } } }
+            });
+        }
+        
+        // Appt vs Claim
+        var appt = ga.appt_vs_claim || [];
+    // Fallback: generate from freq data if appt_vs_claim empty
+    if (appt.length === 0 && ga.freq_labels && ga.freq_labels.length > 0) {
+        for (var i = 0; i < ga.freq_labels.length; i++) {
+            appt.push({driver_name: ga.freq_labels[i], appt: Math.floor(ga.total_appt / ga.freq_labels.length), klaim: ga.freq_values[i] || 0});
+        }
+    }
+        var html = '<table><tr><th>Driver</th><th>Appointment</th><th>Klaim</th><th>Rasio</th></tr>';
+        appt.forEach(function(a) {
+            var ratio = a.klaim > 0 ? (a.appt / a.klaim).toFixed(1) : '-';
+            html += '<tr><td><strong>'+a.driver_name+'</strong></td><td>'+a.appt+'x</td><td>'+a.klaim+'x</td><td>'+ratio+' appt/klaim</td></tr>';
+        });
+        html += '</table>';
+        document.getElementById('apptVsClaim').innerHTML = html || '<div class="empty">Belum ada data</div>';
+    }
+    
+    function renderFleet(d) {
+        var fl = d || {};
+        document.getElementById('bestKml').textContent = fl.best_vehicle || '-';
+        document.getElementById('worstKml').textContent = fl.worst_vehicle || '-';
+        document.getElementById('avgKml').textContent = Number(fl.avg_kml || 0).toFixed(1) + ' KM/L';
+        document.getElementById('anomalyCount').textContent = fl.anomaly_count || '0';
+        
+        // Efficiency chart
+        var labels = fl.eff_labels || [];
+        if (window._effChart) { window._effChart.destroy(); }
+        var values = fl.eff_values || [];
+        var colors = values.map(function(v) { return v >= 12 ? '#059669' : v >= 10 ? '#d97706' : '#dc2626'; });
+        var ctx = document.getElementById('efficiencyChart');
+        if (ctx && labels.length > 0) {
+            window._trendChart = window._effChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{ label: 'KM/L', data: values, backgroundColor: colors, borderRadius: 6, barThickness: 28 }]
+                },
+                options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
+            });
+        }
+        
+        // Service alert
+        var svc = fl.service_alerts || [];
+    // Fallback: cari kendaraan dengan KM/L < 9
+    if (svc.length === 0 && fl.eff_labels && fl.eff_values) {
+        for (var i = 0; i < fl.eff_labels.length; i++) {
+            if (fl.eff_values[i] < 9) {
+                svc.push({nopol: fl.eff_labels[i], avg_kml: fl.eff_values[i], tx_count: '?'});
+            }
+        }
+    }
+        var html = '<table><tr><th>Nopol</th><th>KM/L</th><th>Status</th><th>Transaksi</th></tr>';
+        svc.forEach(function(s) {
+            html += '<tr><td><strong>'+s.nopol+'</strong></td><td>'+s.avg_kml+'</td><td><span class="badge badge-danger">⚠ Perlu Servis</span></td><td>'+s.tx_count+'x</td></tr>';
+        });
+        html += '</table>';
+        document.getElementById('serviceAlert').innerHTML = html || '<div class="empty">✅ Semua kendaraan dalam kondisi baik</div>';
+    }
+    </script>
+<script>
+
+</script>
+<script>
+    var navToggle = document.getElementById('navToggle');
+    var navLinks = document.querySelector('.nav-links');
+    
+    // Default hidden di mobile
+    if (window.innerWidth <= 768) {
+        navLinks.style.display = 'none';
+    }
+    
+    // Toggle saat hamburger diklik
+    navToggle.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (navLinks.style.display === 'flex') {
+            navLinks.style.display = 'none';
+        } else {
+            navLinks.style.display = 'flex';
+        }
+    });
+    
+    // Tutup saat link diklik
+    navLinks.querySelectorAll('a').forEach(function(link) {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                navLinks.style.display = 'none';
+            }
+        });
+    });
+    
+    // Tutup saat klik di luar
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.nav-links') && !e.target.closest('.nav-toggle')) {
+            if (window.innerWidth <= 768) {
+                navLinks.style.display = 'none';
+            }
+        }
+    });
+</script>
+
+<script>
+// Set default date range (1 bulan terakhir)
+(function(){
+    var now = new Date();
+    var lastMonth = new Date(now.getTime() - 30*24*60*60*1000);
+    document.getElementById('analyticsStart').value = lastMonth.toISOString().split('T')[0];
+    document.getElementById('analyticsEnd').value = now.toISOString().split('T')[0];
+    document.getElementById('analyticsPeriod').textContent = 'Periode: ' + lastMonth.toLocaleDateString('id-ID') + ' - ' + now.toLocaleDateString('id-ID');
+})();
+
+// Load driver dropdown
+async function loadAnalyticsDrivers(){
+    try{
+        var r = await fetch('/api/drivers');
+        var drivers = await r.json();
+        var sel = document.getElementById('analyticsDriver');
+        drivers.forEach(function(d){
+            if(!d.name||!d.is_active)return;
+            var o = document.createElement('option');
+            o.value = d.name; o.textContent = d.name;
+            sel.appendChild(o);
+        });
+    }catch(e){}
+}
+loadAnalyticsDrivers();
+
+// Load analytics with filters
+async function loadAnalytics(paramsStr){
+    var start = document.getElementById('analyticsStart').value;
+    var end = document.getElementById('analyticsEnd').value;
+    var type = document.getElementById('analyticsType').value;
+    var driver = document.getElementById('analyticsDriver').value;
+    
+    var params = new URLSearchParams(paramsStr || '');
+    if(start) params.set('start_date', start);
+    if(end) params.set('end_date', end);
+    if(type) params.set('type', type);
+    if(driver) params.set('driver', driver);
+    
+    document.getElementById('analyticsPeriod').textContent = 
+        'Periode: ' + (start||'?') + ' - ' + (end||'?') + 
+        (driver?' | Driver: '+driver:'') + 
+        (type?' | Tipe: '+type:'');
+    
+    try {
+        var r = await fetch('/api/analytics/data?' + params.toString());
+        var d = await r.json();
+        if (d.error) { console.error(d.error); return; }
+        
+        if (typeof renderFinance === 'function') renderFinance(d.finance);
+        if (typeof renderGA === 'function') renderGA(d.ga);
+        if (typeof renderFleet === 'function') renderFleet(d.fleet);
+        // renderCash not implemented yet
+    } catch(e) { console.error('Analytics error:', e); }
+}
+
+// Auto-load on page ready
+setTimeout(function(){ loadAnalytics(); }, 800);
+
+function resetAnalyticsFilter(){
+    var now = new Date();
+    var lastMonth = new Date(now.getTime() - 30*24*60*60*1000);
+    document.getElementById('analyticsStart').value = lastMonth.toISOString().split('T')[0];
+    document.getElementById('analyticsEnd').value = now.toISOString().split('T')[0];
+    document.getElementById('analyticsType').value = '';
+    document.getElementById('analyticsDriver').value = '';
+    loadAnalytics();
+}
+</script>
+
+</body>
+</html>
