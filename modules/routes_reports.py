@@ -248,3 +248,71 @@ def register_report_routes(app):
         except Exception as e:
             flash(f'Error: {str(e)}', 'error')
         return redirect(url_for('admin_settings'))
+
+# === OPTIMIZED QUERIES (V1.1) ===
+# ============================================================
+# OPTIMIZED QUERIES untuk routes_api_transactions.py
+# dan routes_reports.py
+# ============================================================
+
+# --- QUERY 1: Rapor per Driver/Kendaraan (ganti multiple loop) ---
+RAPOR_QUERY = """
+SELECT 
+    t.nopol,
+    t.vehicle_type,
+    COALESCE(va.driver_name, t.driver_name) as driver_name,
+    COUNT(t.id) as total_tx,
+    ROUND(AVG(NULLIF(t.km_per_liter, 0)), 2) as avg_km_per_liter,
+    SUM(t.nominal) as total_nominal,
+    SUM(COALESCE(t.jumlah_appointment, 0)) as total_appointment,
+    MAX(t.created_at) as last_activity,
+    MIN(t.created_at) as first_activity,
+    COUNT(DISTINCT DATE(t.created_at)) as active_days,
+    -- Konsumsi per hari (total liter / active days)
+    ROUND(SUM(t.liter) / NULLIF(COUNT(DISTINCT DATE(t.created_at)), 0), 2) as avg_liter_per_day
+FROM transactions t
+LEFT JOIN vehicle_assignments va 
+    ON t.nopol = va.nopol 
+    AND va.is_current = 1
+WHERE t.status = 'archived'
+    AND t.created_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+GROUP BY t.nopol, t.vehicle_type, COALESCE(va.driver_name, t.driver_name)
+ORDER BY avg_km_per_liter DESC
+"""
+
+# --- QUERY 2: Statistik Bulanan per Driver (tanpa loop per driver) ---
+MONTHLY_STATS_QUERY = """
+SELECT 
+    driver_name,
+    nopol,
+    DATE_FORMAT(created_at, '%Y-%m') as bulan,
+    COUNT(*) as total_tx,
+    SUM(nominal) as total_nominal,
+    ROUND(AVG(NULLIF(km_per_liter, 0)), 2) as avg_km_per_liter,
+    SUM(jumlah_appointment) as total_appt
+FROM transactions
+WHERE status = 'archived'
+    AND created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+GROUP BY driver_name, nopol, DATE_FORMAT(created_at, '%Y-%m')
+ORDER BY driver_name, bulan DESC
+"""
+
+# --- QUERY 3: Ranking Driver dengan JOIN (ganti subquery per driver) ---
+DRIVER_RANKING_QUERY = """
+SELECT 
+    t.driver_name,
+    t.nopol,
+    t.vehicle_type,
+    COUNT(t.id) as total_tx,
+    SUM(t.nominal) as total_nominal,
+    ROUND(AVG(NULLIF(t.km_per_liter, 0)), 2) as avg_km_per_liter,
+    -- Rank dalam grup nopol
+    RANK() OVER (PARTITION BY t.vehicle_type ORDER BY AVG(NULLIF(t.km_per_liter, 0)) DESC) as rank_in_type
+FROM transactions t
+WHERE t.status = 'archived'
+    AND t.created_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+GROUP BY t.driver_name, t.nopol, t.vehicle_type
+HAVING total_tx >= 3
+ORDER BY avg_km_per_liter DESC
+LIMIT 20
+"""

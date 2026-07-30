@@ -6,6 +6,24 @@ from modules.config import get_db_connection
 from modules.helpers import log_activity_async, generate_display_id, safe_float
 
 def register_cash_routes(app):
+
+    def get_or_create_daily_code_with_lock(cursor, conn):
+        cursor.execute(
+            "SELECT unique_code FROM daily_unique_codes WHERE code_date = CURDATE() FOR UPDATE"
+        )
+        row = cursor.fetchone()
+        if row:
+            return row["unique_code"]
+        code_val = random.choice([
+            100, 200, 300, 400, 500, 600, 700, 800, 900,
+            1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000
+        ])
+        cursor.execute(
+            "INSERT INTO daily_unique_codes (code_date, unique_code) VALUES (CURDATE(), %s)",
+            (code_val,)
+        )
+        return code_val
+
     
     # ================================================================
     # DAILY UNIQUE CODE
@@ -37,11 +55,10 @@ def register_cash_routes(app):
             conn = get_db_connection()
             if not conn: return jsonify({'error': 'DB error'}), 500
             cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT unique_code FROM daily_unique_codes WHERE code_date = CURDATE()")
+            code_val = get_or_create_daily_code_with_lock(cursor, conn)
             row = cursor.fetchone()
             if row:
                 code = row['unique_code']
-            else:
                 code = random.choice([
         100, 200, 300, 400, 500, 600, 700, 800, 900,
         1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000
@@ -74,20 +91,7 @@ def register_cash_routes(app):
             cursor = conn.cursor(dictionary=True)
             
             # Get today's unique code
-            cursor.execute("SELECT unique_code FROM daily_unique_codes WHERE code_date = CURDATE()")
-            row = cursor.fetchone()
-            if not row:
-                code = random.choice([
-        100, 200, 300, 400, 500, 600, 700, 800, 900,
-        1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000
-    ])
-                cursor.execute("INSERT IGNORE INTO daily_unique_codes (code_date, unique_code) VALUES (CURDATE(), %s)", (code,))
-                conn.commit()
-                code_val = code
-            else:
-                code_val = row['unique_code']
-            
-            unique_cents = code_val
+            code_val = get_or_create_daily_code_with_lock(cursor, conn)
             total_amount = base_amount + unique_cents
             display_id = generate_display_id('CASH', conn)
             
@@ -357,7 +361,6 @@ def register_cash_routes(app):
             cursor = conn.cursor(dictionary=True)
             if driver:
                 cursor.execute("SELECT * FROM fuel_cash_requests WHERE driver_name = %s ORDER BY created_at DESC LIMIT 50", (driver,))
-            else:
                 cursor.execute("SELECT * FROM fuel_cash_requests ORDER BY created_at DESC LIMIT 100")
             data = cursor.fetchall()
             cursor.close(); conn.close()
@@ -525,7 +528,6 @@ def register_cash_routes(app):
             # Jika FUNDS_WITH_DRIVER: reset juga lpj_transaction_id
             if old_status == 'FUNDS_WITH_DRIVER':
                 cursor.execute("UPDATE fuel_cash_requests SET status = 'DRAFT', lpj_transaction_id = NULL, lpj_submitted_at = NULL, ga_approved_by = NULL, ga_approved_at = NULL, finance_approved_by = NULL, finance_approved_at = NULL, handover_by = NULL, handover_at = NULL, notes = CONCAT(COALESCE(notes,''), '\n[CANCEL] ', %s) WHERE id = %s", (reason, cash_id))
-            else:
                 cursor.execute("UPDATE fuel_cash_requests SET status = 'DRAFT', ga_approved_by = NULL, ga_approved_at = NULL, finance_approved_by = NULL, finance_approved_at = NULL, notes = CONCAT(COALESCE(notes,''), '\n[CANCEL] ', %s) WHERE id = %s", (reason, cash_id))
             conn.commit()
             cursor.close(); conn.close()

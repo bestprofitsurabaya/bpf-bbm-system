@@ -200,3 +200,69 @@ def ensure_all_master_data(driver_name, nopol, vehicle_type, bbm_type, price_per
     get_or_create_vehicle_bbm_allowed(vehicle_type, bbm_type)
     get_or_create_driver(driver_name, nopol, vehicle_type, bbm_type)
     return True
+# ============================================================
+# TAMBAHKAN INI DI AKHIR FILE helpers.py
+# (Sebelum baris terakhir, setelah fungsi ensure_all_master_data)
+# ============================================================
+
+# --- AUTH DECORATORS ---
+from functools import wraps
+from flask import request, jsonify, session, g
+
+def role_required(allowed_roles):
+    """
+    Decorator: Hanya izinkan user dengan role tertentu.
+    Bekerja dengan session-based auth (PIN) atau header X-User-Role.
+    
+    Usage:
+        @app.route('/admin/settings')
+        @role_required(['admin'])
+        def settings():
+            ...
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            # Cek session dulu
+            user_role = session.get('user_role')
+            user_name = session.get('user_name')
+            
+            # Fallback: cek header (untuk API call)
+            if not user_role:
+                user_role = request.headers.get('X-User-Role', '').lower()
+                user_name = request.headers.get('X-User-Name', 'API User')
+            
+            if not user_role:
+                return jsonify({
+                    'status': 'error',
+                    'msg': 'Akses ditolak. Silakan login terlebih dahulu.'
+                }), 401
+            
+            if user_role not in allowed_roles:
+                return jsonify({
+                    'status': 'error',
+                    'msg': f'Akses ditolak. Role "{user_role}" tidak diizinkan. Hanya: {", ".join(allowed_roles)}'
+                }), 403
+            
+            # Simpan ke g untuk dipakai di view
+            g.user_role = user_role
+            g.user_name = user_name
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
+def admin_required(f):
+    """Shortcut decorator: hanya admin."""
+    return role_required(['admin'])(f)
+
+
+def ga_or_admin_required(f):
+    """Shortcut decorator: GA atau admin."""
+    return role_required(['ga', 'admin'])(f)
+
+
+def finance_or_admin_required(f):
+    """Shortcut decorator: Finance atau admin."""
+    return role_required(['finance', 'admin'])(f)

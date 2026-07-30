@@ -1,3 +1,4 @@
+import os
 """Admin Dashboard & Workflow Routes"""
 from flask import (render_template, request, redirect, url_for, flash, jsonify, make_response)
 from modules.config import get_db_connection
@@ -5,6 +6,25 @@ from modules.helpers import log_activity_async, save_file, generate_display_id, 
 from datetime import datetime, timedelta
 
 def register_admin_routes(app):
+    def cleanup_transaction_files(self, tx_data, upload_folder='uploads'):
+        """Hapus file foto transaksi dari folder uploads."""
+        file_fields = [
+            'foto_odo_sebelum', 'foto_nota_odo_sesudah',
+            'foto_struk', 'foto_struk_dispenser', 'foto_mypertamina_admin'
+        ]
+        deleted = []
+        for field in file_fields:
+            filename = tx_data.get(field) if isinstance(tx_data, dict) else None
+            if filename and filename.strip():
+                fpath = os.path.join(upload_folder, filename)
+                try:
+                    if os.path.exists(fpath):
+                        os.remove(fpath)
+                        deleted.append(filename)
+                except Exception as e:
+                    print(f"Cleanup error {filename}: {e}")
+        return deleted
+
     
     @app.route('/admin', methods=['GET', 'POST'])
     def admin_dashboard():
@@ -159,6 +179,16 @@ def register_admin_routes(app):
                 cursor.execute("UPDATE fuel_cash_requests SET status = 'FUNDS_WITH_DRIVER', lpj_transaction_id = NULL, lpj_submitted_at = NULL WHERE lpj_transaction_id = %s", (tx_id,))
                 flash(f'LPJ Kasbon ditolak. Driver bisa submit ulang.', 'warning')
             
+            # Hapus file fisik dari uploads
+            upload_dir = app.config.get("UPLOAD_FOLDER", "uploads")
+            try:
+                for fname in [req.get("foto_odo_sebelum"), req.get("foto_nota_odo_sesudah"), req.get("foto_struk"), req.get("foto_struk_dispenser")]:
+                    if fname:
+                        fpath = os.path.join(upload_dir, fname)
+                        if os.path.exists(fpath):
+                            os.remove(fpath)
+            except Exception as e:
+                print(f"Cleanup error: {e}")
             conn.commit()
             log_activity_async(tx_id, 'reject', 'admin', rejected_by, new_data={'reason': reason, 'type': tx.get('transaction_type') if tx else 'CLAIM'}, ip=request.remote_addr)
             cursor.close(); conn.close()
@@ -194,6 +224,15 @@ def register_admin_routes(app):
                 cursor.execute("UPDATE fuel_cash_requests SET lpj_transaction_id = NULL, status = 'FUNDS_WITH_DRIVER', lpj_submitted_at = NULL WHERE lpj_transaction_id = %s", (tx_id,))
             # Hapus transaksi
             cursor.execute("DELETE FROM transactions WHERE id=%s", (tx_id,))
+            upload_dir = app.config.get("UPLOAD_FOLDER", "uploads")
+            try:
+                for fname in [tx.get("foto_odo_sebelum"), tx.get("foto_nota_odo_sesudah"), tx.get("foto_struk"), tx.get("foto_struk_dispenser")]:
+                    if fname:
+                        fpath = os.path.join(upload_dir, fname)
+                        if os.path.exists(fpath):
+                            os.remove(fpath)
+            except Exception as e:
+                print(f"Cleanup error: {e}")
             conn.commit()
             if cash_req:
                 log_activity_async(tx_id, 'delete_lpj', 'admin', 'Admin', new_data={'cash_id': cash_req[0], 'action': 'lpj_deleted_cash_reset'}, ip=request.remote_addr)
