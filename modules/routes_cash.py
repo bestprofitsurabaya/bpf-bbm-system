@@ -56,17 +56,8 @@ def register_cash_routes(app):
             if not conn: return jsonify({'error': 'DB error'}), 500
             cursor = conn.cursor(dictionary=True)
             code_val = get_or_create_daily_code_with_lock(cursor, conn)
-            row = cursor.fetchone()
-            if row:
-                code = row['unique_code']
-                code = random.choice([
-        100, 200, 300, 400, 500, 600, 700, 800, 900,
-        1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000
-    ])
-                cursor.execute("INSERT IGNORE INTO daily_unique_codes (code_date, unique_code) VALUES (CURDATE(), %s)", (code,))
-                conn.commit()
             cursor.close(); conn.close()
-            return jsonify({'code': code, 'date': str(date.today()), 'manual_mode': manual_mode})
+            return jsonify({'code': code_val, 'date': str(date.today()), 'manual_mode': manual_mode})
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
@@ -361,6 +352,7 @@ def register_cash_routes(app):
             cursor = conn.cursor(dictionary=True)
             if driver:
                 cursor.execute("SELECT * FROM fuel_cash_requests WHERE driver_name = %s ORDER BY created_at DESC LIMIT 50", (driver,))
+            else:
                 cursor.execute("SELECT * FROM fuel_cash_requests ORDER BY created_at DESC LIMIT 100")
             data = cursor.fetchall()
             cursor.close(); conn.close()
