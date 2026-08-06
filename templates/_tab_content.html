@@ -1,0 +1,122 @@
+{# ================================================================ #}
+{# Fragment konten tab dashboard admin                              #}
+{# Dipakai oleh: admin.html (include) & /admin/queue-fragment/<tab> #}
+{# (render Jinja SAMA persis — aman untuk SPA switch tanpa reload)  #}
+{# ================================================================ #}
+{% if tab == 'cash' %}
+<!-- KODE UNIK HARIAN (Finance Set) -->
+<div style="background:#fef3c7;padding:12px 16px;border-radius:10px;margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <strong style="font-size:13px;">🔢 Kode Unik Hari Ini (diatur Finance):</strong>
+    <input type="number" id="dailyCodeInput" min="100" max="2000" step="100" style="width:100px;padding:8px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:14px;font-weight:700;text-align:center;">
+    <button class="btn btn-primary btn-sm" onclick="setDailyCode()">💾 Simpan Kode</button>
+    <span id="dailyCodeMsg" style="font-size:11px;"></span>
+    <span style="font-size:11px;color:#64748b;margin-left:auto;">🔒 Hanya Finance yang berhak mengubah</span>
+</div>
+
+<div class="card">
+    <div class="card-header"><span>💰 Pengajuan Kas BBM</span><span style="font-size:12px;color:var(--gray-500);" id="cashCount">Loading...</span></div>
+    <div class="card-body" id="cashRequestList"><p style="text-align:center;color:var(--gray-500);padding:20px;">Memuat data kasbon...</p></div>
+</div>
+{% else %}
+<!-- FINANCE SUMMARY -->
+{% if tab == 'finance' and transactions %}
+<div style="background:linear-gradient(135deg,#dbeafe,#eff6ff);padding:14px 20px;border-radius:10px;margin-bottom:16px;border-left:4px solid var(--primary);">
+    <span style="font-size:13px;font-weight:600;color:var(--primary-dark);">Total Payout Pending:</span>
+    <span id="financePayoutTotal" style="font-size:20px;font-weight:700;color:var(--gray-900);margin-left:8px;">Rp {{ "{:,.0f}".format(transactions|sum(attribute='nominal')) if transactions else 0 }}</span>
+</div>
+{% endif %}
+
+<!-- ARCHIVE FILTER -->
+{% if tab == 'archive' %}
+<div class="archive-filter">
+    <input type="text" id="archiveSearch" value="{{ request.args.get('search', '') }}" placeholder="🔍 Cari nopol/driver..." oninput="filterArchive()" autocomplete="off">
+    <input type="date" id="archiveStartDate" value="{{ request.args.get('start_date', '') }}" onchange="filterArchive()">
+    <span>s/d</span>
+    <input type="date" id="archiveEndDate" value="{{ request.args.get('end_date', '') }}" onchange="filterArchive()">
+    <select id="archiveBbm" onchange="filterArchive()"><option value="">Semua BBM</option><option value="PERTALITE" {% if request.args.get('bbm_type') == 'PERTALITE' %}selected{% endif %}>PERTALITE</option><option value="PERTAMAX" {% if request.args.get('bbm_type') == 'PERTAMAX' %}selected{% endif %}>PERTAMAX</option></select>
+    <button class="btn btn-outline btn-sm" onclick="clearArchiveFilter()">↻ Reset</button>
+    <span id="archiveSummary" style="font-size:11px;color:#64748b;margin-left:auto;"></span>
+</div>
+{% endif %}
+
+<!-- TRANSACTION LIST -->
+<div class="card">
+    <div class="card-header">
+        <span>{% if tab == 'ga_queue' %}Antrean GA{% elif tab == 'finance' %}Disburse Finance{% elif tab == 'driver_confirm' %}Konfirmasi Driver{% else %}Arsip{% endif %}</span>
+        <span style="display:flex;align-items:center;gap:10px;">
+            {% if tab == 'ga_queue' and transactions|length > 1 %}
+            <button class="btn btn-success btn-sm" onclick="approveAllGA()" title="Approve semua transaksi GA sekaligus (butuh PIN + konfirmasi)">✅ Tandai Semua Dicek</button>
+            {% endif %}
+            <span id="queueCount" style="font-size:12px;color:var(--gray-500);">{{ transactions|length }} transaksi</span>
+        </span>
+    </div>
+    {% if tab != 'archive' %}
+    <div class="queue-search">
+        <input type="text" id="queueSearch" placeholder="🔍 Cari nopol / driver / ID transaksi..." oninput="filterQueue()" autocomplete="off">
+        <button type="button" class="btn btn-outline btn-sm" onclick="clearQueueSearch()" title="Reset pencarian">✕</button>
+        <span id="queueSearchCount" class="queue-search-count"></span>
+    </div>
+    {% endif %}
+    <div class="card-body">
+        {% if transactions %}
+            {% for tx in transactions %}
+            <div class="tx-item" data-id="{{ tx.id }}" data-nominal="{{ tx.nominal }}">
+                <div class="tx-header">
+                    <span class="nopol">{{ tx.display_id or ("#" + tx.id|string) }} &middot; {{ tx.nopol }} <small style="color:var(--gray-500);">({{ tx.vehicle_type or 'AVANZA' }})</small></span>
+                    <span>
+                        <span class="badge {% if tx.status == 'pending' %}badge-pending{% elif tx.status == 'verified_ga' %}badge-ga{% elif tx.status == 'os_finance' %}badge-finance{% elif tx.status == 'archived' %}badge-archive{% elif tx.status == 'rejected' %}badge-reject{% else %}badge-pending{% endif %}">{{ tx.status|replace('_',' ')|upper }}</span>{% if tx.transaction_type == 'CASH_LPJ' %}<span class="badge" style="background:#fef3c7;color:#92400e;margin-left:4px;">💰 Kasbon</span>{% endif %}
+                    </span>
+                </div>
+                <div class="tx-detail">
+                    <span><strong>{{ tx.driver_name }}</strong></span>
+                    <span>{{ tx.created_at.strftime('%d/%m/%Y %H:%M') if tx.created_at else '-' }}</span>
+                    <span class="tx-nominal">Rp {{ "{:,.0f}".format(tx.nominal) }}</span>
+                    <span>{{ tx.bbm_type or 'PERTALITE' }} &middot; {{ tx.liter }}L</span>
+                    <span>ODO: {{ tx.odo_km }} km <button class="odo-edit-btn" onclick="openOdoEdit({{ tx.id }}, {{ tx.odo_km }})" title="Edit ODO">✏️</button></span>
+                    <span>Appt: {{ tx.jumlah_appointment or 0 }}x</span>
+                </div>
+                <div class="workflow-indicator">
+                    <span class="workflow-step {% if tx.status in ['verified_ga','os_finance','archived'] %}done{% elif tx.status == 'pending' %}current{% else %}next{% endif %}">GA</span> &rarr;
+                    <span class="workflow-step {% if tx.status in ['os_finance','archived'] %}done{% elif tx.status == 'verified_ga' %}current{% else %}next{% endif %}">Finance</span> &rarr;
+                    <span class="workflow-step {% if tx.status == 'archived' %}done{% elif tx.status == 'os_finance' %}current{% else %}next{% endif %}">TTD</span> &rarr;
+                    <span class="workflow-step {% if tx.status == 'archived' %}done{% else %}next{% endif %}">Arsip</span>
+                </div>
+                <div class="photo-gallery">
+                    {% for f in ['foto_odo_sebelum','foto_nota_odo_sesudah','foto_struk','foto_struk_dispenser'] %}
+                        {% if tx[f] %}<a href="/uploads/{{ tx[f] }}" target="_blank"><img src="/uploads/{{ tx[f] }}" class="photo-thumb" loading="lazy"></a>{% endif %}
+                    {% endfor %}
+                </div>
+                <div class="flex gap-2 flex-wrap" style="margin-top:10px;">
+                    {% if tx.status in ['pending','modified'] %}
+                        <button class="btn btn-success" onclick="openCrossCheck({{ tx.id }},'approve','GA')">🔍 Approve</button>
+                        <button class="btn btn-danger" onclick="requirePin('reject', {{ tx.id }}, 'Admin')">Tolak</button>
+                    {% elif tx.status == 'verified_ga' %}
+                        <button class="btn btn-info" onclick="openCrossCheck({{ tx.id }},'payout','Finance')">💰 Keluarkan Dana</button>
+                        <button class="btn btn-danger" onclick="requirePin('reject', {{ tx.id }}, 'Admin')">Tolak</button>
+                    {% elif tx.status == 'os_finance' %}
+                        <button class="btn btn-success" onclick="requirePin('archive',{{ tx.id }},'Finance')">TTD & Arsip</button>
+                    {% elif tx.status == 'archived' %}
+                        <a href="/finance/download-archive/{{ tx.id }}" class="btn btn-outline">ZIP</a> <button class="review-btn" onclick="openFinanceReview({{ tx.id }})">🔍 Review</button>
+                        <a href="/admin/report/{{ tx.id }}" class="btn btn-secondary">PDF</a>
+                    {% elif tx.status == 'rejected' %}
+                        <span style="color:var(--danger);font-size:12px;">Ditolak: {{ tx.rejection_reason or '-' }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">🎉</div>
+                <div class="empty-title">Semua bersih</div>
+                <div class="empty-sub">Tidak ada transaksi di antrean ini.</div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% if tab == 'archive' %}
+<div class="archive-more" style="text-align:center;margin:-6px 0 4px;">
+    <button class="btn btn-outline btn-sm" id="archiveLoadMore" onclick="loadMoreArchive()" {% if transactions|length < 50 %}style="display:none"{% endif %}>⬇ Muat Lebih Banyak</button>
+    <span id="archiveMoreStatus" style="font-size:11px;color:var(--gray-500);margin-left:8px;"></span>
+</div>
+{% endif %}
+{% endif %}

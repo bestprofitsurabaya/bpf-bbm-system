@@ -1,10 +1,10 @@
 """API Routes - Master Data (Vehicles, BBM, Drivers, Users)"""
 from flask import request, jsonify
 from modules.config import get_db_connection
-from modules.helpers import log_activity_async
+from modules.helpers import log_activity_async, role_required
 
 def register_master_api(app):
-    
+
     @app.route('/api/vehicles')
     def api_vehicles():
         try:
@@ -45,6 +45,7 @@ def register_master_api(app):
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/drivers/sync', methods=['POST'])
+    @role_required(['ga', 'finance', 'admin'])
     def sync_driver():
         try:
             data = request.get_json()
@@ -63,6 +64,7 @@ def register_master_api(app):
             return jsonify({'status': 'error', 'msg': str(e)}), 500
 
     @app.route('/api/drivers/<driver_name>/activate', methods=['POST'])
+    @role_required(['ga', 'finance', 'admin'])
     def activate_driver(driver_name):
         try:
             conn = get_db_connection(); cursor = conn.cursor()
@@ -73,6 +75,7 @@ def register_master_api(app):
             return jsonify({'status': 'error', 'msg': str(e)}), 500
 
     @app.route('/api/drivers/<driver_name>/deactivate', methods=['POST'])
+    @role_required(['ga', 'finance', 'admin'])
     def deactivate_driver(driver_name):
         try:
             conn = get_db_connection(); cursor = conn.cursor()
@@ -83,6 +86,7 @@ def register_master_api(app):
             return jsonify({'status': 'error', 'msg': str(e)}), 500
 
     @app.route('/api/drivers/<driver_name>/delete', methods=['POST', 'DELETE'])
+    @role_required(['admin'])
     def delete_driver(driver_name):
         try:
             conn = get_db_connection(); cursor = conn.cursor()
@@ -94,6 +98,7 @@ def register_master_api(app):
             return jsonify({'status': 'error', 'msg': str(e)}), 500
 
     @app.route('/api/users')
+    @role_required(['admin'])
     def api_users():
         try:
             conn = get_db_connection(); cursor = conn.cursor(dictionary=True)
@@ -104,6 +109,7 @@ def register_master_api(app):
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/users/sync', methods=['POST'])
+    @role_required(['admin'])
     def sync_user():
         try:
             data = request.get_json()
@@ -119,6 +125,7 @@ def register_master_api(app):
             return jsonify({'status': 'error', 'msg': str(e)}), 500
 
     @app.route('/api/users/reset-pin', methods=['POST'])
+    @role_required(['admin'])
     def reset_user_pin():
         try:
             data = request.get_json()
@@ -166,6 +173,7 @@ def register_master_api(app):
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/vehicles/add', methods=['POST'])
+    @role_required(['ga', 'finance', 'admin'])
     def api_add_vehicle():
         try:
             data = request.get_json()
@@ -215,6 +223,7 @@ def register_master_api(app):
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/dummy-data/status')
+    @role_required(['ga', 'finance', 'admin'])
     def dummy_data_status():
         try:
             conn = get_db_connection(); cursor = conn.cursor(dictionary=True)
@@ -225,6 +234,7 @@ def register_master_api(app):
             return jsonify({'enabled': False, 'error': str(e)})
 
     @app.route('/api/dummy-data/toggle', methods=['POST'])
+    @role_required(['ga', 'finance', 'admin'])
     def toggle_dummy_data():
         try:
             data = request.get_json(); enable = data.get('enable', False)
@@ -239,6 +249,7 @@ def register_master_api(app):
             return jsonify({'status': 'error', 'msg': str(e)}), 500
 
     @app.route('/api/system-config/<config_key>', methods=['PUT'])
+    @role_required(['ga', 'finance', 'admin'])
     def api_update_system_config(config_key):
         try:
             data = request.get_json()

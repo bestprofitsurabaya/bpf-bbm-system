@@ -37,7 +37,7 @@ def generate_display_id(prefix='BPF', conn=None):
     time_part = now.strftime('%H%M%S')
     random_part = ''.join(random.choices(string.digits, k=2))
     unique_id = f"{prefix}-{date_part}-{time_part}{random_part}"
-    
+
     # Double-check uniqueness in DB
     if conn:
         cursor = conn.cursor()
@@ -48,7 +48,7 @@ def generate_display_id(prefix='BPF', conn=None):
             # Very rare collision: add more random
             extra = ''.join(random.choices(string.digits, k=3))
             unique_id = f"{prefix}-{date_part}-{time_part}{extra}"
-    
+
     return unique_id
 
 def generate_trip_display_id(conn=None):
@@ -207,12 +207,26 @@ def ensure_all_master_data(driver_name, nopol, vehicle_type, bbm_type, price_per
 
 # --- AUTH DECORATORS ---
 from functools import wraps
-from flask import request, jsonify, session, g
+from flask import request, jsonify, session, g, redirect, url_for, flash
+
+def _auth_denied_response():
+    """Respons saat belum login: halaman -> redirect ke login, API/SPA -> JSON 401."""
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.path.startswith('/api/'):
+        return jsonify({'status': 'error', 'msg': 'Akses ditolak. Silakan login terlebih dahulu.'}), 401
+    next_url = request.full_path if request.query_string else request.path
+    return redirect(url_for('login_page', next=next_url))
+
+def _auth_forbidden_response():
+    """Respons saat role tidak sesuai: halaman -> flash + redirect, API/SPA -> JSON 403."""
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.path.startswith('/api/'):
+        return jsonify({'status': 'error', 'msg': 'Role tidak diizinkan untuk aksi ini.'}), 403
+    flash('Anda tidak memiliki akses ke halaman ini.', 'error')
+    return redirect(url_for('admin_dashboard'))
 
 def role_required(allowed_roles):
     """
     Decorator: Hanya izinkan user dengan role tertentu.
-    Bekerja dengan session-based auth (PIN) atau header X-User-Role.
+    Bekerja dengan session-based auth (login PIN).
     
     Usage:
         @app.route('/admin/settings')
@@ -226,28 +240,17 @@ def role_required(allowed_roles):
             # Cek session dulu
             user_role = session.get('user_role')
             user_name = session.get('user_name')
-            
-            # Fallback: cek header (untuk API call)
+
             if not user_role:
-                user_role = request.headers.get('X-User-Role', '').lower()
-                user_name = request.headers.get('X-User-Name', 'API User')
-            
-            if not user_role:
-                return jsonify({
-                    'status': 'error',
-                    'msg': 'Akses ditolak. Silakan login terlebih dahulu.'
-                }), 401
-            
+                return _auth_denied_response()
+
             if user_role not in allowed_roles:
-                return jsonify({
-                    'status': 'error',
-                    'msg': f'Akses ditolak. Role "{user_role}" tidak diizinkan. Hanya: {", ".join(allowed_roles)}'
-                }), 403
-            
+                return _auth_forbidden_response()
+
             # Simpan ke g untuk dipakai di view
             g.user_role = user_role
             g.user_name = user_name
-            
+
             return f(*args, **kwargs)
         return decorated_function
     return decorator

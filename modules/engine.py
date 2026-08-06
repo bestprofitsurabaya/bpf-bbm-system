@@ -11,7 +11,7 @@ def generate_human_insight(performa, avg_kpl, limit_good, appt, total_tx):
         return "Sistem belum mendeteksi data transaksi yang cukup untuk menyusun analisis berkendara."
     base_msg = f"Rata-rata konsumsi BBM Anda: {avg_kpl:.2f} KM/Liter. "
     appt_ratio = appt / total_tx if total_tx > 0 else 0
-    
+
     if performa in ["SANGAT BAIK", "BAIK"]:
         return base_msg + "Performa sangat efisien. Pertahankan eco-driving dan cek tekanan ban."
     elif performa == "CUKUP":
@@ -24,7 +24,7 @@ def generate_human_insight(performa, avg_kpl, limit_good, appt, total_tx):
 
 class PerformanceAnalyzer:
     """ML-based anomaly detection for fuel efficiency"""
-    
+
     @staticmethod
     def analyze_performance(nopol, current_efficiency, conn, vehicle_type, bbm_type):
         cursor = None
@@ -37,10 +37,10 @@ class PerformanceAnalyzer:
             limit = cursor.fetchone()
             cursor.close()
             cursor = None
-            
+
             warning = float(limit['warning_km_per_liter']) if limit else 10.5
             good = float(limit['good_km_per_liter']) if limit else 12.5
-            
+
             cursor = conn.cursor(dictionary=True)
             cursor.execute("""
                 SELECT km_per_liter FROM transactions 
@@ -50,13 +50,13 @@ class PerformanceAnalyzer:
             history = cursor.fetchall()
             cursor.close()
             cursor = None
-            
+
             if current_efficiency <= 0:
                 return {'is_anomaly': False, 'status': 'PERLU DATA', 'category': 'info', 'message': 'Menunggu data'}
 
             is_anomaly, status, category = False, 'BAIK', 'success'
             message = f'Performa {vehicle_type} - {bbm_type} normal'
-            
+
             if current_efficiency < warning:
                 status, category = 'PERLU PEMERIKSAAN (Boros)', 'danger'
                 message = f'{current_efficiency:.1f} KM/L < standar {warning} KM/L'
@@ -64,7 +64,7 @@ class PerformanceAnalyzer:
             elif current_efficiency < good:
                 status, category = 'CUKUP', 'warning'
                 message = f'{current_efficiency:.1f} KM/L, perlu pemantauan'
-            
+
             # ML check
             if len(history) >= 5:
                 data = [r['km_per_liter'] for r in history] + [current_efficiency]
@@ -78,7 +78,7 @@ class PerformanceAnalyzer:
                             message = 'ML mendeteksi anomali'
                     except Exception as e:
                         print(f"ML Error: {e}")
-            
+
             return {'is_anomaly': is_anomaly, 'status': status, 'category': category, 'message': message,
                     'vehicle_type': vehicle_type, 'bbm_type': bbm_type, 'current_efficiency': current_efficiency}
         except Exception as e:
@@ -86,7 +86,7 @@ class PerformanceAnalyzer:
         finally:
             if cursor:
                 try: cursor.close()
-                except: pass
+                except Exception: pass
 
 
 def get_rekap_data(start_date=None, end_date=None, nopol=None, driver=None, tx_type=None):
@@ -96,7 +96,7 @@ def get_rekap_data(start_date=None, end_date=None, nopol=None, driver=None, tx_t
         if not conn:
             return []
         cursor = conn.cursor(dictionary=True)
-        
+
         query = """
             SELECT t.*, d.vehicle_type as master_vehicle, d.bbm_type as master_bbm
             FROM transactions t LEFT JOIN drivers d ON t.driver_name = d.name
@@ -112,12 +112,12 @@ def get_rekap_data(start_date=None, end_date=None, nopol=None, driver=None, tx_t
         if driver:
             query += " AND t.driver_name LIKE %s"; params.append(f"%{driver}%")
         query += " ORDER BY t.created_at ASC"
-        
+
         cursor.execute(query, params)
         all_tx = cursor.fetchall()
         cursor.close()
         conn.close()
-        
+
         # Fetch threshold
         try:
             c2 = get_db_connection()
@@ -126,14 +126,14 @@ def get_rekap_data(start_date=None, end_date=None, nopol=None, driver=None, tx_t
             row = cur2.fetchone()
             threshold = float(row['config_value']) if row else 40.0
             cur2.close(); c2.close()
-        except:
+        except Exception:
             threshold = 40.0
-        
+
         # Group & calculate
         groups = {}
         for tx in all_tx:
             groups.setdefault(tx['nopol'], []).append(tx)
-        
+
         result = []
         for nopol_key, tx_list in groups.items():
             last_odo = None
@@ -158,7 +158,7 @@ def get_rekap_data(start_date=None, end_date=None, nopol=None, driver=None, tx_t
                         tx['rata_rata'] = (dist / total_fuel) if total_fuel > 0 else 0
                         last_odo = curr; accumulated = 0.0
                 result.append(tx)
-        
+
         result.sort(key=lambda x: x['created_at'], reverse=True)
         return result
     except Exception as e:

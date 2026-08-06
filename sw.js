@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bpf-bbm-20260722_172752';
+const CACHE_NAME = 'bpf-bbm-20260807c';
 const STATIC_ASSETS = [
     '/',
     '/driver',
@@ -57,14 +57,14 @@ self.addEventListener('activate', event => {
 // Fetch: cache-first untuk static, network-first untuk API
 self.addEventListener('fetch', event => {
     if (event.request.method !== 'GET') return;
-    
+
     const url = new URL(event.request.url);
-    
+
     // Skip API calls & uploads (network-first)
     if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/uploads/') || url.pathname.startsWith('/admin')) {
         return;
     }
-    
+
     // Cache-first untuk static pages
     event.respondWith(
         caches.match(event.request).then(cachedResponse => {

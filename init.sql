@@ -228,4 +228,20 @@ INSERT INTO system_config (config_key, config_value) VALUES
 ('multifill_km_threshold', '40'),
 ('dummy_data_enabled', 'false');
 
+-- ============================================================
+-- NOTIFICATIONS (driver PWA real-time + offline catch-up)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    driver_name VARCHAR(100) NOT NULL,
+    type VARCHAR(20) NOT NULL,
+    action VARCHAR(30) NOT NULL,
+    message VARCHAR(255) NOT NULL,
+    ref_id VARCHAR(60) DEFAULT NULL,
+    is_read TINYINT(1) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_driver_read (driver_name, is_read),
+    KEY idx_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 SELECT '✅ Clean database ready' AS result;

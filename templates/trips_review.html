@@ -6,353 +6,10 @@
     <title>Trip Logs - BPF BBM System</title>
     <link rel="manifest" href="/manifest.json?v=20260722_172752">
     <meta name="theme-color" content="#1d4ed8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <script>if (localStorage.getItem('adminDark') === '1') document.documentElement.classList.add('dark');</script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root { --primary: #2563eb; --primary-dark: #1d4ed8; --primary-light: #dbeafe; --success: #059669; --success-light: #d1fae5; --warning: #d97706; --warning-light: #fef3c7; --danger: #dc2626; --danger-light: #fee2e2; --info: #0891b2; --info-light: #cffafe; --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-500: #6b7280; --gray-700: #374151; --gray-800: #1f2937; --gray-900: #111827; --white: #ffffff; --shadow: 0 1px 3px rgba(0,0,0,0.1); --radius: 10px; --radius-sm: 6px; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: "Inter", sans-serif; background: var(--gray-50); color: var(--gray-800); }
-        
-        
-        
-        
-        
-        
-        .container { max-width: 1400px; margin: 24px auto; padding: 0 20px; }
-        .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--gray-200); margin-bottom: 20px; }
-        .card-header { padding: 16px 22px; border-bottom: 1px solid var(--gray-200); font-weight: 600; background: var(--gray-50); display: flex; justify-content: space-between; align-items: center; }
-        .card-body { padding: 20px; }
-        .filter-form { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; padding: 14px; background: var(--gray-50); border-radius: var(--radius-sm); }
-        .filter-form input, .filter-form select { padding: 8px 12px; border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm); font-size: 13px; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th { background: var(--gray-100); color: var(--gray-700); font-weight: 600; padding: 10px; border-bottom: 2px solid var(--gray-200); text-align: left; }
-        td { padding: 10px; border-bottom: 1px solid var(--gray-100); }
-        tr:hover td { background: var(--gray-50); }
-        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-        .badge-pending { background: var(--warning-light); color: var(--warning); }
-        .badge-ga { background: var(--success-light); color: var(--success); }
-        .badge-reject { background: var(--danger-light); color: var(--danger); }
-        .btn { padding: 6px 14px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: 12px; text-decoration: none; display: inline-block; margin: 2px; }
-        .btn-success { background: var(--success); color: white; }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-info { background: #0284c7; color: white; }
-        .btn-primary { background: var(--primary); color: white; }
-        .alert { padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 14px; font-size: 13px; }
-        .alert-success { background: var(--success-light); color: #065f46; border-left: 4px solid var(--success); }
-        .alert-warning { background: var(--warning-light); color: #92400e; border-left: 4px solid var(--warning); }
-        .alert-error { background: var(--danger-light); color: #991b1b; border-left: 4px solid var(--danger); }
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; }
-        .modal-overlay.active { display: flex; }
-        .modal-box { background: white; border-radius: var(--radius); padding: 24px; width: 90%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        .modal-box textarea { width: 100%; padding: 10px; border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm); min-height: 80px; font-size: 13px; }
-        .empty { text-align: center; padding: 48px 20px; color: var(--gray-500); }
-        @media (max-width: 768px) { .filter-form { flex-direction: column; } }
-    
-        /* Navbar */
-        .navbar { background: #fff; color: #1e293b; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; z-index: 200; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border-bottom: 1px solid #e2e8f0; }
-        .nav-brand { display: flex; align-items: center; gap: 10px; }
-        .nav-logo { width: 36px; height: 36px; border-radius: 8px; }
-        .nav-company { font-size: 14px; font-weight: 700; color: #0f172a; letter-spacing: -0.2px; }
-        .nav-system { font-size: 11px; color: #64748b; font-weight: 400; display: block; margin-top: -1px; }
-        .nav-links { display: flex; align-items: center; gap: 4px; }
-        .nav-links a { color: #475569; text-decoration: none; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; transition: all 0.15s; }
-        .nav-links a:hover { background: #f1f5f9; color: #0f172a; }
-        .nav-links a.active { background: #2563eb; color: #fff !important; font-weight: 600; }
-        .nav-toggle { display: none; background: none; border: none; color: #1e293b; font-size: 24px; cursor: pointer; padding: 8px; }
-        
-        /* Footer */
-        .app-footer { background: #fff; border-top: 1px solid #e2e8f0; padding: 16px 24px; margin-top: 40px; }
-        .footer-content { display: flex; align-items: center; justify-content: center; gap: 10px; max-width: 1200px; margin: 0 auto; }
-        .footer-logo { width: 28px; height: 28px; border-radius: 6px; opacity: 0.6; }
-        .footer-text { text-align: left; }
-        .footer-company { font-size: 12px; font-weight: 700; color: #334155; }
-        .footer-info { font-size: 10px; color: #94a3b8; }
-        .footer-credit { font-size: 10px; color: #94a3b8; }
-        .footer-credit strong { color: #2563eb; font-weight: 600; }
-        
-        @media (max-width: 768px) {
-            .navbar { padding: 0 14px; height: 54px; }
-            .nav-logo { width: 30px; height: 30px; }
-            .nav-company { font-size: 12px; }
-            .nav-system { font-size: 9px; }
-            .nav-toggle { display: block; }
-            .nav-links { display: none; position: absolute; top: 60px; left: 0; right: 0; background: #fff; flex-direction: column; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-bottom: 1px solid #e2e8f0; }
-            .nav-links { display: flex; } @media (max-width: 768px) { .nav-links { display: none; } }
-            .nav-links a { width: 100%; padding: 12px 16px; font-size: 14px; }
-            .footer-content { flex-direction: column; text-align: center; }
-            .footer-text { text-align: center; }
-        }
-
-    
-        /* ============================================================ */
-        /* PREMIUM ENHANCEMENTS */
-        /* ============================================================ */
-        
-        /* Navbar - subtle gradient */
-        .navbar { 
-            background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
-            border-bottom: 1px solid #e8ecf1;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.02);
-        }
-        
-        /* Navbar links - smooth hover */
-        .nav-links a {
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-        }
-        .nav-links a:hover {
-            background: linear-gradient(135deg, #eff6ff, #f0f9ff);
-            color: #1e40af;
-            transform: translateY(-1px);
-        }
-        .nav-links a.active {
-            background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-            box-shadow: 0 2px 8px rgba(37,99,235,0.3);
-        }
-        
-        /* Cards - elevated feel */
-        .card {
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
-            border: 1px solid #e8ecf1;
-            transition: box-shadow 0.2s;
-        }
-        .card:hover {
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.04);
-        }
-        .card-header {
-            background: linear-gradient(180deg, #fafbfc, #f8fafc);
-            border-bottom: 1px solid #edf2f7;
-            font-weight: 600;
-            letter-spacing: 0.2px;
-        }
-        
-        /* Tables - cleaner */
-        th {
-            background: linear-gradient(180deg, #f8fafc, #f1f5f9);
-            color: #475569;
-            letter-spacing: 0.3px;
-        }
-        tr:hover td {
-            background: linear-gradient(90deg, #f8fafc, #fff);
-        }
-        
-        /* Buttons - softer */
-        .btn {
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-        .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .btn-primary { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
-        .btn-success { background: linear-gradient(135deg, #059669, #047857); }
-        .btn-warning { background: linear-gradient(135deg, #d97706, #b45309); }
-        .btn-danger { background: linear-gradient(135deg, #dc2626, #b91c1c); }
-        
-        /* Inputs - focus glow */
-        .form-control {
-            transition: all 0.2s;
-            border-color: #e2e8f0;
-        }
-        .form-control:focus {
-            border-color: #93c5fd;
-            box-shadow: 0 0 0 3px rgba(59,130,246,0.08);
-        }
-        
-        /* Badges */
-        .badge {
-            letter-spacing: 0.2px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-        }
-        
-        /* Footer */
-        .app-footer {
-            background: linear-gradient(180deg, #fafbfc, #f1f5f9);
-            border-top: 1px solid #e8ecf1;
-        }
-        
-        /* Body background - subtle texture */
-        body {
-            background: #f8fafc;
-            background-image: 
-                radial-gradient(at 0% 0%, rgba(37,99,235,0.02) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(5,150,105,0.02) 0px, transparent 50%);
-        }
-        
-        /* PIN Gate - premium card */
-        #settingsGate > div {
-            box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 8px 40px rgba(0,0,0,0.04);
-            border: 1px solid #e8ecf1;
-        }
-        
-        /* Smooth scrolling */
-        html { scroll-behavior: smooth; }
-        
-        /* Selection color */
-        ::selection { background: #dbeafe; color: #1e40af; }
-        
-        @media (max-width: 768px) {
-            .card { border-radius: 10px; }
-            .card-header { padding: 12px 16px; }
-            .card-body { padding: 14px 16px; }
-        }
-
-    
-        /* ============================================================ */
-        /* TRIPS ENTERPRISE ENHANCEMENTS */
-        /* ============================================================ */
-        
-        /* Summary Cards */
-        .summary-cards {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        .summary-card {
-            background: white;
-            border-radius: 12px;
-            padding: 16px 20px;
-            text-align: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-            border: 1px solid #e8ecf1;
-            transition: transform 0.2s;
-        }
-        .summary-card:hover { transform: translateY(-2px); }
-        .summary-card.pending { border-left: 4px solid #d97706; }
-        .summary-card.verified { border-left: 4px solid #059669; }
-        .summary-card.rejected { border-left: 4px solid #dc2626; }
-        .summary-card.total { border-left: 4px solid #2563eb; }
-        .summary-number { font-size: 28px; font-weight: 800; color: #0f172a; }
-        .summary-label { font-size: 11px; color: #64748b; margin-top: 4px; font-weight: 500; }
-        
-        /* Filter Bar */
-        .filter-bar {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-bottom: 16px;
-            padding: 12px;
-            background: #f8fafc;
-            border-radius: 10px;
-            align-items: center;
-        }
-        .filter-bar input, .filter-bar select {
-            padding: 8px 12px;
-            border: 1.5px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 12px;
-            background: white;
-        }
-        .filter-bar input:focus, .filter-bar select:focus {
-            border-color: #93c5fd;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(59,130,246,0.08);
-        }
-        .btn-outline {
-            background: white;
-            color: #64748b;
-            border: 1.5px solid #e2e8f0;
-            padding: 8px 14px;
-            border-radius: 8px;
-            font-size: 12px;
-            cursor: pointer;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        .btn-outline:hover { border-color: #93c5fd; color: #2563eb; }
-        
-        /* Table enhancements */
-        .trip-row-clickable:hover td { background: #f0f4ff !important; }
-        .nopol-tag {
-            background: #1e293b;
-            color: #fbbf24;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 11px;
-            letter-spacing: 1px;
-        }
-        .route-badge {
-            background: #dbeafe;
-            color: #1e40af;
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 11px;
-        }
-        
-        /* Trip Detail Modal */
-        .trip-detail-modal {
-            background: white;
-            border-radius: 14px;
-            width: 95%;
-            max-width: 650px;
-            max-height: 85vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            animation: popIn 0.2s;
-        }
-        .tdm-header {
-            padding: 16px 20px;
-            border-bottom: 1px solid #e2e8f0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            background: white;
-            z-index: 1;
-            border-radius: 14px 14px 0 0;
-        }
-        .tdm-header h3 { font-size: 15px; color: #0f172a; }
-        .tdm-header h3 span { color: #2563eb; }
-        .tdm-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #94a3b8; }
-        .tdm-close:hover { color: #dc2626; }
-        .tdm-body { padding: 16px 20px; }
-        .tdm-body .info-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 6px 0;
-            border-bottom: 1px solid #f1f5f9;
-            font-size: 12px;
-        }
-        .tdm-body .info-row .lbl { color: #64748b; font-weight: 500; }
-        .tdm-body .info-row .val { font-weight: 600; color: #0f172a; }
-        .tdm-body .route-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            font-size: 11px;
-        }
-        .tdm-body .route-table th {
-            background: #f1f5f9;
-            padding: 8px;
-            text-align: left;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .tdm-body .route-table td {
-            padding: 8px;
-            border-bottom: 1px solid #f1f5f9;
-        }
-        .tdm-body .route-table .loc-cell { font-weight: 500; }
-        .tdm-footer {
-            padding: 12px 20px;
-            border-top: 1px solid #e2e8f0;
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-        }
-        
-        @media (max-width: 768px) {
-            .summary-cards { grid-template-columns: repeat(2, 1fr); }
-            .filter-bar { flex-direction: column; }
-            .filter-bar input, .filter-bar select { width: 100%; }
-        }
-
-    </style>
+    <link rel="stylesheet" href="/static/css/trips_review.css?v=20260807b">
 </head>
 <body>
         <nav class="navbar">
@@ -364,6 +21,7 @@
             </div>
         </div>
         <button class="nav-toggle" id="navToggle">☰</button>
+        <button class="nav-dark-toggle" id="navDarkToggle" onclick="togglePageDark()" title="Dark Mode" aria-label="Ganti mode terang/gelap">🌙</button>
         <div class="nav-links">
             <a href="/admin">Dashboard</a>
             <a href="/ga/assignments">Assignments</a>
@@ -371,10 +29,12 @@
             <a href="/admin/analytics">Analytics</a>
             <a href="/admin/trips" class="active">Trips</a>
             <a href="/admin/logs">Logs</a>
+            <a href="/admin/users">Users</a>
             <a href="/admin/settings">Settings</a>
         </div>
+        <a href="/logout" class="nav-logout" title="Keluar">🚪 Keluar</a>
     </nav>
-    
+
         <div class="container">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -383,7 +43,7 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
-        
+
         <!-- SUMMARY CARDS -->
         <div class="summary-cards">
             <div class="summary-card pending">
@@ -403,7 +63,7 @@
                 <div class="summary-label">📋 Total Logs</div>
             </div>
         </div>
-        
+
         <div class="card">
             <div class="card-header">
                 <span>📋 Log Perjalanan Harian</span>
@@ -423,7 +83,7 @@
                     <button type="submit" class="btn btn-primary">🔍 Filter</button>
                     <a href="/admin/trips" class="btn btn-outline">↻ Reset</a>
                 </form>
-                
+
                 {% if trips %}
                 <div style="overflow-x:auto;">
                 <table>
@@ -454,7 +114,10 @@
                             </td>
                             <td onclick="event.stopPropagation();">
                                 {% if t.status == 'pending' %}
-                                <a href="/admin/trips/verify/{{ t.id }}?admin=GA" class="btn btn-success btn-sm" onclick="return confirm('Verifikasi trip #{{ t.id }}?')" title="Verify">✅</a>
+                                <form method="POST" action="/admin/trips/verify/{{ t.id }}?admin=GA" style="display:inline" onsubmit="return confirm('Verifikasi trip #{{ t.id }}?')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-success btn-sm" title="Verify">✅</button>
+                                </form>
                                 <button class="btn btn-danger btn-sm" onclick="showRejectModal({{ t.id }})" title="Reject">❌</button>
                                 {% endif %}
                                 <a href="/admin/trips/export/{{ t.id }}" class="btn btn-info btn-sm" title="Excel">📥</a>
@@ -475,7 +138,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- TRIP DETAIL MODAL -->
     <div class="modal-overlay" id="tripDetailModal">
         <div class="trip-detail-modal">
@@ -492,12 +155,12 @@
             </div>
         </div>
     </div>
-    
+
     <!-- REJECT MODAL -->
     <div class="modal-overlay" id="rejectModal">
         <div class="modal-box">
             <h3 style="margin-bottom:12px;">Tolak Trip Log</h3>
-            <form id="rejectForm" method="POST">
+            <form id="rejectForm" method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <label style="font-size:13px;font-weight:600;">Alasan Penolakan:</label>
                 <textarea name="reason" placeholder="Tulis alasan..." required></textarea>
                 <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
@@ -510,7 +173,7 @@
     <div class="modal-overlay" id="rejectModal">
         <div class="modal-box">
             <h3 style="margin-bottom:12px;">Tolak Trip Log</h3>
-            <form id="rejectForm" method="POST">
+            <form id="rejectForm" method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <label style="font-size:13px;font-weight:600;">Alasan Penolakan:</label>
                 <textarea name="reason" placeholder="Tulis alasan..." required></textarea>
                 <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
@@ -520,7 +183,7 @@
             </form>
         </div>
     </div>
-    
+
     <script>
         function showRejectModal(tripId) {
             document.getElementById('rejectForm').action = '/admin/trips/reject/' + tripId;
@@ -537,15 +200,15 @@
         document.getElementById('detailTripId').textContent = '#' + tripId;
         document.getElementById('tripDetailBody').innerHTML = '<p style="text-align:center;color:var(--gray-500);padding:20px;">⏳ Memuat...</p>';
         document.getElementById('tripDetailModal').classList.add('active');
-        
+
         try {
             var r = await fetch('/api/trip-detail/' + tripId);
             var d = await r.json();
             if (d.error) { document.getElementById('tripDetailBody').innerHTML = '<p style="color:red;">' + d.error + '</p>'; return; }
-            
+
             var master = d.master;
             var details = d.details || [];
-            
+
             var html = '<div class="info-row"><span class="lbl">Driver</span><span class="val">' + master.driver_name + '</span></div>';
             html += '<div class="info-row"><span class="lbl">No. Polisi</span><span class="val"><span class="nopol-tag">' + master.nopol + '</span></span></div>';
             html += '<div class="info-row"><span class="lbl">Tanggal</span><span class="val">' + master.trip_date + '</span></div>';
@@ -555,7 +218,7 @@
             html += '<div class="info-row"><span class="lbl">KM Akhir</span><span class="val">' + (master.km_akhir || '-') + ' km</span></div>';
             html += '<div class="info-row"><span class="lbl">Total Rute</span><span class="val">' + details.length + ' rute</span></div>';
             html += '<div class="info-row"><span class="lbl">Status</span><span class="val">' + master.status.toUpperCase() + '</span></div>';
-            
+
             if (details.length > 0) {
                 html += '<h4 style="margin-top:14px;font-size:13px;">📍 Rute Perjalanan</h4>';
                 html += '<table class="route-table"><thead><tr><th>#</th><th>Lokasi Berangkat</th><th>Pukul</th><th>KM</th><th>Lokasi Tujuan</th><th>Pukul</th><th>KM</th></tr></thead><tbody>';
@@ -573,27 +236,28 @@
                 }
                 html += '</tbody></table>';
             }
-            
+
             document.getElementById('tripDetailBody').innerHTML = html;
         } catch(e) {
             document.getElementById('tripDetailBody').innerHTML = '<p style="color:red;">Error memuat detail</p>';
         }
     }
-    
+
     function closeTripDetail() {
         document.getElementById('tripDetailModal').classList.remove('active');
     }
-    
+
     function printTripDetail() {
         var content = document.getElementById('tripDetailBody').innerHTML;
         var win = window.open('', '_blank', 'width=800,height=600');
         win.document.write('<html><head><title>Detail Perjalanan</title>');
         win.document.write('<style>body{font-family:Inter,sans-serif;padding:20px;font-size:12px;} table{width:100%;border-collapse:collapse;} th,td{padding:6px;border:1px solid #ddd;text-align:left;} .info-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;} .lbl{color:#666;} .val{font-weight:600;} .nopol-tag{background:#1e293b;color:#fbbf24;padding:2px 8px;border-radius:4px;}</style>');
-        win.document.write('</head><body>' + content + '</body></html>');
+        win.document.write('</head><body>' + content + '    <script src="/static/js/theme.js?v=20260807b"></script>
+</body></html>');
         win.document.close();
         win.print();
     }
-    
+
     document.getElementById('tripDetailModal').addEventListener('click', function(e) {
         if (e.target === this) closeTripDetail();
     });
@@ -602,7 +266,7 @@
     });
 
     </script>
-    
+
     <!-- Service Worker Auto-Update -->
     <script>
     if ("serviceWorker" in navigator) {
@@ -618,7 +282,7 @@
         });
     }
     </script>
-    
+
     <!-- PROFESSIONAL FOOTER -->
         <footer class="app-footer">
         <div class="footer-content">
@@ -636,12 +300,12 @@
 <script>
     var navToggle = document.getElementById('navToggle');
     var navLinks = document.querySelector('.nav-links');
-    
+
     // Default hidden di mobile
     if (window.innerWidth <= 768) {
         navLinks.style.display = 'none';
     }
-    
+
     // Toggle saat hamburger diklik
     navToggle.addEventListener('click', function(e) {
         e.stopPropagation();
@@ -651,7 +315,7 @@
             navLinks.style.display = 'flex';
         }
     });
-    
+
     // Tutup saat link diklik
     navLinks.querySelectorAll('a').forEach(function(link) {
         link.addEventListener('click', function() {
@@ -660,7 +324,7 @@
             }
         });
     });
-    
+
     // Tutup saat klik di luar
     document.addEventListener('click', function(e) {
         if (!e.target.closest('.nav-links') && !e.target.closest('.nav-toggle')) {

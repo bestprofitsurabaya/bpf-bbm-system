@@ -10,10 +10,10 @@ async function loadArchive(page) {
     archiveLoading = true;
     page = page || 1;
     archivePage = page;
-    
+
     // Show skeleton
     document.getElementById('archiveTableBody').innerHTML = '<div class="skeleton" style="height:60px;"></div><div class="skeleton" style="height:60px;"></div><div class="skeleton" style="height:60px;"></div>';
-    
+
     var params = new URLSearchParams({
         page: page, limit: 50,
         search: document.getElementById('archiveSearch').value,
@@ -21,7 +21,7 @@ async function loadArchive(page) {
         end_date: document.getElementById('archiveEndDate').value,
         bbm_type: document.getElementById('archiveBbmType').value
     });
-    
+
     try {
         var r = await fetch('/api/transactions/archive?' + params.toString());
         var d = await r.json();

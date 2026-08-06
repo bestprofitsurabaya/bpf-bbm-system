@@ -1,9 +1,10 @@
 """Cash Request / Kasbon BBM Routes"""
 import random
 from datetime import date
-from flask import request, jsonify
+from flask import request, jsonify, session
 from modules.config import get_db_connection
-from modules.helpers import log_activity_async, generate_display_id, safe_float
+from modules.helpers import log_activity_async, generate_display_id, safe_float, role_required
+from modules.notifications import push_driver_notification
 
 def register_cash_routes(app):
 
@@ -24,7 +25,7 @@ def register_cash_routes(app):
         )
         return code_val
 
-    
+
     # ================================================================
     # DAILY UNIQUE CODE
     # ================================================================
@@ -37,8 +38,11 @@ def register_cash_routes(app):
         mode_row = cursor.fetchone()
         manual_mode = mode_row['config_value'] == 'true' if mode_row else False
         cursor.close(); conn.close()
-        
+
         if request.method == 'POST':
+            # Hanya admin Finance yang boleh mengubah kode harian (driver hanya GET)
+            if not session.get('user_role') or session.get('user_role') not in ('finance', 'admin'):
+                return jsonify({'status': 'error', 'msg': 'Akses ditolak. Hanya Finance yang dapat mengubah kode.'}), 401
             data = request.get_json()
             new_code = data.get('code', 0)
             if new_code < 100 or new_code > 2000:
@@ -60,7 +64,7 @@ def register_cash_routes(app):
             return jsonify({'code': code_val, 'date': str(date.today()), 'manual_mode': manual_mode})
         except Exception as e:
             return jsonify({'error': str(e)}), 500
-    
+
     # ================================================================
     # DRIVER: SUBMIT CASH REQUEST
     # ================================================================
@@ -74,33 +78,34 @@ def register_cash_routes(app):
             vehicle_type = data.get('vehicle_type', 'AVANZA')
             bbm_type = data.get('bbm_type', 'PERTALITE')
             base_amount = safe_float(data.get('base_amount', 0))
-            
+
             if not driver_name or base_amount <= 0:
                 return jsonify({'status': 'error', 'msg': 'Driver dan nominal wajib'}), 400
-            
+
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
-            
+
             # Get today's unique code
             code_val = get_or_create_daily_code_with_lock(cursor, conn)
+            unique_cents = code_val
             total_amount = base_amount + unique_cents
             display_id = generate_display_id('CASH', conn)
-            
+
             cursor.execute("""
                 INSERT INTO fuel_cash_requests (display_id, driver_name, nopol, vehicle_type, bbm_type,
                     base_amount, unique_cents, total_amount, daily_code, status, notes)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'DRAFT', %s)
             """, (display_id, driver_name, nopol, vehicle_type, bbm_type,
                   base_amount, unique_cents, total_amount, code_val, data.get('notes', '')))
-            
+
             cash_id = cursor.lastrowid
             conn.commit()
-            
+
             log_activity_async(0, 'cash_request_submit', 'driver', driver_name,
                              new_data={'cash_id': cash_id, 'total': total_amount, 'code': code_val})
-            
+
             cursor.close(); conn.close()
-            
+
             return jsonify({
                 'status': 'success',
                 'msg': f'Pengajuan {display_id} berhasil. Total: Rp {total_amount:,.0f} (kode: {code_val})',
@@ -111,106 +116,115 @@ def register_cash_routes(app):
             })
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
-    
+
     # ================================================================
     # GA: APPROVE CASH REQUEST
     # ================================================================
     @app.route('/api/cash/approve-ga/<int:cash_id>', methods=['POST'])
+    @role_required(['ga', 'admin'])
     def api_cash_approve_ga(cash_id):
         """GA approves the cash request"""
         try:
             data = request.get_json() or {}
             ga_name = data.get('ga_name', 'GA Officer').strip()
-            
+
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM fuel_cash_requests WHERE id = %s AND status = 'DRAFT'", (cash_id,))
             req = cursor.fetchone()
-            
+
             if not req:
                 cursor.close(); conn.close()
                 return jsonify({'status': 'error', 'msg': 'Pengajuan tidak ditemukan atau sudah diproses'}), 404
-            
+
             cursor.execute("""
                 UPDATE fuel_cash_requests SET status = 'GA_APPROVED', ga_approved_by = %s, ga_approved_at = NOW()
                 WHERE id = %s
             """, (ga_name, cash_id))
             conn.commit()
-            
+
             log_activity_async(0, 'cash_ga_approve', 'ga', ga_name,
                              new_data={'cash_id': cash_id, 'display_id': req['display_id']})
-            
+            push_driver_notification(req['driver_name'], 'cash', 'approved',
+                                     f'Kasbon {req["display_id"]} disetujui GA', req['display_id'])
+
             cursor.close(); conn.close()
             return jsonify({'status': 'success', 'msg': f'Pengajuan {req["display_id"]} disetujui GA'})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
-    
+
     # ================================================================
     # FINANCE: APPROVE CASH DISBURSEMENT
     # ================================================================
     @app.route('/api/cash/approve-finance/<int:cash_id>', methods=['POST'])
+    @role_required(['finance', 'admin'])
     def api_cash_approve_finance(cash_id):
         """Finance approves the cash disbursement"""
         try:
             data = request.get_json() or {}
             fin_name = data.get('finance_name', 'Finance Officer').strip()
-            
+
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM fuel_cash_requests WHERE id = %s AND status = 'GA_APPROVED'", (cash_id,))
             req = cursor.fetchone()
-            
+
             if not req:
                 cursor.close(); conn.close()
                 return jsonify({'status': 'error', 'msg': 'Pengajuan tidak ditemukan atau belum GA approve'}), 404
-            
+
             cursor.execute("""
                 UPDATE fuel_cash_requests SET status = 'FINANCE_APPROVED', finance_approved_by = %s, finance_approved_at = NOW()
                 WHERE id = %s
             """, (fin_name, cash_id))
             conn.commit()
-            
+
             log_activity_async(0, 'cash_finance_approve', 'finance', fin_name,
                              new_data={'cash_id': cash_id, 'display_id': req['display_id']})
-            
+            push_driver_notification(req['driver_name'], 'cash', 'paid',
+                                     f'Kasbon {req["display_id"]} dicairkan Finance — dana siap diambil', req['display_id'])
+
             cursor.close(); conn.close()
             return jsonify({'status': 'success', 'msg': f'Pencairan {req["display_id"]} disetujui Finance. Silakan ambil dana.'})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
-    
+
     # ================================================================
     # GA: HANDOVER - Konfirmasi dana di tangan Driver
     # ================================================================
     @app.route('/api/cash/handover/<int:cash_id>', methods=['POST'])
+    @role_required(['ga', 'admin'])
     def api_cash_handover(cash_id):
         """GA confirms funds handed to driver"""
         try:
             data = request.get_json() or {}
             ga_name = data.get('ga_name', 'GA Officer').strip()
-            
+
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM fuel_cash_requests WHERE id = %s AND status = 'FINANCE_APPROVED'", (cash_id,))
             req = cursor.fetchone()
-            
+
             if not req:
                 cursor.close(); conn.close()
                 return jsonify({'status': 'error', 'msg': 'Pengajuan tidak ditemukan atau belum Finance approve'}), 404
-            
+
             cursor.execute("""
                 UPDATE fuel_cash_requests SET status = 'FUNDS_WITH_DRIVER', handover_by = %s, handover_at = NOW()
                 WHERE id = %s
             """, (ga_name, cash_id))
             conn.commit()
-            
+
             log_activity_async(0, 'cash_handover', 'ga', ga_name,
                              new_data={'cash_id': cash_id, 'display_id': req['display_id'], 'driver': req['driver_name']})
-            
+            push_driver_notification(req['driver_name'], 'cash', 'handover',
+                                     f'Dana kasbon {req["display_id"]} sudah diserahkan ke Anda', req['display_id'])
+
             cursor.close(); conn.close()
             return jsonify({'status': 'success', 'msg': f'Dana {req["display_id"]} sudah di tangan {req["driver_name"]}. Menunggu LPJ.'})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
-    
+
     # ================================================================
     # DRIVER: GET PENDING LPJ
     # ================================================================
@@ -222,27 +236,28 @@ def register_cash_routes(app):
             conn = get_db_connection()
             if not conn: return jsonify({'error': 'DB error'}), 500
             cursor = conn.cursor(dictionary=True)
-            
+
             query = "SELECT * FROM fuel_cash_requests WHERE status = 'FUNDS_WITH_DRIVER'"
             params = []
             if driver:
                 query += " AND driver_name = %s"
                 params.append(driver)
             query += " ORDER BY created_at DESC"
-            
+
             cursor.execute(query, params)
             data = cursor.fetchall()
             cursor.close(); conn.close()
             return jsonify(data)
         except Exception as e:
             return jsonify({'error': str(e)}), 500
-    
+
     # ================================================================
 
     # ================================================================
     # GA: APPROVE LPJ (Verifikasi LPJ -> Complete)
     # ================================================================
     @app.route('/api/cash/approve-lpj/<int:cash_id>', methods=['POST'])
+    @role_required(['ga', 'admin'])
     def api_cash_approve_lpj(cash_id):
         """GA verifies LPJ -> marks cash as COMPLETED and transaction as verified_ga"""
         try:
@@ -280,6 +295,8 @@ def register_cash_routes(app):
                              new_data={'cash_id': cash_id, 'tx_id': tx_id,
                                       'display_id': cash_req['display_id'],
                                       'notes': notes})
+            push_driver_notification(cash_req['driver_name'], 'cash', 'completed',
+                                     f'LPJ kasbon {cash_req["display_id"]} disetujui — selesai 🎉', cash_req['display_id'])
 
             cursor.close(); conn.close()
             return jsonify({
@@ -295,6 +312,7 @@ def register_cash_routes(app):
     # GA: REJECT LPJ
     # ================================================================
     @app.route('/api/cash/reject-lpj/<int:cash_id>', methods=['POST'])
+    @role_required(['ga', 'admin'])
     def api_cash_reject_lpj(cash_id):
         """GA rejects LPJ -> returns to FUNDS_WITH_DRIVER for revision"""
         try:
@@ -330,6 +348,8 @@ def register_cash_routes(app):
 
             log_activity_async(0, 'cash_lpj_reject', 'ga', ga_name,
                              new_data={'cash_id': cash_id, 'tx_id': tx_id, 'reason': reason})
+            push_driver_notification(cash_req['driver_name'], 'cash', 'lpj_rejected',
+                                     f'LPJ kasbon {cash_req["display_id"]} ditolak: {reason} — silakan submit ulang', cash_req['display_id'])
 
             cursor.close(); conn.close()
             return jsonify({
@@ -372,28 +392,34 @@ def register_cash_routes(app):
             if not data:
                 cursor.close(); conn.close()
                 return jsonify({'error': 'Not found'}), 404
-            
+
             # Get LPJ if submitted
             if data.get('lpj_transaction_id'):
                 cursor.execute("SELECT * FROM transactions WHERE id = %s", (data['lpj_transaction_id'],))
                 data['lpj'] = cursor.fetchone()
-            
+
             cursor.close(); conn.close()
             return jsonify(data)
         except Exception as e:
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/cash/reject/<int:cash_id>', methods=['POST'])
+    @role_required(['ga', 'finance', 'admin'])
     def api_cash_reject(cash_id):
         try:
             data = request.get_json() or {}
             reason = data.get('reason', 'Tanpa alasan').strip()
             conn = get_db_connection()
-            cursor = conn.cursor()
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM fuel_cash_requests WHERE id = %s", (cash_id,))
+            req = cursor.fetchone()
             cursor.execute("UPDATE fuel_cash_requests SET status = 'REJECTED', rejection_reason = %s WHERE id = %s", (reason, cash_id))
             conn.commit()
             cursor.close(); conn.close()
             log_activity_async(0, 'cash_reject', 'ga', 'GA Officer', new_data={'cash_id': cash_id, 'reason': reason})
+            if req:
+                push_driver_notification(req['driver_name'], 'cash', 'rejected',
+                                         f'Kasbon {req["display_id"]} ditolak: {reason}', req['display_id'])
             return jsonify({'status': 'success', 'msg': 'Pengajuan ditolak'})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
@@ -414,7 +440,7 @@ def register_cash_routes(app):
             if not cash_req:
                 cursor.close(); conn.close()
                 return jsonify({'status': 'error', 'msg': 'Pengajuan tidak ditemukan'}), 404
-            
+
             driver_name = cash_req['driver_name']
             nopol = cash_req['nopol']
             vehicle_type = cash_req['vehicle_type']
@@ -424,7 +450,7 @@ def register_cash_routes(app):
             liter = nominal / price_per_liter if price_per_liter > 0 else 0
             odo_km = int(request.form.get('odo_km', 0))
             spbu_type = request.form.get('spbu_type', 'rekanan')
-            
+
             from modules.helpers import save_file
             upload_dir = app.config['UPLOAD_FOLDER']
             foto_odo = save_file(request.files.get('foto_odo_sebelum'), 'ODO1', nopol, upload_dir)
@@ -435,20 +461,20 @@ def register_cash_routes(app):
             gps_lon = request.form.get('gps_lon') or None
             gps_address = request.form.get('gps_address', '')
             jumlah_appointment = int(request.form.get('jumlah_appointment', 0) or 0)
-            
+
             display_id = generate_display_id('BPF', conn)
             cursor.execute(
                 "INSERT INTO transactions (display_id, transaction_type, cash_request_id, driver_name, nopol, vehicle_type, bbm_type, nominal, liter, price_per_liter, odo_km, spbu_type, foto_odo_sebelum, foto_nota_odo_sesudah, foto_struk, foto_struk_dispenser, status, km_per_liter, gps_latitude, gps_longitude, gps_address, jumlah_appointment) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                 (display_id, 'CASH_LPJ', cash_id, driver_name, nopol, vehicle_type, bbm_type, nominal, liter, price_per_liter, odo_km, spbu_type, foto_odo, foto_nota, foto_struk, foto_dispenser, 'pending', 0, gps_lat, gps_lon, gps_address, jumlah_appointment)
             )
             tx_id = cursor.lastrowid
-            
+
             cursor.execute("UPDATE fuel_cash_requests SET status = 'LPJ_SUBMITTED', lpj_transaction_id = %s, lpj_submitted_at = NOW() WHERE id = %s", (tx_id, cash_id))
             conn.commit()
-            
+
             log_activity_async(0, 'cash_lpj_submit', 'driver', driver_name, new_data={'cash_id': cash_id, 'tx_id': tx_id})
             cursor.close(); conn.close()
-            
+
             return jsonify({'status': 'success', 'msg': 'LPJ selesai!', 'transaction_id': display_id, 'numeric_id': tx_id, 'cash_id': cash_id})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
@@ -477,6 +503,7 @@ def register_cash_routes(app):
     # EDIT NOMINAL (DRAFT only)
     # ================================================================
     @app.route('/api/cash/edit/<int:cash_id>', methods=['POST'])
+    @role_required(['ga', 'finance', 'admin'])
     def api_cash_edit(cash_id):
         try:
             data = request.get_json()
@@ -505,6 +532,7 @@ def register_cash_routes(app):
     # BATALKAN PENGAJUAN (kembali ke DRAFT)
     # ================================================================
     @app.route('/api/cash/cancel/<int:cash_id>', methods=['POST'])
+    @role_required(['ga', 'finance', 'admin'])
     def api_cash_cancel(cash_id):
         try:
             data = request.get_json() or {}
@@ -524,6 +552,8 @@ def register_cash_routes(app):
             conn.commit()
             cursor.close(); conn.close()
             log_activity_async(0, 'cash_cancel', 'admin', 'Admin', new_data={'cash_id': cash_id, 'old_status': old_status, 'reason': reason})
+            push_driver_notification(req['driver_name'], 'cash', 'cancelled',
+                                     f'Kasbon {req["display_id"]} dibatalkan: {reason}', req['display_id'])
             return jsonify({'status': 'success', 'msg': f'Pengajuan {req["display_id"]} dikembalikan ke DRAFT'})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
@@ -532,6 +562,7 @@ def register_cash_routes(app):
     # RESET LPJ (COMPLETED → FUNDS_WITH_DRIVER)
     # ================================================================
     @app.route('/api/cash/reset-lpj/<int:cash_id>', methods=['POST'])
+    @role_required(['finance', 'admin'])
     def api_cash_reset_lpj(cash_id):
         try:
             data = request.get_json() or {}
@@ -551,6 +582,8 @@ def register_cash_routes(app):
             conn.commit()
             cursor.close(); conn.close()
             log_activity_async(0, 'cash_reset_lpj', 'admin', 'Admin', new_data={'cash_id': cash_id, 'old_tx_id': tx_id, 'reason': reason})
+            push_driver_notification(req['driver_name'], 'cash', 'reset',
+                                     f'LPJ kasbon {req["display_id"]} di-reset — silakan submit ulang', req['display_id'])
             return jsonify({'status': 'success', 'msg': f'LPJ di-reset. Driver bisa submit ulang.'})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500

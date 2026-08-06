@@ -1,11 +1,26 @@
 """Settings Routes"""
 from flask import (render_template, request, redirect, url_for, flash)
 from modules.config import get_db_connection
-from modules.helpers import log_activity_async
+from modules.helpers import log_activity_async, role_required
 
 def register_settings_routes(app):
-    
+
+    @app.route('/admin/users')
+    @role_required(['admin'])
+    def admin_users_page():
+        """Halaman manajemen user (admin-only) — kelola akun & reset PIN."""
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT id, username, full_name, role, is_active, last_login FROM users ORDER BY role, username")
+            users = cursor.fetchall()
+            cursor.close(); conn.close()
+            return render_template('users.html', users=users)
+        except Exception as e:
+            return f"Error: {str(e)}", 500
+
     @app.route('/admin/settings', methods=['GET', 'POST'])
+    @role_required(['ga', 'finance', 'admin'])
     def admin_settings():
         if request.method == 'POST':
             try:

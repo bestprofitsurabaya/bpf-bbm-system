@@ -6,8 +6,13 @@
     <title>Dashboard - BPF BBM System</title>
     <link rel="manifest" href="/manifest.json?v=20260728">
     <meta name="theme-color" content="#1d4ed8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/admin.css?v=20260728">
+    <link rel="stylesheet" href="/static/css/admin.css?v=20260807d">
+    <script>
+    // Terapkan dark mode sedini mungkin (hindari flash)
+    if (localStorage.getItem('adminDark') === '1') document.documentElement.classList.add('dark');
+    </script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 <body>
@@ -16,7 +21,8 @@
             <img src="/static/icon-192.png" alt="BPF" class="nav-logo">
             <div><span class="nav-company">BPF Fleet System</span><span class="nav-system">PT Bestprofit Futures</span></div>
         </div>
-        <button class="nav-toggle" id="navToggle">☰</button>
+        <button class="nav-dark-toggle" id="navDarkToggle" onclick="toggleAdminDark()" title="Dark Mode" aria-label="Ganti mode terang/gelap">🌙</button>
+        <button class="nav-toggle" id="navToggle" aria-label="Buka menu">☰</button>
         <div class="nav-links">
             <a href="/admin" class="active">Dashboard</a>
             <a href="/ga/assignments">Assignments</a>
@@ -24,10 +30,22 @@
             <a href="/admin/analytics">Analytics</a>
             <a href="/admin/trips">Trips</a>
             <a href="/admin/logs">Logs</a>
+            <a href="/admin/users">Users</a>
             <a href="/admin/settings">Settings</a>
         </div>
+        <a href="/logout" class="nav-logout" title="Keluar">🚪 Keluar</a>
     </nav>
-    
+
+    <!-- CONTEXT BAR (sticky): tanggal, ringkasan hari ini, koneksi -->
+    <div class="context-bar" id="contextBar">
+        <span class="ctx-date" id="todayDate">📅 --</span>
+        <span class="ctx-item">Transaksi hari ini: <strong id="todayTx">--</strong></span>
+        <span class="ctx-item">Nominal: <strong id="todayNominal">Rp --</strong></span>
+        <span class="ctx-spacer"></span>
+        <span class="ctx-hint">Shortcut: 1–5 ganti tab</span>
+        <span class="conn-dot" id="connDot" title="Koneksi"></span>
+    </div>
+
     <div class="container">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -36,24 +54,24 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
-        
+
         <!-- STATS -->
         <div class="stats">
-            <a href="?tab=ga_queue" class="stat-card ga-queue {% if stats.pending > 0 %}pulse{% endif %}"><div class="number">{{ stats.pending }}</div><div class="label">⚠️ Antrean GA</div></a>
-            <a href="?tab=finance" class="stat-card finance-queue {% if stats.verified_ga > 0 %}pulse{% endif %}"><div class="number">{{ stats.verified_ga }}</div><div class="label">💰 Finance</div></a>
-            <a href="?tab=driver_confirm" class="stat-card driver-queue {% if stats.os_finance > 0 %}pulse{% endif %}"><div class="number">{{ stats.os_finance }}</div><div class="label">✍️ Driver TTD</div></a>
-            <a href="?tab=archive" class="stat-card archive-queue"><div class="number">{{ stats.archived }}</div><div class="label">📦 Arsip</div></a>
-            <a href="?tab=cash" class="stat-card cash-queue {% if stats.cash_pending > 0 %}pulse{% endif %}"><div class="number">{{ stats.cash_pending }}</div><div class="label">💰 Kasbon</div></a>
+            <a href="?tab=ga_queue" data-tab="ga_queue" class="stat-card ga-queue {% if stats.pending > 0 %}pulse{% endif %}"><div class="number" data-stat="pending">{{ stats.pending }}</div><div class="label">⚠️ Antrean GA</div></a>
+            <a href="?tab=finance" data-tab="finance" class="stat-card finance-queue {% if stats.verified_ga > 0 %}pulse{% endif %}"><div class="number" data-stat="verified_ga">{{ stats.verified_ga }}</div><div class="label">💰 Finance</div></a>
+            <a href="?tab=driver_confirm" data-tab="driver_confirm" class="stat-card driver-queue {% if stats.os_finance > 0 %}pulse{% endif %}"><div class="number" data-stat="os_finance">{{ stats.os_finance }}</div><div class="label">✍️ Driver TTD</div></a>
+            <a href="?tab=archive" data-tab="archive" class="stat-card archive-queue"><div class="number" data-stat="archived">{{ stats.archived }}</div><div class="label">📦 Arsip</div></a>
+            <a href="?tab=cash" data-tab="cash" class="stat-card cash-queue {% if stats.cash_pending > 0 %}pulse{% endif %}"><div class="number">{{ stats.cash_pending }}</div><div class="label">💰 Kasbon</div></a>
         </div>
-        
+
         <!-- QUICK ACTIONS -->
         <div class="quick-actions">
-            <a href="?tab=ga_queue" class="quick-action warning"><span class="qa-icon">🔍</span> Review GA</a>
-            <a href="?tab=cash" class="quick-action primary"><span class="qa-icon">💰</span> Kasbon</a>
+            <a href="?tab=ga_queue" data-tab="ga_queue" class="quick-action warning"><span class="qa-icon">🔍</span> Review GA</a>
+            <a href="?tab=cash" data-tab="cash" class="quick-action primary"><span class="qa-icon">💰</span> Kasbon</a>
             <a href="/ga/assignments" class="quick-action success"><span class="qa-icon">🚛</span> Assignments</a>
             <a href="/admin/analytics" class="quick-action danger"><span class="qa-icon">📊</span> Analytics</a>
         </div>
-        
+
         <!-- HEALTH WIDGET -->
         <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
             <span style="font-weight:600;font-size:14px;color:var(--gray-700);">🏥 Vehicle Health Score</span>
@@ -66,129 +84,40 @@
             </div>
             <div class="health-cards" id="healthCards"><p style="color:var(--gray-500);padding:20px;text-align:center;">Memuat data kesehatan kendaraan...</p></div>
         </div>
-        
+
         <!-- TABS -->
-        <div class="tab-nav">
-            <button class="tab-btn {% if stats.tab == 'ga_queue' %}active{% endif %}" onclick="window.location='?tab=ga_queue'">Antrean GA ({{ stats.pending }})</button>
-            <button class="tab-btn {% if stats.tab == 'finance' %}active{% endif %}" onclick="window.location='?tab=finance'">Finance ({{ stats.verified_ga }})</button>
-            <button class="tab-btn {% if stats.tab == 'driver_confirm' %}active{% endif %}" onclick="window.location='?tab=driver_confirm'">Driver TTD ({{ stats.os_finance }})</button>
-            <button class="tab-btn {% if stats.tab == 'archive' %}active{% endif %}" onclick="window.location='?tab=archive'">Arsip ({{ stats.archived }})</button>
-            <button class="tab-btn {% if stats.tab == 'cash' %}active{% endif %}" onclick="window.location='?tab=cash'">💰 Kasbon</button>
+        <div class="tab-nav" role="tablist" aria-label="Antrean transaksi">
+            <button class="tab-btn {% if stats.tab == 'ga_queue' %}active{% endif %}" data-tab="ga_queue" onclick="switchAdminTab('ga_queue')" role="tab">Antrean GA <span class="tab-count" data-stat="pending">({{ stats.pending }})</span></button>
+            <button class="tab-btn {% if stats.tab == 'finance' %}active{% endif %}" data-tab="finance" onclick="switchAdminTab('finance')" role="tab">Finance <span class="tab-count" data-stat="verified_ga">({{ stats.verified_ga }})</span></button>
+            <button class="tab-btn {% if stats.tab == 'driver_confirm' %}active{% endif %}" data-tab="driver_confirm" onclick="switchAdminTab('driver_confirm')" role="tab">Driver TTD <span class="tab-count" data-stat="os_finance">({{ stats.os_finance }})</span></button>
+            <button class="tab-btn {% if stats.tab == 'archive' %}active{% endif %}" data-tab="archive" onclick="switchAdminTab('archive')" role="tab">Arsip <span class="tab-count" data-stat="archived">({{ stats.archived }})</span></button>
+            <button class="tab-btn {% if stats.tab == 'cash' %}active{% endif %}" data-tab="cash" onclick="switchAdminTab('cash')" role="tab">💰 Kasbon</button>
         </div>
-        
-        <!-- FINANCE SUMMARY -->
-        {% if stats.tab == 'finance' and transactions %}
-        <div style="background:linear-gradient(135deg,#dbeafe,#eff6ff);padding:14px 20px;border-radius:10px;margin-bottom:16px;border-left:4px solid var(--primary);">
-            <span style="font-size:13px;font-weight:600;color:var(--primary-dark);">Total Payout Pending:</span>
-            <span style="font-size:20px;font-weight:700;color:var(--gray-900);margin-left:8px;">Rp {{ "{:,.0f}".format(transactions|sum(attribute='nominal')) if transactions else 0 }}</span>
+
+        <!-- TAB CONTENT (server-render awal; SPA switch via admin-tabs.js) -->
+        <div id="tabContent">
+            {% include '_tab_content.html' %}
         </div>
-        {% endif %}
-        
-        <!-- ARCHIVE FILTER -->
-        {% if stats.tab == 'archive' %}
-        <div class="archive-filter">
-            <input type="text" id="archiveSearch" placeholder="🔍 Cari nopol/driver..." oninput="filterArchive()">
-            <input type="date" id="archiveStartDate" onchange="filterArchive()">
-            <span>s/d</span>
-            <input type="date" id="archiveEndDate" onchange="filterArchive()">
-            <select id="archiveBbm" onchange="filterArchive()"><option value="">Semua BBM</option><option value="PERTALITE">PERTALITE</option><option value="PERTAMAX">PERTAMAX</option></select>
-            <button class="btn btn-outline btn-sm" onclick="clearArchiveFilter()">↻ Reset</button>
-            <span id="archiveSummary" style="font-size:11px;color:#64748b;margin-left:auto;"></span>
-        </div>
-        
-        {% endif %}
-        
-        <!-- TRANSACTION LIST (non-cash tabs) -->
-        {% if stats.tab != 'cash' %}
-        <div class="card">
-            <div class="card-header">
-                <span>{% if stats.tab == 'ga_queue' %}Antrean GA{% elif stats.tab == 'finance' %}Disburse Finance{% elif stats.tab == 'driver_confirm' %}Konfirmasi Driver{% else %}Arsip{% endif %}</span>
-                <span style="font-size:12px;color:var(--gray-500);">{{ transactions|length }} transaksi</span>
-            </div>
-            <div class="card-body">
-                {% if transactions %}
-                    {% for tx in transactions %}
-                    <div class="tx-item">
-                        <div class="tx-header">
-                            <span class="nopol">{{ tx.display_id or ("#" + tx.id|string) }} &middot; {{ tx.nopol }} <small style="color:var(--gray-500);">({{ tx.vehicle_type or 'AVANZA' }})</small></span>
-                            <span class="badge {% if tx.status == 'pending' %}badge-pending{% elif tx.status == 'verified_ga' %}badge-ga{% elif tx.status == 'os_finance' %}badge-finance{% elif tx.status == 'archived' %}badge-archive{% elif tx.status == 'rejected' %}badge-reject{% else %}badge-pending{% endif %}">{{ tx.status|replace('_',' ')|upper }}</span>{% if tx.transaction_type == 'CASH_LPJ' %}<span class="badge" style="background:#fef3c7;color:#92400e;margin-left:4px;">💰 Kasbon</span>{% endif %}
-                        </div>
-                        <div class="tx-detail">
-                            <span><strong>{{ tx.driver_name }}</strong></span>
-                            <span>{{ tx.created_at.strftime('%d/%m/%Y %H:%M') if tx.created_at else '-' }}</span>
-                            <span>Rp {{ "{:,.0f}".format(tx.nominal) }}</span>
-                            <span>{{ tx.bbm_type or 'PERTALITE' }} &middot; {{ tx.liter }}L</span>
-                            <span>ODO: {{ tx.odo_km }} km <button class="odo-edit-btn" onclick="openOdoEdit({{ tx.id }}, {{ tx.odo_km }})" title="Edit ODO">✏️</button></span>
-                            <span>Appt: {{ tx.jumlah_appointment or 0 }}x</span>
-                        </div>
-                        <div class="workflow-indicator">
-                            <span class="workflow-step {% if tx.status in ['verified_ga','os_finance','archived'] %}done{% elif tx.status == 'pending' %}current{% else %}next{% endif %}">GA</span> &rarr;
-                            <span class="workflow-step {% if tx.status in ['os_finance','archived'] %}done{% elif tx.status == 'verified_ga' %}current{% else %}next{% endif %}">Finance</span> &rarr;
-                            <span class="workflow-step {% if tx.status == 'archived' %}done{% elif tx.status == 'os_finance' %}current{% else %}next{% endif %}">TTD</span> &rarr;
-                            <span class="workflow-step {% if tx.status == 'archived' %}done{% else %}next{% endif %}">Arsip</span>
-                        </div>
-                        <div class="photo-gallery">
-                            {% for f in ['foto_odo_sebelum','foto_nota_odo_sesudah','foto_struk','foto_struk_dispenser'] %}
-                                {% if tx[f] %}<a href="/uploads/{{ tx[f] }}" target="_blank"><img src="/uploads/{{ tx[f] }}" class="photo-thumb"></a>{% endif %}
-                            {% endfor %}
-                        </div>
-                        <div class="flex gap-2 flex-wrap" style="margin-top:10px;">
-                            {% if tx.status in ['pending','modified'] %}
-                                <button class="btn btn-success" onclick="openCrossCheck({{ tx.id }},'approve','GA')">🔍 Approve</button>
-                                <button class="btn btn-danger" onclick="requirePin('reject', {{ tx.id }}, 'Admin')">Tolak</button>
-                            {% elif tx.status == 'verified_ga' %}
-                                <button class="btn btn-info" onclick="openCrossCheck({{ tx.id }},'payout','Finance')">💰 Keluarkan Dana</button>
-                                <button class="btn btn-danger" onclick="requirePin('reject', {{ tx.id }}, 'Admin')">Tolak</button>
-                            {% elif tx.status == 'os_finance' %}
-                                <button class="btn btn-success" onclick="requirePin('archive',{{ tx.id }},'Finance')">TTD & Arsip</button>
-                            {% elif tx.status == 'archived' %}
-                                <a href="/finance/download-archive/{{ tx.id }}" class="btn btn-outline">ZIP</a> <button class="review-btn" onclick="openFinanceReview({{ tx.id }})">🔍 Review</button>
-                                <a href="/admin/report/{{ tx.id }}" class="btn btn-secondary">PDF</a>
-                            {% elif tx.status == 'rejected' %}
-                                <span style="color:var(--danger);font-size:12px;">Ditolak: {{ tx.rejection_reason or '-' }}</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="empty">Tidak ada transaksi.</div>
-                {% endif %}
-            </div>
-        </div>
-        {% endif %}
-        
-        <!-- CASH TAB -->
-        {% if stats.tab == 'cash' %}
-        <!-- KODE UNIK HARIAN (Finance Set) -->
-        <div style="background:#fef3c7;padding:12px 16px;border-radius:10px;margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <strong style="font-size:13px;">🔢 Kode Unik Hari Ini (diatur Finance):</strong>
-            <input type="number" id="dailyCodeInput" min="100" max="2000" step="100" style="width:100px;padding:8px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:14px;font-weight:700;text-align:center;">
-            <button class="btn btn-primary btn-sm" onclick="setDailyCode()">💾 Simpan Kode</button>
-            <span id="dailyCodeMsg" style="font-size:11px;"></span>
-            <span style="font-size:11px;color:#64748b;margin-left:auto;">🔒 Hanya Finance yang berhak mengubah</span>
-        </div>
-        
-        <div class="card">
-            <div class="card-header"><span>💰 Pengajuan Kas BBM</span><span style="font-size:12px;color:var(--gray-500);" id="cashCount">Loading...</span></div>
-            <div class="card-body" id="cashRequestList"><p style="text-align:center;color:var(--gray-500);padding:20px;">Memuat data kasbon...</p></div>
-        </div>
-        {% endif %}
     </div>
-    
+
     <!-- MODALS -->
-    <div class="modal-overlay" id="pinModal"><div class="modal-box"><h3 id="pinTitle">Verifikasi PIN</h3><p style="font-size:13px;color:var(--gray-500);" id="pinMsg">Masukkan PIN 6-digit</p><input type="password" id="pinInput" placeholder="••••••" maxlength="6" style="font-size:24px;text-align:center;letter-spacing:8px;width:150px;margin:0 auto;display:block;"><p id="pinError" style="color:var(--danger);font-size:12px;text-align:center;margin-top:8px;display:none;"></p><div class="flex gap-2" style="justify-content:center;margin-top:16px;"><button class="btn btn-secondary" onclick="closePin()">Batal</button><button class="btn btn-success" id="pinBtn" onclick="submitPin()">Verifikasi</button></div></div></div>
-    <div class="modal-overlay" id="rejectModal"><div class="modal-box"><h3>Tolak Transaksi</h3><form id="rejectForm" method="POST"><input type="hidden" name="rejected_by" value="Admin"><textarea name="rejection_reason" placeholder="Alasan penolakan..." required style="min-height:80px;"></textarea><div class="flex gap-2" style="justify-content:flex-end;margin-top:12px;"><button type="button" class="btn btn-secondary" onclick="closeReject()">Batal</button><button type="submit" class="btn btn-danger">Tolak</button></div></form></div></div>
-    <div class="modal-overlay" id="ccModal"><div class="cc-modal"><div class="cc-header"><h3 style="font-size:16px;">🔍 Cross-Check Verifikasi</h3><button onclick="closeCC()" style="background:none;border:none;font-size:22px;cursor:pointer;">&times;</button></div><div class="cc-body" id="ccBody"><p style="text-align:center;color:var(--gray-500);padding:20px;">Memuat data cross-check...</p></div></div></div>
-    <div class="modal-overlay" id="odoModal"><div class="odo-modal"><div class="odo-modal-header">✏️ Edit ODO - Finance <button onclick="closeOdoEdit()" style="float:right;background:none;border:none;font-size:20px;cursor:pointer;">&times;</button></div><div class="odo-modal-body"><label>ODO Saat Ini</label><input type="text" id="currentOdo" readonly style="background:#f3f4f6;"><label>ODO Baru <span style="color:#dc2626;">*</span></label><input type="number" id="newOdo" placeholder="Masukkan ODO yang benar" required><label>Alasan Perubahan <span style="color:#dc2626;">*</span></label><textarea id="odoRemark" placeholder="Jelaskan alasan mengubah ODO..." rows="3" required></textarea><label>PIN Finance <span style="color:#dc2626;">*</span></label><input type="password" id="odoPin" placeholder="••••••" maxlength="6" inputmode="numeric" style="font-size:18px;text-align:center;letter-spacing:6px;width:120px;"><p id="odoError" style="color:#dc2626;font-size:11px;display:none;"></p><div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;"><button class="btn btn-secondary" onclick="closeOdoEdit()" style="background:#e5e7eb;color:#374151;">Batal</button><button class="btn btn-warning" onclick="submitOdoEdit()">💾 Simpan Perubahan ODO</button></div></div></div></div>
-    <div class="modal-overlay" id="remarkModal"><div class="remark-modal"><h3 style="margin-bottom:12px;">📝 Remark Kendaraan</h3><label style="font-weight:600;font-size:12px;">No. Polisi</label><input type="text" id="remarkNopol" class="form-control" placeholder="Pilih nopol dari kartu di bawah" style="margin-bottom:8px;"><label style="font-weight:600;font-size:12px;">Catatan</label><textarea id="remarkText" class="form-control" placeholder="Tulis catatan..." rows="3" style="margin-bottom:8px;"></textarea><label style="font-weight:600;font-size:12px;">Nama GA</label><input type="text" id="remarkGA" class="form-control" value="GA Officer" style="margin-bottom:12px;"><p id="remarkMsg" style="font-size:11px;display:none;"></p><div style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn btn-secondary" onclick="closeRemark()">Batal</button><button class="btn btn-success" onclick="submitRemark()">💾 Simpan Remark</button></div></div></div>
-    
+    <div class="modal-overlay" id="pinModal" role="dialog" aria-modal="true" aria-labelledby="pinTitle"><div class="modal-box"><h3 id="pinTitle">Verifikasi PIN</h3><p style="font-size:13px;color:var(--gray-500);" id="pinMsg">Masukkan PIN 6-digit</p><input type="password" id="pinInput" placeholder="••••••" maxlength="6" style="font-size:24px;text-align:center;letter-spacing:8px;width:150px;margin:0 auto;display:block;"><p id="pinError" style="color:var(--danger);font-size:12px;text-align:center;margin-top:8px;display:none;"></p><div class="flex gap-2" style="justify-content:center;margin-top:16px;"><button class="btn btn-secondary" onclick="closePin()">Batal</button><button class="btn btn-success" id="pinBtn" onclick="submitPin()">Verifikasi</button></div></div></div>
+    <div class="modal-overlay" id="rejectModal" role="dialog" aria-modal="true" aria-label="Tolak transaksi"><div class="modal-box"><h3>Tolak Transaksi</h3><form id="rejectForm" method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="rejected_by" value="Admin"><textarea name="rejection_reason" placeholder="Alasan penolakan..." required style="min-height:80px;"></textarea><div class="flex gap-2" style="justify-content:flex-end;margin-top:12px;"><button type="button" class="btn btn-secondary" onclick="closeReject()">Batal</button><button type="submit" class="btn btn-danger">Tolak</button></div></form></div></div>
+    <div class="modal-overlay" id="ccModal" role="dialog" aria-modal="true" aria-label="Cross-check verifikasi"><div class="cc-modal"><div class="cc-header"><h3 style="font-size:16px;">🔍 Cross-Check Verifikasi</h3><button onclick="closeCC()" style="background:none;border:none;font-size:22px;cursor:pointer;" aria-label="Tutup">&times;</button></div><div class="cc-body" id="ccBody"><p style="text-align:center;color:var(--gray-500);padding:20px;">Memuat data cross-check...</p></div></div></div>
+    <div class="modal-overlay" id="odoModal" role="dialog" aria-modal="true" aria-label="Edit ODO"><div class="odo-modal"><div class="odo-modal-header">✏️ Edit ODO - Finance <button onclick="closeOdoEdit()" style="float:right;background:none;border:none;font-size:20px;cursor:pointer;" aria-label="Tutup">&times;</button></div><div class="odo-modal-body"><label>ODO Saat Ini</label><input type="text" id="currentOdo" readonly style="background:#f3f4f6;"><label>ODO Baru <span style="color:#dc2626;">*</span></label><input type="number" id="newOdo" placeholder="Masukkan ODO yang benar" required><label>Alasan Perubahan <span style="color:#dc2626;">*</span></label><textarea id="odoRemark" placeholder="Jelaskan alasan mengubah ODO..." rows="3" required></textarea><label>PIN Finance <span style="color:#dc2626;">*</span></label><input type="password" id="odoPin" placeholder="••••••" maxlength="6" inputmode="numeric" style="font-size:18px;text-align:center;letter-spacing:6px;width:120px;"><p id="odoError" style="color:#dc2626;font-size:11px;display:none;"></p><div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;"><button class="btn btn-secondary" onclick="closeOdoEdit()" style="background:#e5e7eb;color:#374151;">Batal</button><button class="btn btn-warning" onclick="submitOdoEdit()">💾 Simpan Perubahan ODO</button></div></div></div></div>
+    <div class="modal-overlay" id="remarkModal" role="dialog" aria-modal="true" aria-label="Remark kendaraan"><div class="remark-modal"><h3 style="margin-bottom:12px;">📝 Remark Kendaraan</h3><label style="font-weight:600;font-size:12px;">No. Polisi</label><input type="text" id="remarkNopol" class="form-control" placeholder="Pilih nopol dari kartu di bawah" style="margin-bottom:8px;"><label style="font-weight:600;font-size:12px;">Catatan</label><textarea id="remarkText" class="form-control" placeholder="Tulis catatan..." rows="3" style="margin-bottom:8px;"></textarea><label style="font-weight:600;font-size:12px;">Nama GA</label><input type="text" id="remarkGA" class="form-control" value="GA Officer" style="margin-bottom:12px;"><p id="remarkMsg" style="font-size:11px;display:none;"></p><div style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn btn-secondary" onclick="closeRemark()">Batal</button><button class="btn btn-success" onclick="submitRemark()">💾 Simpan Remark</button></div></div></div>
+
     <!-- FINANCE REVIEW -->
-    <div class="review-overlay" id="reviewOverlay"><div class="review-panel"><div class="review-header"><h3 style="font-size:15px;">🔍 Finance Review - Transaksi <span id="revTxId">#--</span></h3><button onclick="closeReview()" style="background:none;border:none;font-size:22px;cursor:pointer;">&times;</button></div><div class="review-body"><div class="review-photos" id="reviewPhotos"><p style="color:#94a3b8;text-align:center;padding:40px;">Memuat foto...</p></div><div class="review-data" id="reviewData"><p style="color:var(--gray-500);text-align:center;padding:20px;">Memuat data...</p></div></div></div></div>
-    <div class="zoom-overlay" id="zoomOverlay" onclick="closeZoom()"><img id="zoomImage" src="" alt="Zoom"></div>
-    
+    <div class="review-overlay" id="reviewOverlay" role="dialog" aria-modal="true" aria-label="Finance review"><div class="review-panel"><div class="review-header"><h3 style="font-size:15px;">🔍 Finance Review - Transaksi <span id="revTxId">#--</span></h3><button onclick="closeReview()" style="background:none;border:none;font-size:22px;cursor:pointer;" aria-label="Tutup">&times;</button></div><div class="review-body"><div class="review-photos" id="reviewPhotos"><p style="color:#94a3b8;text-align:center;padding:40px;">Memuat foto...</p></div><div class="review-data" id="reviewData"><p style="color:var(--gray-500);text-align:center;padding:20px;">Memuat data...</p></div></div></div></div>
+    <div class="zoom-overlay" id="zoomOverlay" onclick="closeZoom()" aria-label="Perbesar foto"><img id="zoomImage" src="" alt="Zoom"></div>
+
     <footer class="app-footer"><div class="footer-content"><img src="/static/icon-192.png" alt="BPF" class="footer-logo"><div class="footer-text"><div class="footer-company">PT BESTPROFIT FUTURES</div><div class="footer-info">Fleet & BBM System v1.2 · Surabaya</div><div class="footer-credit">Developed by <strong>IT BPF Surabaya</strong> · © 2026</div></div></div></footer>
-    
-    <script src="/static/js/admin.js?v=20260728"></script>
+
+    <script src="/static/js/admin-ui.js?v=20260807d"></script>
+    <script src="/static/js/admin-dashboard.js?v=20260807d"></script>
+    <script src="/static/js/admin-cash.js?v=20260807d"></script>
+    <script src="/static/js/admin-tabs.js?v=20260807d"></script>
+    <script src="/static/js/admin.js?v=20260807d"></script>
     <script>
     if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("/sw.js?v=20260729_150247").then(function(reg) {

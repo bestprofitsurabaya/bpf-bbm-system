@@ -22,7 +22,7 @@ def generate_trip_logsheet(master, details):
             img.width = 55
             img.height = 55
             ws.add_image(img, 'B2')
-        except:
+        except Exception:
             pass
 
     # Column widths
@@ -143,20 +143,20 @@ def generate_trip_logsheet(master, details):
         assignments = cur.fetchall()
         cur.close()
         conn_assign.close()
-        
+
         if assignments:
             assign_row = total_row + 2
             ws.merge_cells(f'A{assign_row}:I{assign_row}')
             ws[f'A{assign_row}'] = 'RIWAYAT SERAH TERIMA KENDARAAN'
             ws[f'A{assign_row}'].font = Font(name='Arial', bold=True, size=10)
             ws[f'A{assign_row}'].fill = PatternFill(start_color='D9E1F2', end_color='D9E1F2', fill_type='solid')
-            
+
             assign_headers = ['Driver', 'Tgl Mulai', 'Tgl Selesai', 'Durasi', 'Dikonfirmasi', 'Catatan']
             for col_idx, h in enumerate(assign_headers, 1):
                 cell = ws.cell(row=assign_row+1, column=col_idx, value=h)
                 cell.font = Font(bold=True, size=9)
                 cell.border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-            
+
             for i, a in enumerate(assignments):
                 r = assign_row + 2 + i
                 ws.cell(row=r, column=1, value=a['driver_name']).border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
@@ -165,48 +165,9 @@ def generate_trip_logsheet(master, details):
                 ws.cell(row=r, column=4, value=f"{a.get('duration_days', '-')} hari").border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
                 ws.cell(row=r, column=5, value='✅' if a.get('confirmed_by_driver') else '❌').border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
                 ws.cell(row=r, column=6, value=a.get('driver_notes', '-')).border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-    except:
+    except Exception:
         pass
-    
-    # ===== ASSIGNMENT HISTORY (Fitur #5) =====
-    try:
-        import mysql.connector
-        conn_assign = mysql.connector.connect(
-            host=os.environ.get('DB_HOST', 'db'),
-            user=os.environ.get('DB_USER', 'bpf_user'),
-            password=os.environ.get('DB_PASSWORD', 'bpf_pass'),
-            database=os.environ.get('DB_NAME', 'bpf_asset_system')
-        )
-        cur = conn_assign.cursor(dictionary=True)
-        cur.execute("SELECT * FROM vehicle_assignments WHERE nopol=%s ORDER BY id DESC LIMIT 5", (master['nopol'],))
-        assignments = cur.fetchall()
-        cur.close()
-        conn_assign.close()
-        
-        if assignments:
-            assign_row = total_row + 2
-            ws.merge_cells(f'A{assign_row}:I{assign_row}')
-            ws[f'A{assign_row}'] = 'RIWAYAT SERAH TERIMA KENDARAAN'
-            ws[f'A{assign_row}'].font = Font(name='Arial', bold=True, size=10)
-            ws[f'A{assign_row}'].fill = PatternFill(start_color='D9E1F2', end_color='D9E1F2', fill_type='solid')
-            
-            assign_headers = ['Driver', 'Tgl Mulai', 'Tgl Selesai', 'Durasi', 'Dikonfirmasi', 'Catatan']
-            for col_idx, h in enumerate(assign_headers, 1):
-                cell = ws.cell(row=assign_row+1, column=col_idx, value=h)
-                cell.font = Font(bold=True, size=9)
-                cell.border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-            
-            for i, a in enumerate(assignments):
-                r = assign_row + 2 + i
-                ws.cell(row=r, column=1, value=a['driver_name']).border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-                ws.cell(row=r, column=2, value=str(a['assigned_date'])).border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-                ws.cell(row=r, column=3, value=str(a.get('unassigned_date', '-'))).border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-                ws.cell(row=r, column=4, value=f"{a.get('duration_days', '-')} hari").border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-                ws.cell(row=r, column=5, value='✅' if a.get('confirmed_by_driver') else '❌').border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-                ws.cell(row=r, column=6, value=a.get('driver_notes', '-')).border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-    except:
-        pass
-    
+
     ws[f'A{total_row}'] = 'TOTAL JARAK TEMPUH'
     ws[f'A{total_row}'].font = Font(name='Arial', bold=True, size=10)
     ws[f'A{total_row}'].border = thick_bottom

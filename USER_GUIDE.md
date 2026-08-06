@@ -1,4 +1,4 @@
-# 📖 Panduan Pengguna BPF Fleet & BBM System v1.0
+# 📖 Panduan Pengguna BPF Fleet & BBM System v1.1
 
 **PT. Bestprofit Futures — Surabaya**
 
@@ -34,12 +34,26 @@ Selamat datang di sistem manajemen armada dan BBM kita. Panduan ini akan meneman
 | Pengguna | URL | Perangkat yang Disarankan |
 |----------|-----|---------------------------|
 | Driver | `https://nasbpfsby.duckdns.org:5000/driver` | HP Android / iPhone |
+| **Login (semua admin)** | **`https://nasbpfsby.duckdns.org:5000/login`** | Komputer / Laptop |
 | GA, Finance, Admin | `https://nasbpfsby.duckdns.org:5000/admin` | Komputer / Laptop |
 | GA (Penugasan Kendaraan) | `https://nasbpfsby.duckdns.org:5000/ga/assignments` | Komputer / Laptop |
 | Analytics | `https://nasbpfsby.duckdns.org:5000/admin/analytics` | Komputer / Laptop |
+| Users (Admin saja) | `https://nasbpfsby.duckdns.org:5000/admin/users` | Komputer / Laptop |
 | Settings | `https://nasbpfsby.duckdns.org:5000/admin/settings` | Komputer / Laptop |
 
-### 1.2 Kredensial Awal
+> 🔐 **Baru di v1.1:** Semua halaman admin kini **wajib login**. Jika belum login, kamu akan diarahkan ke halaman Login. Driver PWA **tidak perlu login**.
+
+### 1.2 Login & Logout
+
+1. Buka halaman **Login** (`/login`).
+2. Masukkan **Username** dan **PIN 6 digit** kamu.
+3. Klik **Masuk**.
+4. Setelah berhasil, kamu akan dibawa ke Dashboard Admin.
+5. Untuk keluar, klik tombol **🚪 Keluar** di pojok kanan atas halaman mana pun.
+
+> 💡 **Tips:** Jika sesi kamu berakhir (mis. browser ditutup), sistem otomatis mengarahkan kembali ke halaman Login saat kamu mengakses halaman admin berikutnya. Driver tidak terpengaruh.
+
+### 1.3 Kredensial Awal
 
 > 🔑 **Harap segera ganti PIN setelah login pertama.**
 
@@ -49,7 +63,7 @@ Selamat datang di sistem manajemen armada dan BBM kita. Panduan ini akan meneman
 | GA | `ga_officer` | `123456` |
 | Finance | `finance_officer` | `123456` |
 
-### 1.3 Memasang Aplikasi di HP (Driver)
+### 1.4 Memasang Aplikasi di HP (Driver)
 
 1. Buka browser Chrome di HP kamu.
 2. Kunjungi URL Driver di atas.
@@ -104,7 +118,22 @@ Tab yang sedang aktif akan ditandai dengan garis biru di bawahnya. Kamu bisa men
 - Lencana (counter badge) akan muncul menunjukkan jumlah data yang menunggu dikirim.
 - Data akan terkirim otomatis begitu koneksi internet kembali normal.
 
-### 2.5 Mengecek Performa Kendaraan
+### 2.5 Notifikasi Status Transaksi (Baru di v1.1) 🔔
+
+Mulai v1.1, kamu akan menerima **notifikasi di HP** setiap kali transaksi atau kasbon kamu diproses di dashboard admin. Contoh notifikasi:
+
+- ✅ Klaim BBM kamu **disetujui GA**
+- 💰 Dana kasbon kamu **sudah dicairkan Finance**
+- 🤝 Uang kasbon **sudah diserahkan** ke kamu
+- ❌ Pengajuan kamu **ditolak** (beserta alasannya)
+
+**Cara kerja:**
+- Notifikasi muncul **langsung** saat admin memproses transaksimu (real-time via WebSocket).
+- Jika HP sedang offline, notifikasi **tidak hilang** — akan muncul begitu koneksi kembali.
+- Badge 🔔 menunjukkan jumlah notifikasi yang belum dibaca.
+- Ketuk notifikasi untuk menandainya sudah dibaca.
+
+### 2.6 Mengecek Performa Kendaraan
 
 1. Buka tab **📊 Rapor**.
 2. Masukkan nopol kendaraan yang ingin dicek.
@@ -128,6 +157,13 @@ Buka halaman `/admin`. Di sana terdapat 5 tab utama:
 | ✍️ **Driver TTD** | Konfirmasi tanda tangan dan pengarsipan |
 | 📦 **Arsip** | Melihat data yang sudah diarsipkan |
 | 💰 **Kasbon** | Mengelola pengajuan kasbon (approve, handover, verifikasi LPJ) |
+
+**Tips dashboard (v1.1):**
+- **Ganti tab tanpa reload** — klik tab mana pun, konten berpindah instan.
+- **Shortcut keyboard** — tekan tombol `1`–`5` untuk berpindah tab.
+- **Ringkasan "Hari Ini"** selalu terlihat di atas, bahkan saat halaman di-scroll.
+- **Cari langsung di antrean** — ketik nopol / nama driver pada kolom pencarian untuk memfilter tanpa reload.
+- **Tandai Semua Dicek** — pada tab Antrean GA, kamu bisa menyetujui semua klaim sekaligus (tetap diminta PIN).
 
 ### 3.2 Menyetujui Klaim
 
@@ -231,7 +267,7 @@ Admin bertanggung jawab mengelola data master, pengguna, dan konfigurasi sistem 
 
 ### 5.1 Menu Settings (Pengaturan)
 
-Buka halaman `/admin/settings`. PIN akses: `123456` (atau PIN Admin yang baru).
+Buka halaman `/admin/settings`. Halaman ini memiliki **PIN gate** tambahan — masukkan PIN Admin (`123456` atau PIN baru kamu).
 
 #### 👤 Manajemen Driver
 - **Tambah, nonaktifkan, atau hapus** data driver.
@@ -252,7 +288,26 @@ Buka halaman `/admin/settings`. PIN akses: `123456` (atau PIN Admin yang baru).
 - **📊 Batas Konsumsi KM/L:** Standar konsumsi BBM yang dianggap normal.
 - **💾 Backup Database:** Untuk mencadangkan seluruh data sistem secara manual.
 
-### 5.2 Audit Log (Jejak Digital)
+### 5.2 Halaman Users (Baru di v1.1) 👥
+
+Buka halaman **Users** (`/admin/users`) — **khusus Admin**.
+
+Di halaman ini kamu bisa mengelola akun pengguna sistem secara terpusat:
+- **Lihat semua pengguna** beserta role dan status aktif/nonaktif.
+- **Tambah pengguna baru** (username, nama lengkap, role, PIN awal).
+- **Ubah data & role** pengguna.
+- **Reset PIN** pengguna yang lupa PIN.
+- **Aktifkan / Nonaktifkan** akun (akun nonaktif tidak bisa login).
+
+> 💡 Halaman ini menggantikan pengelolaan user yang sebelumnya hanya ada di Settings, sehingga lebih lengkap dan khusus untuk Admin.
+
+### 5.3 Dark Mode 🌙
+
+- Semua halaman admin punya tombol **🌙/☀️** di pojok kanan atas.
+- Klik untuk berganti tema terang/gelap.
+- Pilihan tersimpan otomatis — konsisten di semua halaman.
+
+### 5.4 Audit Log (Jejak Digital)
 
 - Buka **📝 Audit Log**.
 - Masukkan PIN Admin.
@@ -265,7 +320,7 @@ Buka halaman `/admin/settings`. PIN akses: `123456` (atau PIN Admin yang baru).
 ### 6.1 Mengakses Arsip
 
 - Dari Dashboard Admin, buka tab **📦 Arsip**.
-- Secara otomatis, arsip akan menampilkan data **1 minggu terakhir**.
+- Secara otomatis, arsip akan menampilkan data **1 minggu terakhir** (default).
 
 ### 6.2 Mencari & Memfilter Data
 
@@ -273,11 +328,13 @@ Buka halaman `/admin/settings`. PIN akses: `123456` (atau PIN Admin yang baru).
 - **📅 Rentang Tanggal:** Tentukan periode waktu yang spesifik.
 - **⛽ Filter BBM:** Pilih PERTALITE, PERTAMAX, atau Semua.
 - **📊 Panel Ringkasan:** Menampilkan jumlah data yang ditemukan dan total nominalnya.
+- **💡 Tanpa reload:** Ketik filter lalu tekan terapkan — hasil langsung tampil, dan nilai filter tetap tersimpan saat halaman dimuat ulang.
 
 ### 6.3 Navigasi Halaman (Pagination)
 
-- Data ditampilkan maksimal 50 item per halaman.
-- Gunakan navigasi ◀ **1 2 3 ...** ▶ di bagian bawah untuk berpindah halaman.
+- Data ditampilkan maksimal **50 item per halaman**.
+- Di bagian bawah ada tombol **"Muat Lebih Banyak"** — klik untuk menampilkan halaman berikutnya tanpa reload.
+- Tombol akan otomatis menghilang saat semua data sudah tampil.
 
 ### 6.4 Aksi pada Data Arsip
 
@@ -316,7 +373,7 @@ Driver Ajukan Dana → GA Setujui → Finance Cairkan → GA Serahkan ke Driver
 4. **Kode Unik** akan muncul otomatis (diambil dari kode yang telah diatur Finance).
 5. **Total Pengajuan** = Nominal Dasar + Kode Unik.
 6. Klik **💰 Ajukan Dana**.
-7. Tunggu persetujuan dari GA dan Finance.
+7. Tunggu persetujuan dari GA dan Finance — kamu akan mendapat **notifikasi** di HP setiap ada perubahan status.
 
 ### 7.4 Untuk GA: Menyetujui & Menyerahkan Dana
 
@@ -400,7 +457,11 @@ Tabel berikut menjelaskan tindakan yang bisa dilakukan pada setiap status:
 
 | Masalah | Penyebab Kemungkinan | Solusi |
 |---------|----------------------|--------|
+| **Tidak bisa masuk ke halaman admin** | Belum login / sesi berakhir. | Login dulu di `/login` dengan username + PIN. |
 | **Lupa PIN** | – | Hubungi Admin untuk mereset PIN kamu. |
+| **Akun terkunci / tidak bisa login** | Akun dinonaktifkan. | Hubungi Admin untuk mengaktifkan kembali akunmu (via halaman Users). |
+| **Halaman admin langsung keluar ke login** | Sesi kedaluwarsa (browser ditutup / waktu habis). | Login ulang. Aksi yang belum tersimpan perlu diulang. |
+| **Notifikasi driver tidak muncul** | Koneksi internet bermasalah / aplikasi belum dibuka ulang. | Pastikan online lalu muat ulang aplikasi. Notifikasi lama akan tetap muncul (tersimpan di server). |
 | **GPS tidak muncul / tidak hijau** | Izin lokasi HP belum aktif, atau kamu di dalam ruangan. | Buka pengaturan HP > izin aplikasi > aktifkan Lokasi. Coba di tempat terbuka. |
 | **Nopol tidak muncul di dropdown** | Driver belum ditugaskan ke kendaraan. | Minta GA untuk menugaskanmu melalui menu **GA Assignments**. |
 | **Dropdown "Tukar Kendaraan" kosong** | Tidak ada penugasan kendaraan yang aktif. | Pastikan sudah ada assignment aktif. GA bisa menambahkannya. |
@@ -426,13 +487,17 @@ Tabel berikut menjelaskan tindakan yang bisa dilakukan pada setiap status:
 | **Kode Unik** | Angka spesial harian yang ditambahkan ke nominal kasbon sebagai pengaman |
 | **Watermark** | Tanda digital yang disematkan otomatis pada foto sebagai bukti keaslian |
 | **Audit Trail** | Jejak digital semua aktivitas untuk keperluan audit |
+| **Session** | Status login pengguna yang tersimpan di browser (berakhir saat logout/browser ditutup) |
+| **CSRF** | Cross-Site Request Forgery — perlindungan agar aksi di sistem tidak bisa dipalsukan dari situs lain |
+| **Role-Based Access** | Pengaturan hak akses berdasarkan peran (Admin / GA / Finance) |
+| **Notifikasi Real-Time** | Pemberitahuan langsung yang muncul di HP driver saat transaksinya diproses |
 
 ---
 
 ## 📞 Kontak & Dukungan
 
 **PT. Bestprofit Futures — Surabaya**  
-BPF Fleet & BBM System v1.0  
+BPF Fleet & BBM System v1.1  
 Dikembangkan oleh **Tim IT BPF Surabaya**
 
 > *"Sistem yang baik adalah sistem yang memudahkan pekerjaan, bukan menambah beban."*  

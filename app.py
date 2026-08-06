@@ -15,9 +15,10 @@ except Exception:
     socketio_async_mode = 'threading'
 
 from flask_socketio import SocketIO
-from flask import Flask, request
+from flask import Flask, request, session, jsonify, redirect, url_for, flash
 import os
 import warnings
+import secrets
 warnings.filterwarnings('ignore')
 
 # Init Flask
@@ -30,9 +31,17 @@ os.makedirs('uploads', exist_ok=True)
 # Init SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode=socketio_async_mode, logger=False, engineio_logger=False)
 
+# Attach realtime bus (driver notification rooms)
+from modules.realtime import init_socketio
+init_socketio(socketio)
+
 # Init DB Pool
 from modules.config import init_pool
 init_pool()
+
+# Ensure notifications table exists (safe on every startup)
+from modules.notifications import ensure_notifications_table
+ensure_notifications_table()
 
 # Register all route modules
 from modules.routes_driver import register_driver_routes
@@ -43,8 +52,11 @@ from modules.routes_admin import register_admin_routes
 from modules.routes_reports import register_report_routes
 from modules.routes_cash import register_cash_routes
 from modules.routes_settings import register_settings_routes
+from modules.routes_notifications import register_notification_routes
+from modules.routes_auth import register_auth_routes
 
 register_driver_routes(app, socketio)
+register_auth_routes(app)
 register_master_api(app)
 register_transaction_api(app)
 register_assignment_api(app)
@@ -52,6 +64,45 @@ register_cash_routes(app)
 register_admin_routes(app)
 register_report_routes(app)
 register_settings_routes(app)
+register_notification_routes(app)
+
+# ================================================================
+# CSRF PROTECTION (berlaku untuk sesi admin yang login)
+# Endpoint PWA driver (tanpa session) & socket.io dikecualikan.
+# ================================================================
+CSRF_EXEMPT_PREFIXES = (
+    '/socket.io', '/submit-trip', '/api/cash/request', '/api/cash/submit-lpj/',
+    '/api/cash/delete/', '/api/assignments/confirm', '/api/get-feedback',
+    '/api/vehicle-allowed-bbm', '/uploads/', '/manifest.json', '/sw.js',
+)
+
+@app.context_processor
+def inject_csrf_token():
+    """Sediakan fungsi csrf_token() untuk dipakai di template (meta tag & hidden input)."""
+    def _csrf_token():
+        if 'csrf_token' not in session:
+            session['csrf_token'] = secrets.token_hex(16)
+        return session['csrf_token']
+    return {'csrf_token': _csrf_token}
+
+@app.before_request
+def csrf_protect():
+    if request.method not in ('POST', 'PUT', 'DELETE', 'PATCH'):
+        return None
+    # Hanya berlaku untuk sesi admin yang login; halaman login ikut dilindungi
+    if not session.get('user_role') and request.path != '/login':
+        return None
+    for p in CSRF_EXEMPT_PREFIXES:
+        if request.path.startswith(p):
+            return None
+    token = request.headers.get('X-CSRF-Token') or request.form.get('csrf_token')
+    if not token or not session.get('csrf_token') or token != session.get('csrf_token'):
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.path.startswith('/api/'):
+            return jsonify({'status': 'error', 'msg': 'CSRF token tidak valid. Muat ulang halaman dan coba lagi.'}), 400
+        flash('Sesi tidak valid. Silakan muat ulang halaman dan coba lagi.', 'error')
+        ref = request.referrer or ''
+        return redirect(ref if ref.startswith('/') else url_for('admin_dashboard'))
+    return None
 
 # Middleware
 @app.after_request

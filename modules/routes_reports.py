@@ -1,7 +1,7 @@
 """Report, Rekap, Analytics & Settings Routes"""
 from flask import (render_template, request, redirect, url_for, flash, jsonify, make_response)
 from modules.config import get_db_connection
-from modules.helpers import log_activity_async
+from modules.helpers import log_activity_async, role_required
 from modules.engine import get_rekap_data
 from modules.pdf_generator import PDFReportCompact, BBMReportPDF
 from datetime import datetime, timedelta
@@ -9,8 +9,9 @@ import zipfile, io, os, subprocess
 from io import BytesIO
 
 def register_report_routes(app):
-    
+
     @app.route('/admin/report/<int:tx_id>')
+    @role_required(['ga', 'finance', 'admin'])
     def generate_report(tx_id):
         try:
             conn = get_db_connection()
@@ -35,6 +36,7 @@ def register_report_routes(app):
             return f"Error: {str(e)}", 500
 
     @app.route('/admin/rekap')
+    @role_required(['ga', 'finance', 'admin'])
     def admin_rekap():
         try:
             page = request.args.get('page', 1, type=int)
@@ -68,6 +70,7 @@ def register_report_routes(app):
             return f"Error: {str(e)}", 500
 
     @app.route('/admin/rekap/pdf')
+    @role_required(['ga', 'finance', 'admin'])
     def rekap_pdf():
         try:
             filters = {'start_date': request.args.get('start_date','').strip(), 'end_date': request.args.get('end_date','').strip(),
@@ -99,6 +102,7 @@ def register_report_routes(app):
             return f"Error: {str(e)}", 500
 
     @app.route('/admin/analytics')
+    @role_required(['ga', 'finance', 'admin'])
     def admin_analytics():
         try:
             conn = get_db_connection()
@@ -138,6 +142,7 @@ def register_report_routes(app):
             return f"Error: {str(e)}", 500
 
     @app.route('/admin/logs')
+    @role_required(['ga', 'finance', 'admin'])
     def admin_logs_view():
         try:
             conn = get_db_connection()
@@ -150,10 +155,12 @@ def register_report_routes(app):
             return f"Error: {str(e)}", 500
 
     @app.route('/admin/riwayat')
+    @role_required(['ga', 'finance', 'admin'])
     def admin_riwayat():
         return redirect(url_for('admin_rekap'))
 
     @app.route('/finance/download-archive/<int:tx_id>')
+    @role_required(['finance', 'admin'])
     def download_archive(tx_id):
         try:
             conn = get_db_connection()
@@ -179,6 +186,7 @@ def register_report_routes(app):
             return f"Error: {str(e)}", 500
 
     @app.route('/admin/backup')
+    @role_required(['admin'])
     def backup_database():
         try:
             filename = f'backup_bpf_bbm_{datetime.now().strftime("%Y%m%d_%H%M%S")}.sql'
@@ -195,6 +203,7 @@ def register_report_routes(app):
             return f"Error: {str(e)}", 500
 
     @app.route('/admin/templates/import-bbm')
+    @role_required(['ga', 'finance', 'admin'])
     def download_import_template():
         from openpyxl import Workbook
         wb = Workbook(); ws = wb.active; ws.title = "Template Import BBM"
@@ -208,6 +217,7 @@ def register_report_routes(app):
         return response
 
     @app.route('/admin/settings/import-xlsx', methods=['POST'])
+    @role_required(['ga', 'finance', 'admin'])
     def import_xlsx_data():
         from openpyxl import load_workbook
         from modules.helpers import ensure_all_master_data
@@ -226,7 +236,7 @@ def register_report_routes(app):
                 if not row[1] or not row[2]: continue
                 try:
                     created_at = row[0] if isinstance(row[0], datetime) else datetime.strptime(str(row[0]), "%d/%m/%Y %H:%M")
-                except:
+                except Exception:
                     created_at = datetime.now()
                 driver_name = str(row[1]).strip().upper()
                 nopol = str(row[2]).strip().upper()
@@ -248,71 +258,3 @@ def register_report_routes(app):
         except Exception as e:
             flash(f'Error: {str(e)}', 'error')
         return redirect(url_for('admin_settings'))
-
-# === OPTIMIZED QUERIES (V1.1) ===
-# ============================================================
-# OPTIMIZED QUERIES untuk routes_api_transactions.py
-# dan routes_reports.py
-# ============================================================
-
-# --- QUERY 1: Rapor per Driver/Kendaraan (ganti multiple loop) ---
-RAPOR_QUERY = """
-SELECT 
-    t.nopol,
-    t.vehicle_type,
-    COALESCE(va.driver_name, t.driver_name) as driver_name,
-    COUNT(t.id) as total_tx,
-    ROUND(AVG(NULLIF(t.km_per_liter, 0)), 2) as avg_km_per_liter,
-    SUM(t.nominal) as total_nominal,
-    SUM(COALESCE(t.jumlah_appointment, 0)) as total_appointment,
-    MAX(t.created_at) as last_activity,
-    MIN(t.created_at) as first_activity,
-    COUNT(DISTINCT DATE(t.created_at)) as active_days,
-    -- Konsumsi per hari (total liter / active days)
-    ROUND(SUM(t.liter) / NULLIF(COUNT(DISTINCT DATE(t.created_at)), 0), 2) as avg_liter_per_day
-FROM transactions t
-LEFT JOIN vehicle_assignments va 
-    ON t.nopol = va.nopol 
-    AND va.is_current = 1
-WHERE t.status = 'archived'
-    AND t.created_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
-GROUP BY t.nopol, t.vehicle_type, COALESCE(va.driver_name, t.driver_name)
-ORDER BY avg_km_per_liter DESC
-"""
-
-# --- QUERY 2: Statistik Bulanan per Driver (tanpa loop per driver) ---
-MONTHLY_STATS_QUERY = """
-SELECT 
-    driver_name,
-    nopol,
-    DATE_FORMAT(created_at, '%Y-%m') as bulan,
-    COUNT(*) as total_tx,
-    SUM(nominal) as total_nominal,
-    ROUND(AVG(NULLIF(km_per_liter, 0)), 2) as avg_km_per_liter,
-    SUM(jumlah_appointment) as total_appt
-FROM transactions
-WHERE status = 'archived'
-    AND created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
-GROUP BY driver_name, nopol, DATE_FORMAT(created_at, '%Y-%m')
-ORDER BY driver_name, bulan DESC
-"""
-
-# --- QUERY 3: Ranking Driver dengan JOIN (ganti subquery per driver) ---
-DRIVER_RANKING_QUERY = """
-SELECT 
-    t.driver_name,
-    t.nopol,
-    t.vehicle_type,
-    COUNT(t.id) as total_tx,
-    SUM(t.nominal) as total_nominal,
-    ROUND(AVG(NULLIF(t.km_per_liter, 0)), 2) as avg_km_per_liter,
-    -- Rank dalam grup nopol
-    RANK() OVER (PARTITION BY t.vehicle_type ORDER BY AVG(NULLIF(t.km_per_liter, 0)) DESC) as rank_in_type
-FROM transactions t
-WHERE t.status = 'archived'
-    AND t.created_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
-GROUP BY t.driver_name, t.nopol, t.vehicle_type
-HAVING total_tx >= 3
-ORDER BY avg_km_per_liter DESC
-LIMIT 20
-"""

@@ -1,13 +1,14 @@
 """API Routes - Transactions, Cross-Check, Analytics, Stats"""
 from flask import request, jsonify
 from modules.config import get_db_connection
-from modules.helpers import log_activity_async, safe_float
+from modules.helpers import log_activity_async, safe_float, role_required
 from modules.engine import generate_human_insight
 from datetime import datetime, timedelta
 
 def register_transaction_api(app):
-    
+
     @app.route('/api/transactions/archive')
+    @role_required(['ga', 'finance', 'admin'])
     def api_archive_transactions():
         try:
             page = request.args.get('page', 1, type=int)
@@ -16,11 +17,11 @@ def register_transaction_api(app):
             start_date = request.args.get('start_date', '')
             end_date = request.args.get('end_date', '')
             bbm_type = request.args.get('bbm_type', '')
-            
+
             conn = get_db_connection()
             if not conn: return jsonify({'error': 'DB error'}), 500
             cursor = conn.cursor(dictionary=True)
-            
+
             where = ["status = 'archived'"]
             params = []
             if not start_date:
@@ -34,7 +35,7 @@ def register_transaction_api(app):
                 params.extend([f"%{search}%", f"%{search}%"])
             if bbm_type:
                 where.append("bbm_type = %s"); params.append(bbm_type)
-            
+
             wc = " AND ".join(where)
             cursor.execute(f"SELECT COUNT(*) as total FROM transactions WHERE {wc}", params)
             total = cursor.fetchone()['total']
@@ -42,11 +43,11 @@ def register_transaction_api(app):
             s = cursor.fetchone()
             cursor.execute(f"SELECT * FROM transactions WHERE {wc} ORDER BY created_at DESC LIMIT %s OFFSET %s", params + [limit, (page-1)*limit])
             data = cursor.fetchall()
-            
+
             for row in data:
                 for k in ['nominal','liter','price_per_liter','odo_km','km_per_liter']:
                     if row.get(k) is not None: row[k] = float(row[k])
-            
+
             cursor.close(); conn.close()
             return jsonify({
                 'data': data, 'total': total, 'page': page, 'limit': limit,
@@ -57,6 +58,7 @@ def register_transaction_api(app):
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/stats')
+    @role_required(['ga', 'finance', 'admin'])
     def api_stats():
         try:
             conn = get_db_connection()
@@ -67,12 +69,24 @@ def register_transaction_api(app):
             cursor.execute("SELECT COUNT(*) as c FROM transactions WHERE status='verified_ga'"); vga = cursor.fetchone()['c']
             cursor.execute("SELECT COUNT(*) as c FROM transactions WHERE status='os_finance'"); osf = cursor.fetchone()['c']
             cursor.execute("SELECT COUNT(*) as c FROM transactions WHERE status='archived'"); arc = cursor.fetchone()['c']
+            # Ringkasan hari ini (context bar dashboard)
+            cursor.execute("SELECT COUNT(*) as c, COALESCE(SUM(nominal),0) as n FROM transactions WHERE DATE(created_at) = CURDATE()")
+            today = cursor.fetchone()
+            cursor.execute("SELECT COUNT(*) as c FROM transactions WHERE DATE(created_at) = CURDATE() AND status IN ('pending','modified')"); tp = cursor.fetchone()['c']
+            cursor.execute("SELECT COUNT(*) as c FROM transactions WHERE DATE(created_at) = CURDATE() AND status='verified_ga'"); tg = cursor.fetchone()['c']
+            cursor.execute("SELECT COUNT(*) as c FROM transactions WHERE DATE(created_at) = CURDATE() AND status='os_finance'"); tos = cursor.fetchone()['c']
+            cursor.execute("SELECT COUNT(*) as c FROM transactions WHERE DATE(created_at) = CURDATE() AND status='archived'"); ta = cursor.fetchone()['c']
             cursor.close(); conn.close()
-            return jsonify({'total': total, 'pending': pending, 'verified_ga': vga, 'os_finance': osf, 'archived': arc})
+            return jsonify({
+                'total': total, 'pending': pending, 'verified_ga': vga, 'os_finance': osf, 'archived': arc,
+                'today_tx': today['c'], 'today_nominal': float(today['n'] or 0),
+                'today_pending': tp, 'today_verified_ga': tg, 'today_os_finance': tos, 'today_archived': ta,
+            })
         except Exception as e:
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/audit-logs')
+    @role_required(['ga', 'finance', 'admin'])
     def api_audit_logs():
         try:
             conn = get_db_connection(); cursor = conn.cursor(dictionary=True)
@@ -83,6 +97,7 @@ def register_transaction_api(app):
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/cross-check/<int:tx_id>')
+    @role_required(['ga', 'finance', 'admin'])
     def api_cross_check(tx_id):
         log_activity_async(tx_id, 'cross_check_view', 'ga', 'GA Officer', new_data={'action': 'view_cross_check'}, ip=request.remote_addr, ua=request.headers.get('User-Agent'))
         try:
@@ -92,7 +107,7 @@ def register_transaction_api(app):
             cursor.execute("SELECT * FROM transactions WHERE id = %s", (tx_id,))
             tx = cursor.fetchone()
             if not tx: cursor.close(); conn.close(); return jsonify({'error': 'Transaction not found'}), 404
-            
+
             cursor.execute("SELECT odo_km, km_per_liter, created_at FROM transactions WHERE nopol = %s AND status = 'archived' AND id < %s ORDER BY id DESC LIMIT 1", (tx['nopol'], tx_id))
             prev = cursor.fetchone()
             cursor.execute("SELECT ROUND(AVG(NULLIF(km_per_liter,0)), 2) as avg_kml, COUNT(*) as tx_count FROM transactions WHERE nopol = %s AND status = 'archived' AND km_per_liter > 0 AND created_at >= DATE_SUB(NOW(), INTERVAL 3 MONTH)", (tx['nopol'],))
@@ -101,7 +116,7 @@ def register_transaction_api(app):
             monthly = cursor.fetchone()
             cursor.execute("SELECT config_value FROM system_config WHERE config_key = 'monthly_budget'")
             budget_row = cursor.fetchone(); budget = float(budget_row['config_value']) if budget_row else 3000000
-            
+
             avg_kml = float(avg_data['avg_kml']) if avg_data and avg_data['avg_kml'] else 10.0
             health_score = min(100, max(0, int((avg_kml / 14) * 100)))
             flags = []
@@ -109,20 +124,20 @@ def register_transaction_api(app):
             if odo_diff < 0: flags.append({'level': 'danger', 'msg': 'ODO MUNDUR!'})
             elif odo_diff == 0: flags.append({'level': 'warning', 'msg': 'ODO tidak berubah'})
             elif odo_diff < 30: flags.append({'level': 'warning', 'msg': f'Jarak tempuh hanya {odo_diff} km'})
-            
+
             current_kml = float(tx['km_per_liter']) if tx['km_per_liter'] and float(tx['km_per_liter']) > 0 else None
             if current_kml and avg_data and avg_data['avg_kml']:
                 if current_kml < float(avg_data['avg_kml']) * 0.7: flags.append({'level': 'warning', 'msg': f'KM/L ({current_kml}) di bawah rata-rata ({avg_data["avg_kml"]})'})
                 elif current_kml > float(avg_data['avg_kml']) * 1.5: flags.append({'level': 'warning', 'msg': f'KM/L ({current_kml}) di atas rata-rata ({avg_data["avg_kml"]})'})
-            
+
             budget_usage = (float(monthly['total_nominal']) / budget * 100) if budget > 0 else 0
             if budget_usage > 80: flags.append({'level': 'warning', 'msg': f'Budget {budget_usage:.0f}%'})
             elif budget_usage > 100: flags.append({'level': 'danger', 'msg': f'Budget HABIS! ({budget_usage:.0f}%)'})
-            
+
             has_danger = any(f['level'] == 'danger' for f in flags)
             overall = 'danger' if has_danger else ('warning' if any(f['level']=='warning' for f in flags) else 'success')
             cursor.close(); conn.close()
-            
+
             return jsonify({
                 'current': {'id': tx['id'], 'nopol': tx['nopol'], 'driver_name': tx['driver_name'], 'odo_km': float(tx['odo_km']), 'nominal': float(tx['nominal']), 'liter': float(tx['liter']), 'km_per_liter': float(tx['km_per_liter']) if tx['km_per_liter'] else 0},
                 'previous_odo': {'odo_km': prev['odo_km'], 'km_per_liter': prev['km_per_liter'], 'date': str(prev['created_at'])} if prev else None,
@@ -136,6 +151,7 @@ def register_transaction_api(app):
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/transaction-flags')
+    @role_required(['ga', 'finance', 'admin'])
     def api_transaction_flags():
         try:
             conn = get_db_connection()
@@ -160,6 +176,7 @@ def register_transaction_api(app):
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/vehicle-health')
+    @role_required(['ga', 'finance', 'admin'])
     def api_vehicle_health():
         try:
             conn = get_db_connection()
@@ -209,6 +226,7 @@ def register_transaction_api(app):
             return jsonify({"status": "error", "msg": str(e)}), 500
 
     @app.route('/api/analytics/data')
+    @role_required(['ga', 'finance', 'admin'])
     def api_analytics_data():
         try:
             start_date = request.args.get('start_date', '')
@@ -216,13 +234,13 @@ def register_transaction_api(app):
             driver = request.args.get('driver', '').strip()
             nopol = request.args.get('nopol', '').strip()
             tx_type = request.args.get('type', '').strip()
-            
+
             # Default: 1 bulan terakhir
             if not start_date:
                 start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
             if not end_date:
                 end_date = datetime.now().strftime('%Y-%m-%d')
-            
+
             # Build WHERE clause
             where = ["status='archived'", "DATE(created_at) >= %s", "DATE(created_at) <= %s"]
             params = [start_date, end_date]
@@ -236,7 +254,7 @@ def register_transaction_api(app):
                 where.append("transaction_type = %s")
                 params.append(tx_type)
             wc = " AND ".join(where)
-            
+
             conn = get_db_connection()
             if not conn: return jsonify({'error': 'DB error'}), 500
             cursor = conn.cursor(dictionary=True)
@@ -297,6 +315,7 @@ def register_transaction_api(app):
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/finance-review/<int:tx_id>')
+    @role_required(['finance', 'admin'])
     def api_finance_review(tx_id):
         try:
             conn = get_db_connection()
@@ -305,25 +324,25 @@ def register_transaction_api(app):
             cursor.execute("SELECT * FROM transactions WHERE id = %s", (tx_id,))
             tx = cursor.fetchone()
             if not tx: cursor.close(); conn.close(); return jsonify({'error': 'Not found'}), 404
-            
+
             # Previous ODO
             cursor.execute("SELECT odo_km, created_at FROM transactions WHERE nopol = %s AND status = 'archived' AND id < %s ORDER BY id DESC LIMIT 1", (tx['nopol'], tx_id))
             prev = cursor.fetchone()
-            
+
             # Monthly stats
             cursor.execute("SELECT COUNT(*) as total_tx, COALESCE(SUM(nominal),0) as total_nominal FROM transactions WHERE driver_name = %s AND MONTH(created_at) = MONTH(CURDATE())", (tx['driver_name'],))
             monthly = cursor.fetchone()
-            
+
             # Budget
             cursor.execute("SELECT config_value FROM system_config WHERE config_key = 'monthly_budget'")
             budget_row = cursor.fetchone()
             budget = float(budget_row['config_value']) if budget_row else 3000000
-            
+
             # Photos
             photos = []
             for field, label in [('foto_odo_sebelum','ODO'),('foto_nota_odo_sesudah','Nota+ODO'),('foto_struk','Struk'),('foto_struk_dispenser','Dispenser')]:
                 if tx.get(field): photos.append({'label': label, 'url': '/uploads/' + tx[field]})
-            
+
             cursor.close(); conn.close()
             return jsonify({
                 'transaction': {
@@ -345,6 +364,7 @@ def register_transaction_api(app):
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/finance-remark', methods=['POST'])
+    @role_required(['finance', 'admin'])
     def api_finance_remark():
         try:
             data = request.get_json()
@@ -359,6 +379,7 @@ def register_transaction_api(app):
             return jsonify({'status': 'error', 'msg': str(e)}), 500
 
     @app.route('/api/trip-detail/<int:trip_id>')
+    @role_required(['ga', 'finance', 'admin'])
     def api_trip_detail(trip_id):
         try:
             conn = get_db_connection()
@@ -377,71 +398,3 @@ def register_transaction_api(app):
             return jsonify({'master': master, 'details': details})
         except Exception as e:
             return jsonify({'error': str(e)}), 500
-
-# === OPTIMIZED QUERIES (V1.1) ===
-# ============================================================
-# OPTIMIZED QUERIES untuk routes_api_transactions.py
-# dan routes_reports.py
-# ============================================================
-
-# --- QUERY 1: Rapor per Driver/Kendaraan (ganti multiple loop) ---
-RAPOR_QUERY = """
-SELECT 
-    t.nopol,
-    t.vehicle_type,
-    COALESCE(va.driver_name, t.driver_name) as driver_name,
-    COUNT(t.id) as total_tx,
-    ROUND(AVG(NULLIF(t.km_per_liter, 0)), 2) as avg_km_per_liter,
-    SUM(t.nominal) as total_nominal,
-    SUM(COALESCE(t.jumlah_appointment, 0)) as total_appointment,
-    MAX(t.created_at) as last_activity,
-    MIN(t.created_at) as first_activity,
-    COUNT(DISTINCT DATE(t.created_at)) as active_days,
-    -- Konsumsi per hari (total liter / active days)
-    ROUND(SUM(t.liter) / NULLIF(COUNT(DISTINCT DATE(t.created_at)), 0), 2) as avg_liter_per_day
-FROM transactions t
-LEFT JOIN vehicle_assignments va 
-    ON t.nopol = va.nopol 
-    AND va.is_current = 1
-WHERE t.status = 'archived'
-    AND t.created_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
-GROUP BY t.nopol, t.vehicle_type, COALESCE(va.driver_name, t.driver_name)
-ORDER BY avg_km_per_liter DESC
-"""
-
-# --- QUERY 2: Statistik Bulanan per Driver (tanpa loop per driver) ---
-MONTHLY_STATS_QUERY = """
-SELECT 
-    driver_name,
-    nopol,
-    DATE_FORMAT(created_at, '%Y-%m') as bulan,
-    COUNT(*) as total_tx,
-    SUM(nominal) as total_nominal,
-    ROUND(AVG(NULLIF(km_per_liter, 0)), 2) as avg_km_per_liter,
-    SUM(jumlah_appointment) as total_appt
-FROM transactions
-WHERE status = 'archived'
-    AND created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
-GROUP BY driver_name, nopol, DATE_FORMAT(created_at, '%Y-%m')
-ORDER BY driver_name, bulan DESC
-"""
-
-# --- QUERY 3: Ranking Driver dengan JOIN (ganti subquery per driver) ---
-DRIVER_RANKING_QUERY = """
-SELECT 
-    t.driver_name,
-    t.nopol,
-    t.vehicle_type,
-    COUNT(t.id) as total_tx,
-    SUM(t.nominal) as total_nominal,
-    ROUND(AVG(NULLIF(t.km_per_liter, 0)), 2) as avg_km_per_liter,
-    -- Rank dalam grup nopol
-    RANK() OVER (PARTITION BY t.vehicle_type ORDER BY AVG(NULLIF(t.km_per_liter, 0)) DESC) as rank_in_type
-FROM transactions t
-WHERE t.status = 'archived'
-    AND t.created_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
-GROUP BY t.driver_name, t.nopol, t.vehicle_type
-HAVING total_tx >= 3
-ORDER BY avg_km_per_liter DESC
-LIMIT 20
-"""

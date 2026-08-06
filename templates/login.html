@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - BPF BBM System</title>
+    <link rel="icon" type="image/png" href="/static/icon-192.png">
+    <meta name="theme-color" content="#1d4ed8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+    if (localStorage.getItem('adminDark') === '1') document.documentElement.classList.add('dark');
+    </script>
+    <style>
+    :root {
+        --primary: #2563eb; --primary-dark: #1d4ed8;
+        --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-300: #d1d5db;
+        --gray-400: #9ca3af; --gray-500: #6b7280; --gray-700: #374151; --gray-900: #111827;
+        --success: #059669; --danger: #dc2626;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        font-family: "Inter", "Segoe UI", sans-serif;
+        background: #f8fafc;
+        background-image: radial-gradient(at 0% 0%, rgba(37,99,235,0.05) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(5,150,105,0.05) 0px, transparent 50%);
+        min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .login-wrap { width: 100%; max-width: 380px; }
+    .login-brand { text-align: center; margin-bottom: 24px; }
+    .login-brand img { width: 56px; height: 56px; border-radius: 12px; box-shadow: 0 4px 14px rgba(37,99,235,0.25); }
+    .login-brand h1 { font-size: 18px; font-weight: 700; color: var(--gray-900); margin-top: 12px; }
+    .login-brand p { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
+    .login-card {
+        background: #fff; border: 1px solid var(--gray-200); border-radius: 14px;
+        padding: 28px 26px; box-shadow: 0 10px 34px rgba(15,23,42,0.08);
+        animation: loginIn 0.3s ease;
+    }
+    @keyframes loginIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .login-card h2 { font-size: 15px; font-weight: 700; color: var(--gray-900); margin-bottom: 4px; }
+    .login-card .sub { font-size: 12px; color: var(--gray-500); margin-bottom: 18px; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 11px; font-weight: 600; color: var(--gray-700); margin-bottom: 5px; }
+    .field input {
+        width: 100%; padding: 11px 13px; border: 1.5px solid var(--gray-200); border-radius: 9px;
+        font-size: 14px; font-family: inherit; transition: border-color .15s, box-shadow .15s;
+    }
+    .field input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+    .field input[type="password"] { letter-spacing: 8px; font-size: 20px; text-align: center; }
+    .login-btn {
+        width: 100%; padding: 12px; border: none; border-radius: 9px; cursor: pointer;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; font-size: 14px;
+        font-weight: 700; font-family: inherit; transition: transform .15s, box-shadow .15s;
+        box-shadow: 0 2px 8px rgba(37,99,235,0.3);
+    }
+    .login-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(37,99,235,0.35); }
+    .login-btn:active { transform: translateY(0); }
+    .login-err { background: #fee2e2; color: #991b1b; border-left: 4px solid var(--danger); padding: 10px 12px; border-radius: 8px; font-size: 12px; margin-bottom: 14px; }
+    .login-hint { text-align: center; font-size: 10px; color: var(--gray-400); margin-top: 14px; }
+    .login-footer { text-align: center; font-size: 10px; color: var(--gray-400); margin-top: 18px; }
+    .dark-toggle {
+        position: fixed; top: 14px; right: 14px; background: #fff; border: 1.5px solid var(--gray-200);
+        border-radius: 9px; padding: 6px 10px; font-size: 15px; cursor: pointer; line-height: 1; z-index: 10;
+        transition: all .2s;
+    }
+    .dark-toggle:hover { border-color: var(--primary); transform: translateY(-1px); }
+    html.dark {
+        --gray-100: #1f2937; --gray-200: #334155; --gray-300: #475569;
+        --gray-400: #64748b; --gray-500: #94a3b8; --gray-700: #e2e8f0; --gray-900: #f8fafc;
+    }
+    html.dark body { background: #0b1120; }
+    html.dark .login-card { background: #111c30; border-color: #1e293b; box-shadow: 0 10px 34px rgba(0,0,0,0.4); }
+    html.dark .field input { background: #1e293b; border-color: #334155; color: #f1f5f9; }
+    html.dark .dark-toggle { background: #111c30; border-color: #334155; }
+    </style>
+</head>
+<body>
+    <button class="dark-toggle" id="darkToggle" onclick="toggleLoginDark()" title="Dark Mode" aria-label="Ganti mode terang/gelap">🌙</button>
+    <div class="login-wrap">
+        <div class="login-brand">
+            <img src="/static/icon-192.png" alt="BPF">
+            <h1>BPF Fleet System</h1>
+            <p>PT Bestprofit Futures · Surabaya</p>
+        </div>
+        <div class="login-card">
+            <h2>🔐 Login Admin</h2>
+            <div class="sub">Masukkan username & PIN akun Anda.</div>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, message in messages %}
+                    <div class="login-err">{{ message }}</div>
+                {% endfor %}
+            {% endwith %}
+            <form method="POST" autocomplete="off" action="{{ url_for('login_page', next=request.args.get('next', '')) if request.args.get('next') else url_for('login_page') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="field">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" placeholder="cth: admin" required autofocus>
+                </div>
+                <div class="field">
+                    <label for="pin">PIN 6-digit</label>
+                    <input type="password" id="pin" name="pin" placeholder="••••••" maxlength="6" inputmode="numeric" required>
+                </div>
+                <button type="submit" class="login-btn">Masuk</button>
+            </form>
+            <div class="login-hint">Akun dikelola IT BPF. Hubungi IT bila lupa PIN.</div>
+        </div>
+        <div class="login-footer">© 2026 PT Bestprofit Futures · Internal Only</div>
+    </div>
+    <script>
+    function toggleLoginDark() {
+        var on = !document.documentElement.classList.contains('dark');
+        document.documentElement.classList.toggle('dark', on);
+        localStorage.setItem('adminDark', on ? '1' : '0');
+        document.getElementById('darkToggle').textContent = on ? '☀️' : '🌙';
+    }
+    (function() {
+        var btn = document.getElementById('darkToggle');
+        if (document.documentElement.classList.contains('dark')) btn.textContent = '☀️';
+        document.getElementById('pin').addEventListener('keydown', function(e) { if (e.key === 'Enter') this.form.submit(); });
+    })();
+    </script>
+</body>
+</html>

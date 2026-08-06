@@ -34,7 +34,7 @@ def get_db_connection():
             return db_pool.get_connection()
         except Error as pool_err:
             print(f"⚠ Pool exhausted: {pool_err}")
-    
+
     max_retries = 5
     fallback_config = {k: v for k, v in DB_CONFIG.items() if k not in ['pool_name', 'pool_size']}
     for attempt in range(max_retries):

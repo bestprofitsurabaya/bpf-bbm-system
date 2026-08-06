@@ -1,6 +1,11 @@
 import unittest
+import sys
+import os
 
-from app import resolve_driver_form_context
+# Tambahkan parent directory ke path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from modules.helpers import resolve_driver_form_context
 
 
 class DriverContextTests(unittest.TestCase):

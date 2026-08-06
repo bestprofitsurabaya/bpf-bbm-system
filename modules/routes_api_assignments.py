@@ -1,10 +1,11 @@
 """API Routes - Vehicle Assignments"""
 from flask import request, jsonify
 from modules.config import get_db_connection
-from modules.helpers import log_activity_async
+from modules.helpers import log_activity_async, role_required
+from modules.notifications import push_driver_notification
 
 def register_assignment_api(app):
-    
+
     @app.route('/api/assignments/active')
     def api_active_assignments():
         try:
@@ -66,6 +67,7 @@ def register_assignment_api(app):
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/assignments/create', methods=['POST'])
+    @role_required(['ga', 'finance', 'admin'])
     def api_create_assignment():
         try:
             data = request.get_json()
@@ -81,11 +83,14 @@ def register_assignment_api(app):
             cursor.execute("INSERT INTO drivers (name, nopol, vehicle_type, bbm_type, is_active) VALUES (%s, %s, %s, %s, 1) ON DUPLICATE KEY UPDATE nopol = VALUES(nopol), vehicle_type = VALUES(vehicle_type), bbm_type = VALUES(bbm_type), is_active = 1", (driver_name, nopol, vehicle_type, bbm_type))
             conn.commit(); cursor.close(); conn.close()
             log_activity_async(0, 'ga_assign_vehicle', 'ga', 'GA Officer', new_data={'driver': driver_name, 'nopol': nopol}, ip=request.remote_addr)
+            push_driver_notification(driver_name, 'assignment', 'assigned',
+                                     f'Kendaraan {nopol} ({vehicle_type}) ditugaskan ke Anda — konfirmasi serah terima', nopol)
             return jsonify({'status': 'success', 'msg': f'{driver_name} ditugaskan ke {nopol} ({vehicle_type})'})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
 
     @app.route('/api/assignments/swap', methods=['POST'])
+    @role_required(['ga', 'finance', 'admin'])
     def api_swap_assignment():
         try:
             data = request.get_json()
@@ -106,11 +111,17 @@ def register_assignment_api(app):
             cursor.execute("INSERT INTO assignment_swaps (nopol, old_driver, new_driver, category, reason, ga_name) VALUES (%s, %s, %s, %s, %s, %s)", (nopol, old_driver, new_driver, category, reason, ga_name))
             conn.commit(); cursor.close(); conn.close()
             log_activity_async(0, 'ga_swap_vehicle', 'ga', ga_name, new_data={'nopol': nopol, 'old_driver': old_driver, 'new_driver': new_driver}, ip=request.remote_addr)
+            push_driver_notification(new_driver, 'assignment', 'swapped',
+                                     f'Kendaraan {nopol} ditukar ke Anda — konfirmasi serah terima', nopol)
+            if old_driver:
+                push_driver_notification(old_driver, 'assignment', 'released',
+                                         f'Kendaraan {nopol} dilepas dari Anda', nopol)
             return jsonify({'status': 'success', 'msg': f'{nopol} ditukar: {old_driver or "-"} → {new_driver}'})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
 
     @app.route('/api/assignments/release', methods=['POST'])
+    @role_required(['ga', 'finance', 'admin'])
     def api_release_assignment():
         try:
             data = request.get_json()
@@ -129,6 +140,8 @@ def register_assignment_api(app):
             else: cursor.execute("UPDATE drivers SET nopol = '' WHERE name = %s", (assignment['driver_name'],))
             conn.commit(); cursor.close(); conn.close()
             log_activity_async(0, 'ga_release_vehicle', 'ga', ga_name, new_data={'nopol': nopol}, ip=request.remote_addr)
+            push_driver_notification(assignment['driver_name'], 'assignment', 'released',
+                                     f'Kendaraan {nopol} dilepas dari Anda', nopol)
             return jsonify({'status': 'success', 'msg': f'{nopol} dilepas dari {assignment["driver_name"]}'})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
@@ -148,6 +161,7 @@ def register_assignment_api(app):
             return jsonify({'status': 'error', 'msg': str(e)}), 500
 
     @app.route('/api/assignment-remark', methods=['POST'])
+    @role_required(['ga', 'finance', 'admin'])
     def api_assignment_remark():
         try:
             data = request.get_json()

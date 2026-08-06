@@ -9,11 +9,11 @@ from datetime import datetime
 import os
 
 def register_driver_routes(app, socketio):
-    
+
     @app.route('/')
     def index():
         return redirect(url_for('driver_form'))
-    
+
     @app.route('/driver', methods=['GET', 'POST'])
     def driver_form():
         if request.method == 'POST':
@@ -45,7 +45,7 @@ def register_driver_routes(app, socketio):
                 bbm_type = resolved['bbm_type']
 
                 ensure_all_master_data(driver_name, nopol, vehicle_type, bbm_type, price_per_liter)
-                
+
                 validation = validate_bbm_for_vehicle(vehicle_type, bbm_type)
                 if not validation['valid']:
                     flash(validation['error'], 'error')
@@ -71,7 +71,7 @@ def register_driver_routes(app, socketio):
 
                 analysis = PerformanceAnalyzer.analyze_performance(nopol, km_per_liter, conn, vehicle_type, bbm_type)
                 display_id = generate_display_id('BPF', conn)
-                
+
                 cursor.execute("""
                     INSERT INTO transactions (display_id, transaction_type, driver_name, nopol, vehicle_type, bbm_type, nominal, liter, price_per_liter,
                     odo_km, spbu_type, foto_odo_sebelum, foto_nota_odo_sesudah, foto_struk, foto_struk_dispenser,
@@ -84,8 +84,15 @@ def register_driver_routes(app, socketio):
                 tx_id = cursor.lastrowid
                 conn.commit()
                 log_activity_async(tx_id, 'create', 'driver', driver_name, ip=request.remote_addr)
+                try:
+                    socketio.emit('new_claim', {
+                        'driver_name': driver_name, 'nopol': nopol, 'display_id': display_id,
+                        'nominal': nominal, 'created_at': datetime.now().strftime('%d/%m/%Y %H:%M')
+                    })
+                except Exception:
+                    pass
                 cursor.close(); conn.close()
-                
+
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.headers.get('Accept') == 'application/json':
                     return jsonify({'status': 'success', 'transaction_id': display_id, 'numeric_id': tx_id, 'message': analysis['message']})
                 flash(f'Klaim {display_id} berhasil! {analysis["message"]}', 'success')
@@ -96,21 +103,21 @@ def register_driver_routes(app, socketio):
                 flash(f'Error: {str(e)}', 'error')
                 return render_template('driver.html')
         return render_template('driver.html')
-    
+
     @app.route('/manifest.json')
     def serve_manifest():
         return send_from_directory(os.getcwd(), 'manifest.json')
-    
+
     @app.route('/sw.js')
     def serve_sw():
         response = make_response(send_from_directory(os.getcwd(), 'sw.js'))
         response.headers['Content-Type'] = 'application/javascript'
         return response
-    
+
     @app.route('/uploads/<filename>')
     def uploaded_file(filename):
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-    
+
     @app.route('/submit-trip', methods=['POST'])
     def submit_trip():
         """Process multi-destination trip log submission"""
@@ -169,7 +176,7 @@ def register_driver_routes(app, socketio):
                     'trip_date': trip_date, 'total_routes': detail_count, 'status': 'pending',
                     'created_at': datetime.now().strftime('%d/%m/%Y %H:%M')
                 })
-            except:
+            except Exception:
                 pass
 
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.headers.get('Accept') == 'application/json':
@@ -181,5 +188,5 @@ def register_driver_routes(app, socketio):
             import traceback; traceback.print_exc()
             flash(f'Error: {str(e)}', 'error')
             return redirect(url_for('driver_form'))
-    
+
     from modules.helpers import generate_trip_display_id

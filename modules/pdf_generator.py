@@ -140,7 +140,7 @@ class BPFBasePDF(FPDF):
             col, row = grid_idx % 2, grid_idx // 2
             x = margin + col * (cell_w + GRID_GAP)
             y = y_start + row * (cell_h + 12)
-            
+
             # Jika foto tidak muat, buat halaman baru dan reset posisi grid
             if y + cell_h > self.h - 25:
                 self.add_page()
@@ -150,27 +150,27 @@ class BPFBasePDF(FPDF):
                 col, row = grid_idx % 2, grid_idx // 2
                 x = margin + col * (cell_w + GRID_GAP)
                 y = y_start + row * (cell_h + 12)
-                
+
             self.set_draw_color(200, 200, 200)
             self.set_line_width(0.3)
             self.rect(x, y, cell_w, cell_h)
-            
+
             if photo.get('path'):
                 filepath = os.path.join(upload_folder, photo['path'])
                 if os.path.exists(filepath):
                     self._place_image(filepath, x, y, cell_w, cell_h)
-                    
+
             self.set_xy(x, y + cell_h + 1)
             self.set_font(self._font(), 'B', 6)
             self.set_text_color(71, 85, 105)
             self.cell(cell_w, 4, photo.get('label', ''), align='C')
             self.set_text_color(0, 0, 0)
-            
+
             if y + cell_h > max_y:
                 max_y = y + cell_h + 12
-                
+
             grid_idx += 1  # Lanjut ke slot berikutnya di halaman ini
-            
+
         self.set_y(max_y + 4)
 
     def _place_image(self, filepath, x, y, cell_w, cell_h):
