@@ -316,6 +316,57 @@ server {
 
 ---
 
+## 11. Cloudflare Tunnel (Aplikasi Online Tanpa Port Forwarding) 🌐
+
+Aplikasi bisa diakses publik tanpa membuka port di router/gateway, memakai **Cloudflare Tunnel** (`cloudflared`) yang berjalan sebagai container Docker.
+
+### 11.1 Quick Tunnel (Uji Coba — Sudah Terpasang)
+
+Service `cloudflared` sudah ada di `docker-compose.yml`:
+
+```yaml
+cloudflared:
+  image: cloudflare/cloudflared:latest
+  container_name: bbm_cloudflared
+  command: tunnel --no-autoupdate --url http://web:5000
+  depends_on:
+    - web
+  restart: unless-stopped
+  networks:
+    - default
+```
+
+- Jalankan: `docker compose up -d cloudflared`
+- Lihat URL: `bash scripts/tunnel-url.sh` (atau `docker logs bbm_cloudflared`)
+
+**Karakteristik quick tunnel:**
+- ✅ HTTPS otomatis (sertifikat Cloudflare) — PWA berfungsi penuh
+- ✅ WebSocket didukung (notifikasi real-time driver jalan)
+- ⚠️ URL acak (`https://xxx.trycloudflare.com`) dan **berubah setiap restart** — hanya untuk uji coba
+
+### 11.2 Named Tunnel + Domain (Produksi — URL Permanen)
+
+Untuk URL yang stabil, buat named tunnel:
+
+1. **Dashboard Cloudflare** → Zero Trust → **Networks → Tunnels → Create a tunnel** → pilih type **Cloudflared**.
+2. Salin **Tunnel Token** (`eyJ...`).
+3. Ubah command di `docker-compose.yml`:
+   ```yaml
+   command: tunnel --no-autoupdate run --token eyJ....(tempel token).
+   ```
+4. Di dashboard tunnel, tambahkan **Public Hostname**:
+   - Subdomain: `bpf` · Domain: `perusahaan.com`
+   - Service: `http://web:5000`
+5. Pastikan domain sudah di-manage Cloudflare (nameserver Cloudflare).
+6. Restart: `docker compose up -d cloudflared`
+
+**Catatan penting:**
+- SocketIO memakai `io()` relatif → otomatis mengikuti host, jadi **tidak perlu ubah kode** saat pindah URL.
+- Tidak ada domain hardcoded di codebase (terverifikasi).
+- URL baru cukup dibagikan; PWA akan menyesuaikan saat dimuat dari origin baru.
+
+---
+
 ## 🧾 Checklist Sebelum Go-Live
 
 - [ ] `SECRET_KEY` diganti dengan nilai acak (jangan default)

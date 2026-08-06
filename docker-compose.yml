@@ -46,6 +46,29 @@ services:
       - default            # Terhubung ke bbm_mariadb
       - nextcloud_net      # Terhubung ke nextcloud_nginx
 
+  # ------------------------------------------------------------
+  # CLOUDFLARE TUNNEL (online tanpa port forwarding)
+  # ------------------------------------------------------------
+  # MODE SAAT INI: Quick Tunnel (trycloudflare.com) — tanpa token,
+  # URL acak https://xxx.trycloudflare.com, berubah tiap restart.
+  # Cocok untuk uji coba.
+  #
+  # UPGRADE KE URL PERMANEN (named tunnel + domain sendiri):
+  #   1. Dashboard Cloudflare → Zero Trust → Networks → Tunnels → Create
+  #   2. Salin token eyJ... , lalu ubah command di bawah menjadi:
+  #      command: tunnel --no-autoupdate run --token PASTE_TOKEN_DI_SINI
+  #   3. Tambahkan route public (hostname → http://web:5000)
+  #   4. docker compose up -d cloudflared
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: bbm_cloudflared
+    command: tunnel --no-autoupdate --url http://web:5000
+    depends_on:
+      - web
+    restart: unless-stopped
+    networks:
+      - default
+
 volumes:
   bbm_db_data:
   
