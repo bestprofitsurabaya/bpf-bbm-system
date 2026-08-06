@@ -148,6 +148,23 @@ docker compose up -d
 
 Access
 
+### 🌐 Akses Online (Cloudflare Tunnel)
+
+Aplikasi dapat diakses publik tanpa port forwarding via Cloudflare Tunnel:
+
+| Halaman | URL Online |
+|---------|------------|
+| **Login admin** | `https://miles-attribute-insulin-fraction.trycloudflare.com/login` |
+| **Driver PWA** | `https://miles-attribute-insulin-fraction.trycloudflare.com/driver` |
+| Dashboard | `https://miles-attribute-insulin-fraction.trycloudflare.com/admin` |
+
+> ⚠️ **Catatan:** Ini *quick tunnel* — URL acak dan dapat **berubah saat container `cloudflared` di-restart**.
+> Gunakan `bash scripts/tunnel-check.sh` untuk melihat & memeriksa URL yang sedang aktif,
+> atau `bash scripts/tunnel-url.sh` untuk menampilkan URL saja.
+> Untuk URL permanen: named tunnel + domain sendiri (lihat `DEPLOYMENT.md` §11).
+
+### 🖥️ Akses Lokal (Development)
+
 | Halaman | URL | Aktor |
 |---------|-----|-------|
 | Login | http://localhost:5001/login | Semua |
@@ -212,10 +229,15 @@ bpf-bbm-system/
 │   │   └── drivers.js              # Driver data loader
 │   └── css/                        # 1 file per halaman (base.css + admin/driver/analytics/...)
 ├── templates/                      # 12 HTML templates (+ _tab_content fragment)
+├── scripts/
+│   ├── tunnel-check.sh             # Periksa status URL public (online/offline)
+│   ├── tunnel-url.sh               # Tampilkan URL public aktif
+│   └── release.sh                  # Buat GitHub Release dari CHANGELOG
 ├── fonts/                          # DejaVu Sans (Unicode PDF)
-├── docker-compose.yml
+├── docker-compose.yml              # Termasuk service cloudflared (tunnel)
 ├── Dockerfile
 ├── README.md
+├── DEPLOYMENT.md
 └── USER_GUIDE.md
 ```
 
@@ -262,7 +284,7 @@ docker exec bbm_mariadb mysql -uroot -ppassword_db bpf_asset_system \
 
 ## 📋 Changelog v1.1
 
-- ✅ **Auth**: login/logout session-based + role_required (61+ endpoint)
+- ✅ **Auth**: login/logout session-based + role_required (66 endpoint)
 - ✅ **CSRF protection** di semua POST state-changing (exempt driver PWA)
 - ✅ **Konversi GET → POST** untuk semua aksi admin state-changing
 - ✅ **Notifikasi driver real-time** (SocketIO per-driver room + offline catch-up)
