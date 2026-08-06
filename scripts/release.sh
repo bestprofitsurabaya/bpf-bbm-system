@@ -25,9 +25,12 @@ if [ -z "$TAG" ]; then
 fi
 
 # Ambil isi changelog untuk versi ini (dari [x.y.z] sampai versi berikutnya / EOF)
-BODY="$(awk -v t="$TAG" '
+# Catatan: header changelog ditulis tanpa prefix "v" (mis. "## [1.1.0]"),
+# sedangkan TAG biasanya "v1.1.0" — strip prefix "v" untuk pencocokan.
+SEC="${TAG#v}"
+BODY="$(awk -v s="$SEC" '
     BEGIN { in_section = 0 }
-    $0 ~ "^## \\[" { if (in_section) exit; if ($0 ~ t) in_section = 1; next }
+    $0 ~ "^## \\[" { if (in_section) exit; if ($0 ~ ("\\[" s "\\]")) in_section = 1; next }
     in_section { print }
 ' "$CHANGELOG")"
 
@@ -50,15 +53,19 @@ else
         exit 1
     fi
     # Fallback: GitHub REST API
-    PAYLOAD="$(python3 -c "
-import json, sys
+    # Nilai dilewatkan via env (bukan interpolasi shell) agar backtick/`$`
+    # di isi changelog tidak di-substitute oleh shell.
+    PAYLOAD="$(TAG="$TAG" TITLE="$TITLE" BODY="$BODY" python3 - <<'PY'
+import json, os
 print(json.dumps({
-    'tag_name': '$TAG',
-    'name': '$TITLE',
-    'body': '''$BODY''',
+    'tag_name': os.environ['TAG'],
+    'name': os.environ['TITLE'],
+    'body': os.environ['BODY'],
     'draft': False,
     'prerelease': False,
-}))")"
+}))
+PY
+)"
     curl -sS -X POST \
         -H "Authorization: token $GITHUB_TOKEN" \
         -H "Accept: application/vnd.github+json" \
