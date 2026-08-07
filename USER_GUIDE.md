@@ -123,16 +123,31 @@ Tab yang sedang aktif akan ditandai dengan garis biru di bawahnya. Kamu bisa men
 4. Klik **+ Tambah Rute** — kamu bisa mengisi alamat secara manual atau mengetuk tombol **📍 GPS** untuk mengambil lokasi saat ini.
 5. Setelah selesai, klik **📋 Kirim Log Perjalanan**.
 
-#### 📅 Integrasi Appointment (Baru di v1.2)
+#### 📅 Jadwal Appointment Saya (Integrasi Appointment)
 
 > Jika kamu mendapat penugasan **appointment** (kunjungan calon nasabah) dari Chief Driver:
 
-- Setiap appointment yang **sudah selesai** akan otomatis muncul di panel **📅 Appointment Selesai** pada tab Trip (tanggal yang sama).
+- Panel **🗺️ Jadwal Appointment Saya Hari Ini** di tab Trip menampilkan **semua kunjungan yang ditugaskan padamu** (status 🚗 Ditugaskan maupun ✅ Selesai) untuk tanggal terpilih — jadi kamu tahu siapa yang harus dikunjungi **sebelum berangkat**.
+- Setiap kartu menampilkan: nama nasabah, **alamat**, area, marketing anggota, dan jam sesi (🌅 08.30 / 🌆 14.30), plus tombol:
+  - **📞 Telepon** — langsung menghubungi nasabah
+  - **🌍 Google Maps** — navigasi ke alamat nasabah sekali ketuk
+  - **🏁 Selesai Dikunjungi** (khusus appointment yang ditugaskan) — tandai kunjungan selesai **tanpa harus submit log perjalanan**; muncul **modal hasil kunjungan** untuk memilih **😊 Ditemui / 🤝 Prospek / ❌ Gagal** (wajib) + **alasan** (opsional) → status otomatis jadi ✅ Selesai, hasil kunjungan tercatat sebagai **data konversi marketing**, dan Chief Driver/Marketing mendapat notifikasi
 - Klik tombol **📥 Muat Semua ke Rute** — rute perjalanan terisi otomatis:
   - **Lokasi tujuan** = alamat calon nasabah
   - **Pukul** = jam sesi appointment (🌅 08.30 atau 🌆 14.30)
 - Kamu tinggal melengkapi **KM** dan menyesuaikan waktu, lalu klik **📋 Kirim Log Perjalanan**.
+- **Auto-complete**: begitu log perjalanan yang memuat kunjungan itu dikirim, status appointment **otomatis menjadi ✅ Selesai** — Chief Driver & Marketing mendapat notifikasi real-time.
+- **🔔 Notifikasi**: kamu menerima notifikasi langsung di HP saat Chief Driver menugaskan appointment baru padamu.
 - Trip yang dikirim tetap bisa diverifikasi GA seperti biasa, dan menampilkan badge **📅 APP-xxxx** di detail rute sebagai jejak appointment.
+
+##### 🎯 Hasil Kunjungan = Data Konversi Marketing
+
+> Hasil yang kamu pilih saat menekan **🏁** menjadi statistik konversi marketing:
+
+- **😊 Ditemui** — nasabah ditemui (kunjungan berhasil)
+- **🤝 Prospek** — nasabah ditemui dan tertarik / jadi calon prospek lanjutan
+- **❌ Gagal** — tidak ditemui / ditolak (tuliskan alasannya di kolom catatan)
+- Badge hasil kunjungan tampil di **panel PWA kamu**, **board Chief Driver**, dan **daftar marketing**; dihitung per anggota di panel **Ringkasan per Marketing Anggota** dan disertakan di **Rekap Excel** harian.
 
 ### 2.4 Mode Offline
 

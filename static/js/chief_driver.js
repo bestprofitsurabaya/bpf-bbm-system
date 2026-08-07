@@ -149,6 +149,9 @@
                 '<td class="num">' + m.scheduled + '</td>' +
                 '<td class="num">' + m.assigned + '</td>' +
                 '<td class="num done">' + m.completed + '</td>' +
+                '<td class="num result-ditemui">' + m.ditemui + '</td>' +
+                '<td class="num result-prospek">' + m.prospek + '</td>' +
+                '<td class="num result-gagal">' + m.gagal + '</td>' +
                 '<td class="num">' + m.cancelled + '</td>' +
                 '<td class="num">' + m.sesi1 + '</td>' +
                 '<td class="num">' + m.sesi2 + '</td>' +
@@ -293,10 +296,23 @@
         var html = '<div class="completed-list">';
         list.forEach(function (r) {
             var sesiMeta = r.sesi === '1' ? '🌅 Sesi 1 (08.30)' : '🌆 Sesi 2 (14.30)';
+            // Badge hasil kunjungan + alasan (dari driver / chief driver)
+            var resultBadge = '';
+            var resultNote = '';
+            if (r.visit_result) {
+                var rl = { ditemui: '😊 Ditemui', prospek: '🤝 Prospek', gagal: '❌ Gagal' }[r.visit_result];
+                if (rl) {
+                    resultBadge = '<span class="badge result-' + escapeHtml(r.visit_result) + '">' + rl + '</span>';
+                    if (r.visit_note) {
+                        resultNote = '<div class="completed-note">📝 ' + escapeHtml(r.visit_note) + '</div>';
+                    }
+                }
+            }
             html += '<div class="completed-item">' +
                 '<span class="completed-check">✅</span>' +
                 '<div class="completed-body">' +
-                    '<div class="n">' + escapeHtml(r.nasabah_name) + '</div>' +
+                    '<div class="n">' + escapeHtml(r.nasabah_name) + ' ' + resultBadge + '</div>' +
+                    resultNote +
                     '<div class="meta">' + sesiMeta + ' · ' + escapeHtml(r.area || 'Lainnya') +
                         (r.driver_name ? ' · 🚗 ' + escapeHtml(r.driver_name) : '') + '</div>' +
                     '<div class="meta" style="color:#059669;">Terintegrasi dengan Log Perjalanan driver ✓</div>' +

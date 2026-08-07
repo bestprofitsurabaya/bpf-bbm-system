@@ -18,6 +18,19 @@ from modules.helpers import (role_required, log_activity_async,
                              get_team_members)
 from modules.realtime import emit_event
 
+# Hasil kunjungan yang dicatat driver / chief driver saat menandai selesai.
+# Data ini menjadi sumber statistik konversi marketing.
+VISIT_RESULTS = ('ditemui', 'prospek', 'gagal')
+VISIT_RESULT_LABELS = {
+    'ditemui': '😊 Ditemui',
+    'prospek': '🤝 Prospek',
+    'gagal': '❌ Gagal',
+}
+
+
+def _visit_result_label(value):
+    return VISIT_RESULT_LABELS.get(value or '', value or '')
+
 
 def _clean(row):
     """Normalisasi satu baris appointment DB -> dict JSON-safe."""
@@ -52,6 +65,43 @@ def _user_team_name(username):
     except Exception as e:
         print(f"[appointments] user team error: {e}")
         return ''
+
+
+def _finalize_appointment_complete(appt_id, row, audit_action, actor_role, actor_name,
+                                   notif_msg, driver_for_event=None,
+                                   visit_result=None, visit_note=''):
+    """Shared finalisasi appointment -> completed: UPDATE + audit + realtime + notif marketing.
+
+    Dipakai oleh alur Chief Driver (tombol ✅) dan PWA driver (🏁 Selesai Dikunjungi)
+    agar kedua alur tidak bisa drift. `row` = dict appointment hasil SELECT.
+    `visit_result` (ditemui/prospek/gagal) & `visit_note` adalah hasil kunjungan
+    yang dicatat untuk statistik konversi marketing.
+    """
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            "UPDATE appointments SET status='completed', completed_at=NOW(), updated_at=NOW(), "
+            "visit_result=%s, visit_note=%s "
+            "WHERE id=%s AND status='assigned'",
+            (visit_result, (visit_note or '')[:255], appt_id))
+        conn.commit()
+        log_activity_async(appt_id, audit_action, actor_role, actor_name,
+                           new_data={'driver': row.get('driver_name')}, ip=request.remote_addr)
+        cursor.close()
+        conn.close()
+        emit_event('appointment_update',
+                   {'action': 'completed', 'id': appt_id, 'display_id': row['display_id'],
+                    'driver': driver_for_event or row.get('driver_name'),
+                    'date': str(row['appointment_date'])},
+                   room='appointments_board')
+        from modules.notifications import push_marketing_notification
+        push_marketing_notification(
+            row['marketing_username'], 'appointment', 'completed', notif_msg, row['display_id'])
+    except Exception as e:
+        print(f"[appointments] finalize complete error: {e}")
 
 
 def _suggest_driver(cursor, target_date, sesi):
@@ -343,11 +393,15 @@ def register_appointment_routes(app):
                                    new_data={'fields': list(data.keys())}, ip=request.remote_addr)
                 return jsonify({'status': 'success', 'msg': 'Appointment diperbarui'})
             else:
-                # Chief driver / GA / Admin: boleh update catatan driver
-                # dan override area secara manual (perbaikan zona dari sistem).
+                # Chief driver / GA / Admin: boleh update catatan driver,
+                # override area secara manual (perbaikan zona dari sistem), dan
+                # mengisi/mengubah hasil kunjungan (mis. appointment selesai lewat
+                # log perjalanan yang belum punya hasil konversi).
                 updates = []
                 params = []
                 area_changed = None
+                audit_action = 'appointment_edit'
+                audit_data = {}
                 if 'driver_note' in data:
                     updates.append("driver_note=%s")
                     params.append(str(data['driver_note']).strip()[:255])
@@ -358,6 +412,22 @@ def register_appointment_routes(app):
                         return jsonify({'status': 'error', 'msg': 'Area tidak boleh kosong'}), 400
                     updates.append("area=%s")
                     params.append(area_changed)
+                    audit_action = 'appointment_area_edit'
+                    audit_data['area'] = area_changed
+                if 'visit_result' in data:
+                    vr = str(data.get('visit_result') or '').strip().lower()
+                    if vr and vr not in VISIT_RESULTS:
+                        cursor.close(); conn.close()
+                        return jsonify({'status': 'error', 'msg': 'Hasil kunjungan tidak valid'}), 400
+                    updates.append("visit_result=%s")
+                    params.append(vr or None)
+                    audit_action = 'appointment_result_edit'
+                    audit_data['visit_result'] = vr or ''
+                if 'visit_note' in data:
+                    updates.append("visit_note=%s")
+                    params.append(str(data['visit_note']).strip()[:255])
+                    audit_action = 'appointment_result_edit'
+                    audit_data['visit_note'] = str(data['visit_note']).strip()[:255]
                 if not updates:
                     cursor.close(); conn.close()
                     return jsonify({'status': 'error', 'msg': 'Tidak ada field yang diubah'}), 400
@@ -367,13 +437,19 @@ def register_appointment_routes(app):
                     params)
                 conn.commit()
                 user = _current_user()
-                log_activity_async(appt_id, 'appointment_area_edit', user['role'],
-                                   user['full_name'], new_data={'area': area_changed},
+                log_activity_async(appt_id, audit_action, user['role'],
+                                   user['full_name'], new_data=audit_data,
                                    ip=request.remote_addr)
                 cursor.close(); conn.close()
                 if area_changed:
                     emit_event('appointment_update',
                                {'action': 'area_changed', 'id': appt_id, 'area': area_changed,
+                                'date': str(row['appointment_date'])},
+                               room='appointments_board')
+                if 'visit_result' in data or 'visit_note' in data:
+                    emit_event('appointment_update',
+                               {'action': 'result_changed', 'id': appt_id,
+                                'display_id': row['display_id'],
                                 'date': str(row['appointment_date'])},
                                room='appointments_board')
                 return jsonify({'status': 'success', 'msg': 'Appointment diperbarui'})
@@ -420,16 +496,22 @@ def register_appointment_routes(app):
                                new_data={'driver': driver_name}, ip=request.remote_addr)
             cursor.close(); conn.close()
 
-            # Realtime: board chief driver + notifikasi marketing
+            # Realtime: board chief driver + notifikasi marketing + notifikasi driver
             emit_event('appointment_update',
                        {'action': 'assigned', 'id': appt_id, 'display_id': row['display_id'],
                         'driver': driver_name, 'date': str(row['appointment_date'])},
                        room='appointments_board')
-            from modules.notifications import push_marketing_notification
+            from modules.notifications import push_marketing_notification, push_driver_notification
             push_marketing_notification(
                 row['marketing_username'], 'appointment', 'assigned',
                 f'Driver {driver_name} ditugaskan ke appointment {row["display_id"]} '
                 f'({row["nasabah_name"]})', row['display_id'])
+            sesi_label = 'Sesi 1 (08.30)' if row['sesi'] == '1' else 'Sesi 2 (14.30)'
+            push_driver_notification(
+                driver_name, 'appointment', 'assigned',
+                f'📅 Appointment baru ditugaskan: {row["nasabah_name"]} ({row["display_id"]}) '
+                f'— {sesi_label}',
+                row['display_id'])
 
             return jsonify({'status': 'success',
                             'msg': f'Driver {driver_name} ditugaskan ke {row["display_id"]}'})
@@ -467,11 +549,16 @@ def register_appointment_routes(app):
                        {'action': 'unassigned', 'id': appt_id, 'display_id': row['display_id'],
                         'date': str(row['appointment_date'])},
                        room='appointments_board')
-            from modules.notifications import push_marketing_notification
+            from modules.notifications import push_marketing_notification, push_driver_notification
             push_marketing_notification(
                 row['marketing_username'], 'appointment', 'unassigned',
                 f'Penugasan driver appointment {row["display_id"]} dibatalkan, menunggu driver baru',
                 row['display_id'])
+            if row['driver_name']:
+                push_driver_notification(
+                    row['driver_name'], 'appointment', 'unassigned',
+                    f'Penugasan appointment {row["display_id"]} dibatalkan',
+                    row['display_id'])
             return jsonify({'status': 'success', 'msg': 'Penugasan driver dibatalkan'})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
@@ -495,25 +582,67 @@ def register_appointment_routes(app):
             if row['status'] != 'assigned':
                 cursor.close(); conn.close()
                 return jsonify({'status': 'error', 'msg': 'Hanya appointment yang ditugaskan yang bisa diselesaikan'}), 409
-            cursor.execute(
-                "UPDATE appointments SET status='completed', completed_at=NOW(), updated_at=NOW() WHERE id=%s",
-                (appt_id,))
-            conn.commit()
             user = _current_user()
-            log_activity_async(appt_id, 'appointment_complete', 'chief_driver', user['full_name'],
-                               new_data={'driver': row['driver_name']}, ip=request.remote_addr)
+            # Hasil kunjungan opsional dari Chief Driver (jika driver belum mencatat)
+            data = request.get_json(silent=True) or {}
+            visit_result = str(data.get('result', '') or '').strip().lower()
+            if visit_result and visit_result not in VISIT_RESULTS:
+                cursor.close(); conn.close()
+                return jsonify({'status': 'error', 'msg': 'Hasil kunjungan tidak valid'}), 400
+            visit_note = str(data.get('note', '') or '').strip()
             cursor.close(); conn.close()
-            emit_event('appointment_update',
-                       {'action': 'completed', 'id': appt_id, 'display_id': row['display_id'],
-                        'driver': row['driver_name'], 'date': str(row['appointment_date'])},
-                       room='appointments_board')
-            from modules.notifications import push_marketing_notification
-            push_marketing_notification(
-                row['marketing_username'], 'appointment', 'completed',
-                f'Appointment {row["display_id"]} ({row["nasabah_name"]}) selesai dikunjungi',
-                row['display_id'])
+            _finalize_appointment_complete(
+                appt_id, row, 'appointment_complete', user['role'], user['full_name'],
+                f'Appointment {row["display_id"]} ({row["nasabah_name"]}) selesai dikunjungi'
+                + (f' — {_visit_result_label(visit_result)}' if visit_result else ''),
+                visit_result=visit_result or None, visit_note=visit_note)
             return jsonify({'status': 'success',
                             'msg': f'{row["display_id"]} selesai — siap diintegrasikan ke Log Perjalanan'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    # ================================================================
+    # DRIVER CONFIRM VISIT (PWA driver tanpa session) — '🏁 Selesai Dikunjungi'
+    # Konfirmasi manual dari driver tanpa harus submit log perjalanan.
+    # ================================================================
+    @app.route('/api/appointments/driver-complete/<int:appt_id>', methods=['POST'])
+    def api_driver_complete_appointment(appt_id):
+        try:
+            driver = (request.form.get('driver') or request.args.get('driver') or '').strip().upper()
+            if not driver:
+                return jsonify({'status': 'error', 'msg': 'Parameter driver wajib'}), 400
+            # Hasil kunjungan: ditemui / prospek / gagal (+ alasan opsional)
+            visit_result = (request.form.get('result') or request.args.get('result') or '').strip().lower()
+            if visit_result and visit_result not in VISIT_RESULTS:
+                return jsonify({'status': 'error', 'msg': 'Hasil kunjungan tidak valid'}), 400
+            visit_note = (request.form.get('note') or request.args.get('note') or '').strip()
+
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'status': 'error', 'msg': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM appointments WHERE id=%s", (appt_id,))
+            row = cursor.fetchone()
+            if not row:
+                cursor.close(); conn.close()
+                return jsonify({'status': 'error', 'msg': 'Appointment tidak ditemukan'}), 404
+            if row['status'] != 'assigned':
+                cursor.close(); conn.close()
+                return jsonify({'status': 'error', 'msg': 'Appointment belum ditugaskan ke Anda atau sudah selesai'}), 409
+            if (row['driver_name'] or '').upper() != driver:
+                cursor.close(); conn.close()
+                return jsonify({'status': 'error', 'msg': 'Appointment ini bukan milik Anda'}), 403
+
+            cursor.close(); conn.close()
+            _finalize_appointment_complete(
+                appt_id, row, 'appointment_driver_complete', 'driver', driver,
+                f'Driver {driver} selesai mengunjungi {row["nasabah_name"]} '
+                f'({row["display_id"]})'
+                + (f' — {_visit_result_label(visit_result)}' if visit_result else ''),
+                driver_for_event=driver,
+                visit_result=visit_result or None, visit_note=visit_note)
+            return jsonify({'status': 'success',
+                            'msg': f'{row["display_id"]} ditandai selesai dikunjungi'})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
 
@@ -592,6 +721,41 @@ def register_appointment_routes(app):
         except Exception as e:
             return jsonify({'error': str(e)}), 500
 
+    @app.route('/api/appointments/driver-today')
+    def api_driver_today_appointments():
+        """Appointment hari ini milik satu driver (status assigned + completed).
+
+        Dipakai PWA driver sebagai 'Jadwal Appointment Saya': driver perlu melihat
+        data kunjungan (nama, alamat, no. HP) SEBELUM berangkat — bukan hanya
+        setelah ditandai selesai. Endpoint publik seperti /completed (driver PWA
+        tanpa session), scope dibatasi ke driver_name sendiri.
+        Trade-off privasi: no. HP nasabah ikut dikembalikan karena dibutuhkan driver
+        untuk menghubungi nasabah — konsisten dengan model akses PWA tanpa login.
+        """
+        try:
+            driver = request.args.get('driver', '').strip().upper()
+            target_date = request.args.get('date', '').strip() or date.today().isoformat()
+            if not driver:
+                return jsonify({'error': 'Parameter driver wajib'}), 400
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'error': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(
+                """SELECT id, display_id, nasabah_name, nasabah_phone, alamat, area,
+                          sesi, appointment_date, status, driver_name, marketing_member,
+                          visit_result, visit_note
+                   FROM appointments
+                   WHERE driver_name=%s AND appointment_date=%s
+                     AND status IN ('assigned','completed')
+                   ORDER BY sesi ASC, created_at ASC""",
+                (driver, target_date))
+            rows = [_clean(r) for r in cursor.fetchall()]
+            cursor.close(); conn.close()
+            return jsonify(rows)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
     @app.route('/api/appointments/driver-summary')
     def api_driver_appointment_summary():
         """Ringkasan appointment untuk satu driver+date (dipakai PWA driver)."""
@@ -641,6 +805,9 @@ def register_appointment_routes(app):
                           SUM(status='assigned') AS assigned,
                           SUM(status='completed') AS completed,
                           SUM(status='cancelled') AS cancelled,
+                          SUM(visit_result='ditemui') AS ditemui,
+                          SUM(visit_result='prospek') AS prospek,
+                          SUM(visit_result='gagal') AS gagal,
                           SUM(sesi='1') AS sesi1,
                           SUM(sesi='2') AS sesi2
                    FROM appointments
@@ -651,7 +818,8 @@ def register_appointment_routes(app):
             rows = []
             for r in cursor.fetchall():
                 row = {'marketing_member': r['marketing_member']}
-                for k in ('total', 'scheduled', 'assigned', 'completed', 'cancelled', 'sesi1', 'sesi2'):
+                for k in ('total', 'scheduled', 'assigned', 'completed', 'cancelled',
+                          'ditemui', 'prospek', 'gagal', 'sesi1', 'sesi2'):
                     row[k] = int(r.get(k) or 0)
                 rows.append(row)
             cursor.close(); conn.close()

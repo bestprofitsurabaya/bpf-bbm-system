@@ -175,8 +175,8 @@
 
             <!-- APPOINTMENT INTEGRATION PANEL -->
             <div class="appt-panel" id="apptPanel" style="display:none;">
-                <div class="appt-panel-head">📅 Appointment Selesai Hari Ini <span id="apptPanelCount" class="appt-panel-count">0</span></div>
-                <div class="appt-panel-sub">Perjalanan appointment yang sudah selesai otomatis terintegrasi di sini — klik tombol di bawah untuk memuat ke rute log perjalanan.</div>
+                <div class="appt-panel-head">🗺️ Jadwal Appointment Saya Hari Ini <span id="apptPanelCount" class="appt-panel-count">0</span></div>
+                <div class="appt-panel-sub">Kunjungan yang ditugaskan padamu otomatis tampil di sini — 📞 telepon nasabah, 🌍 buka peta, 🏁 tandai selesai + pilih hasil kunjungan, atau muat ke rute log perjalanan sebelum berangkat.</div>
                 <div id="apptPanelList"></div>
                 <button type="button" class="btn-submit" id="fillApptBtn" style="margin-top:8px;display:none;" onclick="fillTripFromAppointments()">📥 Muat Semua ke Rute</button>
             </div>
@@ -240,6 +240,27 @@
         <span>Rapor</span>
         <div class="nav-indicator"></div>
     </button>
+</div>
+
+<!-- VISIT RESULT MODAL (hasil kunjungan saat 🏁 Selesai Dikunjungi) -->
+<div class="modal-overlay" id="visitResultModal">
+    <div class="modal-box visit-box">
+        <div class="icon">🏁</div>
+        <h2>Hasil Kunjungan</h2>
+        <p style="font-size:11px;color:#64748b;margin:2px 0 10px;">Bagaimana hasil kunjungan ke nasabah ini?</p>
+        <input type="hidden" id="visitResultId">
+        <div class="visit-options">
+            <button type="button" class="visit-opt" data-result="ditemui" onclick="pickVisitResult(this)">😊<span>Ditemui</span></button>
+            <button type="button" class="visit-opt" data-result="prospek" onclick="pickVisitResult(this)">🤝<span>Prospek</span></button>
+            <button type="button" class="visit-opt" data-result="gagal" onclick="pickVisitResult(this)">❌<span>Gagal</span></button>
+        </div>
+        <input type="hidden" id="visitResultValue">
+        <textarea id="visitNoteInput" class="form-control" maxlength="255" placeholder="Alasan / catatan (opsional) — mis. tidak di rumah, sudah punya produk lain..." style="margin-top:8px;min-height:64px;resize:none;"></textarea>
+        <div class="modal-actions">
+            <button type="button" class="btn-close-outline" onclick="closeVisitResultModal()">Batal</button>
+            <button type="button" class="btn-close" onclick="submitVisitResult()">✅ Simpan & Selesai</button>
+        </div>
+    </div>
 </div>
 
 <!-- SUCCESS MODAL -->

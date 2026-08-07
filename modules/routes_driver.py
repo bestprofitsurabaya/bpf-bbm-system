@@ -151,10 +151,11 @@ def register_driver_routes(app, socketio):
             lokasi_tujuan_list = request.form.getlist('lokasi_tujuan[]')
             pukul_tujuan_list = request.form.getlist('pukul_tujuan[]')
             km_tujuan_list = request.form.getlist('km_tujuan[]')
-            # Referensi appointment (hasil integrasi appointment selesai -> log perjalanan)
+            # Referensi appointment (hasil integrasi appointment -> log perjalanan)
             appointment_id_list = request.form.getlist('appointment_id[]')
 
             detail_count = 0
+            completed_appt_ids = []
             for i in range(len(lokasi_berangkat_list)):
                 if lokasi_berangkat_list[i].strip() and lokasi_tujuan_list[i].strip():
                     appt_id = None
@@ -169,8 +170,46 @@ def register_driver_routes(app, socketio):
                           int(km_berangkat_list[i] or 0), lokasi_tujuan_list[i],
                           pukul_tujuan_list[i] or None, int(km_tujuan_list[i] or 0), appt_id))
                     detail_count += 1
+                    # Auto-complete: driver mengonfirmasi kunjungan dengan submit log perjalanan
+                    # yang memuat appointment tsb (hanya miliknya & masih assigned).
+                    if appt_id:
+                        cursor.execute(
+                            "UPDATE appointments SET status='completed', completed_at=NOW(), "
+                            "updated_at=NOW() WHERE id=%s AND status='assigned' AND driver_name=%s",
+                            (appt_id, driver_name))
+                        if cursor.rowcount:
+                            completed_appt_ids.append(appt_id)
 
             conn.commit()
+
+            # Notifikasi real-time utk setiap appointment yang auto-complete
+            if completed_appt_ids:
+                try:
+                    from modules.notifications import push_marketing_notification
+                    from modules.realtime import emit_event
+                    c2 = conn.cursor(dictionary=True)
+                    for aid in completed_appt_ids:
+                        c2.execute(
+                            "SELECT id, display_id, nasabah_name, marketing_username, "
+                            "appointment_date FROM appointments WHERE id=%s", (aid,))
+                        ar = c2.fetchone()
+                        if not ar:
+                            continue
+                        push_marketing_notification(
+                            ar['marketing_username'], 'appointment', 'completed',
+                            f'Driver {driver_name} selesai mengunjungi {ar["nasabah_name"]} '
+                            f'({ar["display_id"]}) via log perjalanan', ar['display_id'])
+                        emit_event('appointment_update',
+                                   {'action': 'completed', 'id': aid, 'display_id': ar['display_id'],
+                                    'driver': driver_name, 'date': str(ar['appointment_date'])},
+                                   room='appointments_board')
+                        log_activity_async(aid, 'appointment_complete_by_trip', 'driver',
+                                           driver_name, new_data={'trip_id': trip_id},
+                                           ip=request.remote_addr)
+                    c2.close()
+                except Exception as e:
+                    print(f"Appointment auto-complete notif error: {e}")
+
             log_activity_async(trip_id, 'trip_submit', 'driver', driver_name,
                               new_data={'details': detail_count}, ip=request.remote_addr)
             cursor.close(); conn.close()

@@ -169,6 +169,7 @@ CREATE TABLE IF NOT EXISTS system_config (
 -- Trip Masters
 CREATE TABLE IF NOT EXISTS trip_masters (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    display_id VARCHAR(30) NOT NULL UNIQUE,
     driver_name VARCHAR(100) NOT NULL,
     nopol VARCHAR(20) NOT NULL,
     trip_date DATE NOT NULL,
@@ -251,6 +252,8 @@ CREATE TABLE IF NOT EXISTS appointments (
     driver_note VARCHAR(255) DEFAULT '',
     notes VARCHAR(500) DEFAULT '',
     completed_at DATETIME DEFAULT NULL,
+    visit_result ENUM('ditemui','prospek','gagal') DEFAULT NULL,
+    visit_note VARCHAR(255) DEFAULT '',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_date_sesi (appointment_date, sesi),

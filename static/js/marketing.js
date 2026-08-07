@@ -230,6 +230,12 @@
                 '<div class="sesi-group-head">' + sesiMeta.label + ' · Pukul ' + sesiMeta.time + ' <span class="sesi-count">' + list.length + '</span></div>';
             list.forEach(function (r) {
                 var actions = '';
+                // Badge hasil kunjungan untuk appointment selesai (konversi marketing)
+                var resultBadge = '';
+                if (r.status === 'completed' && r.visit_result) {
+                    var rl = { ditemui: '😊 Ditemui', prospek: '🤝 Prospek', gagal: '❌ Gagal' }[r.visit_result];
+                    if (rl) resultBadge = '<span class="badge badge-result ' + escapeHtml(r.visit_result) + '">' + rl + '</span>';
+                }
                 if (r.status === 'scheduled') {
                     actions = '<button class="btn btn-outline btn-sm" onclick="window.__marketingEdit(' + r.id + ')">✏️ Edit</button>' +
                               '<button class="btn btn-danger btn-sm" onclick="window.__marketingCancel(' + r.id + ')">Batal</button>';
@@ -250,7 +256,9 @@
                             '<span>🆔 ' + escapeHtml(r.display_id) + '</span>' +
                             (r.driver_name ? '<span class="appt-driver">🚗 ' + escapeHtml(r.driver_name) + '</span>' : '') +
                             (r.status === 'completed' ? '<span style="color:#059669;">Terintegrasi ke Log Perjalanan driver ✓</span>' : '') +
+                            resultBadge +
                         '</div>' +
+                        ((r.status === 'completed' && r.visit_note) ? '<div class="appt-meta">📝 ' + escapeHtml(r.visit_note) + '</div>' : '') +
                         (r.notes ? '<div class="appt-meta">📝 ' + escapeHtml(r.notes) + '</div>' : '') +
                     '</div>' +
                     '<div class="appt-actions">' + actions + '</div>' +

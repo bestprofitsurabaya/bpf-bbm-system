@@ -80,6 +80,7 @@ CSRF_EXEMPT_PREFIXES = (
     '/socket.io', '/submit-trip', '/api/cash/request', '/api/cash/submit-lpj/',
     '/api/cash/delete/', '/api/assignments/confirm', '/api/get-feedback',
     '/api/vehicle-allowed-bbm', '/uploads/', '/manifest.json', '/sw.js',
+    '/api/appointments/driver-complete/',
 )
 
 @app.context_processor

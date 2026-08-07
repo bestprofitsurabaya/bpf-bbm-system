@@ -101,7 +101,7 @@ html.dark .filter-info { background: rgba(37,99,235,0.2); color: #bfdbfe; }
     box-shadow: var(--shadow); overflow: hidden;
 }
 .member-summary-scroll { overflow-x: auto; }
-.member-summary-table { width: 100%; border-collapse: collapse; min-width: 640px; }
+.member-summary-table { width: 100%; border-collapse: collapse; min-width: 880px; }
 .member-summary-table th {
     background: linear-gradient(135deg, #1d4ed8, #2563eb); color: #fff;
     font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
@@ -117,6 +117,9 @@ html.dark .filter-info { background: rgba(37,99,235,0.2); color: #bfdbfe; }
 }
 .member-summary-table td.num.total { font-weight: 800; color: var(--primary-dark); }
 .member-summary-table td.num.done { color: #059669; font-weight: 700; }
+.member-summary-table td.num.result-ditemui { color: #059669; font-weight: 700; }
+.member-summary-table td.num.result-prospek { color: #2563eb; font-weight: 700; }
+.member-summary-table td.num.result-gagal { color: #dc2626; font-weight: 700; }
 .member-summary-table tbody tr { cursor: pointer; transition: background 0.15s; }
 .member-summary-table tbody tr:hover { background: #eff6ff; }
 .member-summary-table tbody tr.active { background: #dbeafe; box-shadow: inset 3px 0 0 #1d4ed8; }
@@ -246,8 +249,16 @@ html.dark .member-summary-hint { border-top-color: #1e293b; }
 }
 .completed-check { font-size: 20px; }
 .completed-body { flex: 1; min-width: 0; }
-.completed-body .n { font-weight: 700; font-size: 13px; }
+.completed-body .n { font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .completed-body .meta { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+.completed-note { font-size: 10px; color: var(--gray-500); margin-top: 2px; }
+/* Badge hasil kunjungan */
+.badge.result-ditemui { background: #d1fae5; color: #065f46; }
+.badge.result-prospek { background: #dbeafe; color: #1d4ed8; }
+.badge.result-gagal { background: #fee2e2; color: #b91c1c; }
+html.dark .badge.result-ditemui { background: #064e3b; color: #a7f3d0; }
+html.dark .badge.result-prospek { background: rgba(37,99,235,0.25); color: #bfdbfe; }
+html.dark .badge.result-gagal { background: #7f1d1d; color: #fecaca; }
 
 .empty-state { text-align: center; color: var(--gray-500); padding: 30px 10px; font-size: 13px; }
 .empty-state .big { font-size: 36px; display: block; margin-bottom: 8px; }

@@ -926,9 +926,15 @@ var _kasbonLoaded=false;var _origSwitchTab=switchTab;switchTab=function(p){_orig
     }
 
 // ============================================================
-// APPOINTMENT -> TRIP LOG INTEGRATION
+// APPOINTMENT -> TRIP LOG INTEGRATION (Jadwal Appointment Saya)
 // ============================================================
-var completedApps = [];
+var myAppointments = [];
+
+function escapeHtmlAppt(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+}
 
 function loadAppointmentPanel() {
     var panel = document.getElementById('apptPanel');
@@ -939,29 +945,57 @@ function loadAppointmentPanel() {
     if (!panel) return;
     if (!driver || !tripDate) { panel.style.display = 'none'; return; }
 
-    fetch('/api/appointments/completed?driver=' + encodeURIComponent(driver) + '&date=' + encodeURIComponent(tripDate))
+    fetch('/api/appointments/driver-today?driver=' + encodeURIComponent(driver) + '&date=' + encodeURIComponent(tripDate))
         .then(function(r) { return r.json(); })
         .then(function(list) {
             if (!Array.isArray(list)) return;
-            completedApps = list;
+            myAppointments = list;
             var panelList = document.getElementById('apptPanelList');
             var countEl = document.getElementById('apptPanelCount');
             var btn = document.getElementById('fillApptBtn');
-            if (!completedApps.length) {
+            if (!myAppointments.length) {
                 panel.style.display = 'none';
                 return;
             }
             panel.style.display = 'block';
-            countEl.textContent = completedApps.length;
+            countEl.textContent = myAppointments.length;
             var html = '';
-            for (var i = 0; i < completedApps.length; i++) {
-                var a = completedApps[i];
+            for (var i = 0; i < myAppointments.length; i++) {
+                var a = myAppointments[i];
                 var waktu = a.sesi === '1' ? '🌅 08.30' : '🌆 14.30';
+                var statusBadge = a.status === 'completed'
+                    ? '<span class="appt-status done">✅ Selesai</span>'
+                    : '<span class="appt-status todo">🚗 Ditugaskan</span>';
+                // Badge hasil kunjungan (dari konfirmasi 🏁 atau chief driver)
+                var resultHtml = '';
+                if (a.status === 'completed' && a.visit_result) {
+                    var rl = { ditemui: '😊 Ditemui', prospek: '🤝 Prospek', gagal: '❌ Gagal' }[a.visit_result];
+                    if (rl) {
+                        resultHtml = '<span class="appt-result ' + escapeHtmlAppt(a.visit_result) + '">' + rl + '</span>';
+                        if (a.visit_note) {
+                            resultHtml += '<div class="appt-result-note">📝 ' + escapeHtmlAppt(a.visit_note) + '</div>';
+                        }
+                    }
+                }
+                var acts = '';
+                if (a.nasabah_phone) {
+                    acts += '<a class="appt-act" href="tel:' + escapeHtmlAppt(a.nasabah_phone) + '" title="Telepon nasabah">📞</a>';
+                }
+                acts += '<a class="appt-act" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(a.alamat || '') + '" title="Buka Google Maps">🌍</a>';
+                if (a.status === 'assigned') {
+                    acts += '<button type="button" class="appt-act appt-act-done" onclick="markAppointmentVisited(' + a.id + ', this)" title="Tandai selesai + isi hasil kunjungan">🏁</button>';
+                }
                 html += '<div class="appt-item">' +
                     '<span class="appt-item-time">' + waktu + '</span>' +
-                    '<div class="appt-item-body"><strong>' + a.nasabah_name + '</strong>' +
-                    '<div>' + a.alamat + '</div>' +
-                    '<div class="appt-item-meta">' + a.display_id + (a.area ? ' · ' + a.area : '') + '</div></div>' +
+                    '<div class="appt-item-body">' +
+                        '<strong>' + escapeHtmlAppt(a.nasabah_name) + '</strong> ' + statusBadge + resultHtml +
+                        '<div>📍 ' + escapeHtmlAppt(a.alamat) + '</div>' +
+                        '<div class="appt-item-meta">' + escapeHtmlAppt(a.display_id) +
+                            (a.area ? ' · ' + escapeHtmlAppt(a.area) : '') +
+                            (a.marketing_member ? ' · 👤 ' + escapeHtmlAppt(a.marketing_member) : '') +
+                        '</div>' +
+                        (acts ? '<div class="appt-actions">' + acts + '</div>' : '') +
+                    '</div>' +
                 '</div>';
             }
             panelList.innerHTML = html;
@@ -970,8 +1004,67 @@ function loadAppointmentPanel() {
         .catch(function() {});
 }
 
+// --- Hasil kunjungan (ditemui / prospek / gagal + alasan) ---
+var _visitPending = null;
+
+function markAppointmentVisited(id, btn) {
+    var driverSel = document.getElementById('trip_driver');
+    var driver = driverSel ? driverSel.value.trim().toUpperCase() : '';
+    if (!driver) { showToast('Pilih nama driver terlebih dahulu', 'error'); return; }
+    // Buka modal hasil kunjungan — simpan konteks untuk di-submit setelah user pilih
+    _visitPending = { id: id, btn: btn, driver: driver };
+    document.getElementById('visitResultId').value = id;
+    document.getElementById('visitResultValue').value = '';
+    document.getElementById('visitNoteInput').value = '';
+    document.querySelectorAll('.visit-opt').forEach(function(o) { o.classList.remove('sel'); });
+    document.getElementById('visitResultModal').classList.add('active');
+}
+
+function pickVisitResult(el) {
+    document.querySelectorAll('.visit-opt').forEach(function(o) { o.classList.remove('sel'); });
+    el.classList.add('sel');
+    document.getElementById('visitResultValue').value = el.dataset.result;
+}
+
+function closeVisitResultModal() {
+    document.getElementById('visitResultModal').classList.remove('active');
+    _visitPending = null;
+}
+
+function submitVisitResult() {
+    var value = document.getElementById('visitResultValue').value;
+    if (!value) { showToast('Pilih hasil kunjungan terlebih dahulu', 'error'); return; }
+    var note = document.getElementById('visitNoteInput').value.trim();
+    var pending = _visitPending;
+    if (!pending) { return; }
+    var modal = document.getElementById('visitResultModal');
+    if (modal) modal.classList.remove('active');
+    _visitPending = null;
+    var btn = pending.btn;
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+    var fd = new FormData();
+    fd.append('driver', pending.driver);
+    fd.append('result', value);
+    fd.append('note', note);
+    fetch('/api/appointments/driver-complete/' + pending.id, { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (d.status === 'success') {
+                showToast('✅ ' + (d.msg || 'Selesai dikunjungi'), '');
+                loadAppointmentPanel();
+            } else {
+                showToast('❌ ' + (d.msg || 'Gagal'), 'error');
+                if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+            }
+        })
+        .catch(function() {
+            showToast('❌ Error koneksi', 'error');
+            if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+        });
+}
+
 function fillTripFromAppointments() {
-    if (!completedApps.length) { showToast('Tidak ada appointment selesai', 'error'); return; }
+    if (!myAppointments.length) { showToast('Tidak ada appointment ditugaskan hari ini', 'error'); return; }
     var rowsWrap = document.getElementById('tripRows');
     if (!rowsWrap) return;
 
@@ -979,13 +1072,13 @@ function fillTripFromAppointments() {
     rowsWrap.querySelectorAll('input[name="appointment_id[]"]').forEach(function(h) { h.remove(); });
 
     // Pastikan jumlah row cukup
-    while (rowsWrap.children.length < completedApps.length) addTripRow();
+    while (rowsWrap.children.length < myAppointments.length) addTripRow();
 
     var previousTujuan = null;
     var previousPukul = null;
     var previousKm = null;
-    for (var i = 0; i < completedApps.length; i++) {
-        var a = completedApps[i];
+    for (var i = 0; i < myAppointments.length; i++) {
+        var a = myAppointments[i];
         var row = rowsWrap.children[i];
         if (!row) continue;
         var waktu = a.sesi === '1' ? '08:30' : '14:30';
@@ -1024,7 +1117,7 @@ function fillTripFromAppointments() {
         previousPukul = waktu;
         previousKm = 0;
     }
-    showToast('📥 ' + completedApps.length + ' rute appointment dimuat. Lengkapi KM & pukul bila perlu.', '');
+    showToast('📥 ' + myAppointments.length + ' rute appointment dimuat. Lengkapi KM & pukul bila perlu.', '');
 }
 
 // Panggil panel saat driver/tanggal trip berubah atau tab trip dibuka
@@ -1038,6 +1131,12 @@ var _origSwitchTab3 = switchTab;
 switchTab = function(p) {
     _origSwitchTab3(p);
     if (p === 'trip') setTimeout(loadAppointmentPanel, 100);
+};
+
+// Refresh panel saat ada notifikasi appointment baru dari Chief Driver
+window.__onDriverNotif = function(d) {
+    if (!d) return;
+    if (d.type === 'appointment') setTimeout(loadAppointmentPanel, 400);
 };
 
 addTripRow();

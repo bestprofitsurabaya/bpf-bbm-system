@@ -91,6 +91,7 @@
                 if (!d || !d.driver_name) return;
                 if (activeDriver && d.driver_name !== activeDriver) return;
                 onNewNotification(d);
+                if (window.__onDriverNotif) window.__onDriverNotif(d);
             });
         } catch (e) { socket = null; }
     }

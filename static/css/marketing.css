@@ -259,6 +259,13 @@ textarea.form-control { resize: vertical; min-height: 52px; }
 .badge-assigned { background: var(--primary-light); color: #1d4ed8; }
 .badge-completed { background: var(--success-light); color: #065f46; }
 .badge-cancelled { background: var(--gray-100); color: var(--gray-500); }
+/* Hasil kunjungan (konversi marketing) */
+.badge-result.ditemui { background: #d1fae5; color: #065f46; }
+.badge-result.prospek { background: #dbeafe; color: #1d4ed8; }
+.badge-result.gagal { background: #fee2e2; color: #b91c1c; }
+html.dark .badge-result.ditemui { background: #064e3b; color: #a7f3d0; }
+html.dark .badge-result.prospek { background: rgba(37,99,235,0.25); color: #bfdbfe; }
+html.dark .badge-result.gagal { background: #7f1d1d; color: #fecaca; }
 .badge-area { background: #f1f5f9; color: #334155; }
 .tag-team { background: #eef2ff; color: #4338ca; }
 .appt-alamat { font-size: 12px; color: var(--gray-500); margin-top: 5px; display: flex; gap: 6px; align-items: flex-start; }

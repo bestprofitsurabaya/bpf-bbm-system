@@ -69,6 +69,8 @@ def ensure_appointments_schema():
                 driver_note VARCHAR(255) DEFAULT '',
                 notes VARCHAR(500) DEFAULT '',
                 completed_at DATETIME DEFAULT NULL,
+                visit_result ENUM('ditemui','prospek','gagal') DEFAULT NULL,
+                visit_note VARCHAR(255) DEFAULT '',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_date_sesi (appointment_date, sesi),
@@ -98,6 +100,24 @@ def ensure_appointments_schema():
         _run("""
             ALTER TABLE appointments ADD COLUMN marketing_member VARCHAR(100) DEFAULT ''
         """, cursor, "appointments.marketing_member")
+
+        # --- appointments: hasil kunjungan (visit_result / visit_note) ---
+        _run("""
+            ALTER TABLE appointments ADD COLUMN visit_result ENUM('ditemui','prospek','gagal') DEFAULT NULL
+        """, cursor, "appointments.visit_result")
+        _run("""
+            ALTER TABLE appointments ADD COLUMN visit_note VARCHAR(255) DEFAULT ''
+        """, cursor, "appointments.visit_note")
+
+        # --- trip_masters: display_id (gap init.sql lama; upgrade DB lama) ---
+        _run("""
+            ALTER TABLE trip_masters ADD COLUMN display_id VARCHAR(30) DEFAULT NULL
+        """, cursor, "trip_masters.display_id")
+        # Backfill trip lama yang display_id-nya masih NULL (idempotent)
+        _run("""
+            UPDATE trip_masters SET display_id = CONCAT('TRIP-', id)
+            WHERE display_id IS NULL OR display_id = ''
+        """, cursor, "trip_masters.display_id backfill")
 
         conn.commit()
         cursor.close()
