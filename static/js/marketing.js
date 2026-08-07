@@ -55,6 +55,7 @@
                 '<div><label>Tanggal <span class="req">*</span></label><input type="date" class="form-control entry-date" value="' + currentDate + '"></div>' +
                 '<div><label>No. HP Calon Nasabah</label><input type="tel" class="form-control entry-phone" placeholder="08xxxxxxxxxx" maxlength="30"></div>' +
                 '<div class="full"><label>Nama Calon Nasabah <span class="req">*</span></label><input type="text" class="form-control entry-name" placeholder="Nama calon nasabah..."></div>' +
+                '<div class="full"><label>Nama Marketing <span class="req">*</span></label><input type="text" class="form-control entry-member" list="memberList" placeholder="Nama anggota tim yang memprospek (ketik utk pilih saran)..."></div>' +
                 '<div class="full"><label>Alamat Lengkap <span class="req">*</span></label>' +
                     '<textarea class="form-control entry-alamat" rows="2" placeholder="Ketik alamat, sistem akan mendeteksi area/wilayah otomatis..."></textarea>' +
                     '<span class="area-chip">📍 <span class="area-text"></span></span>' +
@@ -125,6 +126,7 @@
     function validateEntry(entry) {
         var errs = [];
         if (!entry.querySelector('.entry-name').value.trim()) errs.push('nama nasabah');
+        if (!entry.querySelector('.entry-member').value.trim()) errs.push('nama marketing');
         if (!entry.querySelector('.entry-alamat').value.trim()) errs.push('alamat');
         if (!entry.querySelector('.sesi-btn.active')) errs.push('sesi');
         if (!entry.querySelector('.entry-date').value) errs.push('tanggal');
@@ -147,6 +149,7 @@
             var sesiBtn = entry.querySelector('.sesi-btn.active');
             items.push({
                 nasabah_name: entry.querySelector('.entry-name').value.trim(),
+                marketing_member: entry.querySelector('.entry-member').value.trim(),
                 nasabah_phone: entry.querySelector('.entry-phone').value.trim(),
                 alamat: entry.querySelector('.entry-alamat').value.trim(),
                 sesi: sesiBtn.dataset.sesi,
@@ -242,6 +245,7 @@
                         '</div>' +
                         '<div class="appt-alamat">📍 ' + escapeHtml(r.alamat) + '</div>' +
                         '<div class="appt-meta">' +
+                            (r.marketing_member ? '<span class="appt-member">👤 Marketing: ' + escapeHtml(r.marketing_member) + '</span>' : '') +
                             (r.nasabah_phone ? '<span>📞 ' + escapeHtml(r.nasabah_phone) + '</span>' : '') +
                             '<span>🆔 ' + escapeHtml(r.display_id) + '</span>' +
                             (r.driver_name ? '<span class="appt-driver">🚗 ' + escapeHtml(r.driver_name) + '</span>' : '') +
@@ -273,7 +277,24 @@
             });
     }
 
-    function reloadAll() { loadList(); loadNotifications(); }
+    function reloadAll() { loadList(); loadNotifications(); loadMembers(); }
+
+    // ============================================================
+    // MARKETING MEMBERS (nama anggota tim yang memprospek)
+    // ============================================================
+    function loadMembers() {
+        fetch('/api/marketing/members')
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                var members = (d && d.members) || [];
+                var dl = document.getElementById('memberList');
+                if (!dl) return;
+                dl.innerHTML = members.map(function (m) {
+                    return '<option value="' + escapeHtml(m) + '"></option>';
+                }).join('');
+            })
+            .catch(function () {});
+    }
 
     function shiftDate(n) {
         var d = new Date(currentDate + 'T00:00:00');
@@ -317,6 +338,7 @@
         document.getElementById('editId').value = row.id;
         document.getElementById('editDisplayId').textContent = row.display_id;
         document.getElementById('editName').value = row.nasabah_name;
+        document.getElementById('editMember').value = row.marketing_member || '';
         document.getElementById('editPhone').value = row.nasabah_phone || '';
         document.getElementById('editAlamat').value = row.alamat;
         document.getElementById('editNotes').value = row.notes || '';
@@ -332,13 +354,16 @@
         var id = document.getElementById('editId').value;
         var payload = {
             nasabah_name: document.getElementById('editName').value.trim(),
+            marketing_member: document.getElementById('editMember').value.trim(),
             nasabah_phone: document.getElementById('editPhone').value.trim(),
             alamat: document.getElementById('editAlamat').value.trim(),
             notes: document.getElementById('editNotes').value.trim()
         };
         var sesiBtn = document.getElementById('editSesiWrap').querySelector('.sesi-btn.active');
         if (sesiBtn) payload.sesi = sesiBtn.dataset.sesi;
-        if (!payload.nasabah_name || !payload.alamat) { toast('Nama dan alamat wajib', 'err'); return; }
+        if (!payload.nasabah_name || !payload.alamat || !payload.marketing_member) {
+            toast('Nama nasabah, nama marketing, dan alamat wajib', 'err'); return;
+        }
         api('/api/appointments/' + id, { method: 'PATCH', body: payload })
             .then(function (d) {
                 if (d.status === 'success') { toast('✅ ' + d.msg, 'ok'); closeEdit(); reloadAll(); }

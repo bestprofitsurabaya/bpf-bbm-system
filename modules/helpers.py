@@ -379,6 +379,59 @@ def get_or_create_team(name, leader_name=''):
     return name
 
 
+def register_marketing_member(team_name, member_name):
+    """Auto-register anggota tim marketing ke tabel marketing_members.
+
+    Setiap nama marketing yang dipakai saat input appointment dicatat sekali
+    (per tim) sehingga bisa jadi daftar saran (datalist) pada input berikutnya.
+    """
+    team_name = (team_name or '').strip()
+    member_name = (member_name or '').strip()
+    if not member_name:
+        return False
+    from modules.config import get_db_connection
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return False
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO marketing_members (team_name, member_name, is_active) "
+            "VALUES (%s, %s, 1) "
+            "ON DUPLICATE KEY UPDATE is_active=1, updated_at=NOW()",
+            (team_name, member_name)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"register_marketing_member error: {e}")
+        return False
+
+
+def get_team_members(team_name):
+    """Daftar anggota marketing aktif untuk satu tim (untuk saran input)."""
+    team_name = (team_name or '').strip()
+    from modules.config import get_db_connection
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return []
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT member_name FROM marketing_members "
+            "WHERE team_name=%s AND is_active=1 ORDER BY member_name",
+            (team_name,))
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return [r['member_name'] for r in rows]
+    except Exception as e:
+        print(f"get_team_members error: {e}")
+        return []
+
+
 def validate_appointment_input(item):
     """Validasi satu item input appointment.
 
@@ -391,6 +444,7 @@ def validate_appointment_input(item):
     tanggal = str(item.get('appointment_date', '') or item.get('date', '') or '').strip()
     phone = str(item.get('nasabah_phone', '') or '').strip()
     notes = str(item.get('notes', '') or '').strip()
+    member = str(item.get('marketing_member', '') or '').strip()
 
     if not nasabah:
         errors['nasabah_name'] = 'Nama calon nasabah wajib diisi'
@@ -402,10 +456,14 @@ def validate_appointment_input(item):
         errors['sesi'] = 'Pilih sesi (1 = 08.30 atau 2 = 14.30)'
     if not tanggal:
         errors['appointment_date'] = 'Tanggal appointment wajib diisi'
+    if not member:
+        errors['marketing_member'] = 'Nama marketing yang memprospek wajib diisi'
     if len(nasabah) > 150:
         errors['nasabah_name'] = 'Nama maksimal 150 karakter'
     if len(phone) > 30:
         errors['nasabah_phone'] = 'No. HP maksimal 30 karakter'
+    if len(member) > 100:
+        errors['marketing_member'] = 'Nama marketing maksimal 100 karakter'
 
     normalized = {
         'nasabah_name': nasabah,
@@ -414,5 +472,6 @@ def validate_appointment_input(item):
         'sesi': sesi,
         'appointment_date': tanggal,
         'notes': notes[:500],
+        'marketing_member': member,
     }
     return (not errors, errors, normalized)

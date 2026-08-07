@@ -40,7 +40,7 @@
         <div class="hero">
             <div>
                 <div class="hero-title">🚛 Chief Driver Command Center</div>
-                <div class="hero-sub">Pembagian tugas driver berdasarkan <strong>area alamat</strong> yang dikelola otomatis oleh sistem.</div>
+                <div class="hero-sub">Pembagian tugas driver berdasarkan <strong>area alamat</strong> (deteksi otomatis, bisa <strong>diatur manual</strong> dengan tombol 🌍).</div>
             </div>
             <button class="btn btn-export" id="exportBtn" onclick="exportExcel()">📥 Unduh Rekap Excel</button>
         </div>
@@ -51,6 +51,16 @@
             <input type="date" id="dateInput" value="{{ today }}" onchange="onDateChange()">
             <button class="date-today" onclick="goToday()">Hari Ini</button>
             <button class="date-arrow" onclick="shiftDate(1)" title="Besok">▶</button>
+        </div>
+
+        <!-- MEMBER FILTER -->
+        <div class="filter-bar" id="memberFilterBar">
+            <span class="filter-label">👤 Filter Marketing Anggota:</span>
+            <input type="text" id="memberFilter" class="form-control" list="memberFilterList"
+                   placeholder="Ketik nama anggota / pilih..." autocomplete="off" oninput="onMemberFilterInput()">
+            <datalist id="memberFilterList"></datalist>
+            <button class="btn btn-outline btn-sm" onclick="clearMemberFilter()" title="Hapus filter marketing">✕ Hapus</button>
+            <span class="filter-info" id="memberFilterInfo" style="display:none;"></span>
         </div>
 
         <!-- STATS -->
@@ -70,6 +80,34 @@
                 <span class="badge badge-completed">✅ Selesai</span> otomatis muncul di form
                 <strong>Log Perjalanan (Trip)</strong> driver pada tanggal yang sama untuk diisi rutenya.
                 Total perjalanan selesai: <strong id="integratedCount">0</strong> hari ini.
+            </div>
+        </div>
+
+        <!-- MEMBER SUMMARY -->
+        <div class="board-section" id="memberSummaryWrap" style="display:none;">
+            <div class="board-head">
+                <span>📊 Ringkasan per Marketing Anggota</span>
+                <span class="board-count" id="memberSummaryCount">0</span>
+            </div>
+            <div class="member-summary-card">
+                <div class="member-summary-scroll">
+                    <table class="member-summary-table">
+                        <thead>
+                            <tr>
+                                <th>👤 Marketing Anggota</th>
+                                <th>📋 Total</th>
+                                <th>⏳ Menunggu</th>
+                                <th>🚗 Ditugaskan</th>
+                                <th>✅ Selesai</th>
+                                <th>✕ Batal</th>
+                                <th>🌅 Sesi 1</th>
+                                <th>🌆 Sesi 2</th>
+                            </tr>
+                        </thead>
+                        <tbody id="memberSummaryBody"><tr><td colspan="8" class="empty-row">Memuat...</td></tr></tbody>
+                    </table>
+                </div>
+                <div class="member-summary-hint">💡 Klik baris anggota untuk memfilter board berdasarkan anggota tersebut.</div>
             </div>
         </div>
 

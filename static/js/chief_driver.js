@@ -8,6 +8,8 @@
     var allDrivers = [];
     var suggestions = { '1': null, '2': null };
     var reloadTimer = null;
+    var areaLookup = {};
+    var memberFilter = '';
 
     function getCSRF() {
         var m = document.querySelector('meta[name="csrf-token"]');
@@ -59,6 +61,20 @@
             .catch(function () {});
     }
 
+    function loadMembers() {
+        return fetch('/api/marketing/members')
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                var options = (d && d.members) || [];
+                var dl = document.getElementById('memberFilterList');
+                if (!dl) return;
+                dl.innerHTML = options.map(function (m) {
+                    return '<option value="' + escapeHtml(m) + '"></option>';
+                }).join('');
+            })
+            .catch(function () {});
+    }
+
     function driverOptions(selected) {
         var opts = '<option value="">-- Pilih Driver --</option>';
         allDrivers.forEach(function (d) {
@@ -72,13 +88,73 @@
         Promise.all([
             loadDrivers(),
             loadSuggestions(),
-            fetch('/api/appointments?date=' + currentDate).then(function (r) { return r.json(); }),
-            fetch('/api/appointments/driver-summary?date=' + currentDate).then(function (r) { return r.json(); })
+            loadMembers(),
+            fetch('/api/appointments?date=' + currentDate + (memberFilter ? '&member=' + encodeURIComponent(memberFilter) : '')).then(function (r) { return r.json(); }),
+            fetch('/api/appointments/driver-summary?date=' + currentDate).then(function (r) { return r.json(); }),
+            fetch('/api/appointments/member-summary?date=' + currentDate).then(function (r) { return r.json(); })
         ]).then(function (results) {
-            renderAll(results[2]);
+            // Urutan results: 0=drivers, 1=suggestions, 2=members, 3=appointments, 4=driver-summary, 5=member-summary
+            renderAll(results[3]);
             document.getElementById('integratedCount').textContent =
-                (results[3] && results[3].completed) || 0;
+                (results[4] && results[4].completed) || 0;
+            renderMemberSummary((results[5] && results[5].members) || []);
         }).catch(function () {});
+    }
+
+    var memberFilterTimer = null;
+    function applyMemberFilter(name) {
+        clearTimeout(memberFilterTimer);
+        document.getElementById('memberFilter').value = name;
+        memberFilter = name;
+        var info = document.getElementById('memberFilterInfo');
+        if (memberFilter) {
+            info.textContent = '👤 Menampilkan: ' + memberFilter;
+            info.style.display = 'inline-block';
+        } else {
+            info.style.display = 'none';
+        }
+        loadAll();
+    }
+
+    function onMemberFilterInput() {
+        clearTimeout(memberFilterTimer);
+        memberFilterTimer = setTimeout(function () {
+            applyMemberFilter(document.getElementById('memberFilter').value.trim());
+        }, 300);
+    }
+
+    function clearMemberFilter() {
+        applyMemberFilter('');
+    }
+
+    // ============================================================
+    // MEMBER SUMMARY (ringkasan statistik per anggota)
+    // ============================================================
+    function renderMemberSummary(list) {
+        var wrap = document.getElementById('memberSummaryWrap');
+        var tbody = document.getElementById('memberSummaryBody');
+        if (!wrap || !tbody) return;
+        if (!list || !list.length) {
+            wrap.style.display = 'none';
+            return;
+        }
+        wrap.style.display = '';
+        document.getElementById('memberSummaryCount').textContent = list.length;
+        var html = '';
+        list.forEach(function (m) {
+            var active = memberFilter && memberFilter.toLowerCase() === m.marketing_member.toLowerCase();
+            html += '<tr class="' + (active ? 'active' : '') + '" data-member="' + escapeHtml(m.marketing_member) + '">' +
+                '<td class="member-name">👤 ' + escapeHtml(m.marketing_member) + '</td>' +
+                '<td class="num total">' + m.total + '</td>' +
+                '<td class="num">' + m.scheduled + '</td>' +
+                '<td class="num">' + m.assigned + '</td>' +
+                '<td class="num done">' + m.completed + '</td>' +
+                '<td class="num">' + m.cancelled + '</td>' +
+                '<td class="num">' + m.sesi1 + '</td>' +
+                '<td class="num">' + m.sesi2 + '</td>' +
+            '</tr>';
+        });
+        tbody.innerHTML = html;
     }
 
     // ============================================================
@@ -87,6 +163,8 @@
     function renderAll(data) {
         var rows = (data && data.data) || [];
         var stats = (data && data.stats) || {};
+        areaLookup = {};
+        rows.forEach(function (r) { areaLookup[r.id] = r.area || 'Lainnya'; });
 
         document.getElementById('statTotal').textContent = stats.total || 0;
         document.getElementById('statScheduled').textContent = stats.scheduled || 0;
@@ -148,11 +226,12 @@
             '<div class="appt-meta">' +
                 '<span class="badge badge-area">' + escapeHtml(r.area || 'Lainnya') + '</span>' +
                 (r.nasabah_phone ? '<span class="badge" style="background:#f1f5f9;color:#334155;">📞 ' + escapeHtml(r.nasabah_phone) + '</span>' : '') +
-                '<span class="badge badge-team">👤 ' + escapeHtml(r.marketing_name) + '</span>' +
+                (r.marketing_member ? '<span class="badge badge-team">👤 ' + escapeHtml(r.marketing_member) + '</span>' : '') +
             '</div>' +
             '<div class="appt-actions" style="display:flex;gap:6px;">' +
                 '<select class="form-control" id="sel-' + r.id + '" style="flex:1;">' + driverOptions(suggestSelected) + '</select>' +
                 '<button class="btn btn-primary" onclick="window.__cdAssign(' + r.id + ')">Tugaskan</button>' +
+                '<button class="btn btn-outline" onclick="window.__cdArea(' + r.id + ')" title="Atur area/wilayah manual">🌍</button>' +
                 '<button class="btn btn-danger" onclick="window.__cdCancel(' + r.id + ')" title="Batalkan appointment">✕</button>' +
             '</div>' +
         '</div>';
@@ -188,11 +267,12 @@
                     '<div class="appt-alamat">📍 ' + escapeHtml(r.alamat) + '</div>' +
                     '<div class="appt-meta">' +
                         '<span class="badge badge-area">' + escapeHtml(r.area || 'Lainnya') + '</span>' +
-                        '<span class="badge badge-team">👤 ' + escapeHtml(r.marketing_name) + '</span>' +
+                        (r.marketing_member ? '<span class="badge badge-team">👤 ' + escapeHtml(r.marketing_member) + '</span>' : '') +
                     '</div>' +
                     '<div class="appt-actions">' +
                         '<button class="btn btn-success" onclick="window.__cdComplete(' + r.id + ')">✅ Selesai</button>' +
                         '<button class="btn btn-warning" onclick="window.__cdReassign(' + r.id + ')">🔄 Ganti</button>' +
+                        '<button class="btn btn-outline" onclick="window.__cdArea(' + r.id + ')" title="Atur area/wilayah manual">🌍</button>' +
                         '<button class="btn btn-outline" onclick="window.__cdUnassign(' + r.id + ')">↩️</button>' +
                         '<button class="btn btn-danger" onclick="window.__cdCancel(' + r.id + ')">✕</button>' +
                     '</div>' +
@@ -273,6 +353,20 @@
             .catch(function () { toast('❌ Error koneksi', 'err'); });
     };
 
+    window.__cdArea = function (id) {
+        var current = areaLookup[id] || 'Lainnya';
+        var area = prompt('Atur area/wilayah manual untuk appointment ini:', current);
+        if (area === null) return;
+        area = area.trim();
+        if (!area) { toast('Area tidak boleh kosong', 'err'); return; }
+        api('/api/appointments/' + id, { method: 'PATCH', body: { area: area } })
+            .then(function (d) {
+                if (d.status === 'success') { toast('✅ Area diperbarui: ' + area, 'ok'); loadAll(); }
+                else toast('❌ ' + (d.msg || 'Gagal'), 'err');
+            })
+            .catch(function () { toast('❌ Error koneksi', 'err'); });
+    };
+
     var reassignId = null;
     window.__cdReassign = function (id) {
         reassignId = id;
@@ -328,7 +422,8 @@
     }
 
     function exportExcel() {
-        window.location.href = '/api/appointments/export?date=' + currentDate;
+        window.location.href = '/api/appointments/export?date=' + currentDate +
+            (memberFilter ? '&member=' + encodeURIComponent(memberFilter) : '');
     }
 
     // ============================================================
@@ -362,6 +457,13 @@
     document.getElementById('reassignModal').addEventListener('click', function (e) { if (e.target === this) closeReassign(); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeReassign(); });
 
+    // Klik baris ringkasan anggota -> filter board
+    document.getElementById('memberSummaryBody').addEventListener('click', function (e) {
+        var tr = e.target.closest('tr[data-member]');
+        if (tr) applyMemberFilter(tr.getAttribute('data-member'));
+    });
+
+    loadMembers();
     loadAll();
     initSocket();
 
@@ -369,5 +471,7 @@
     window.shiftDate = shiftDate;
     window.goToday = goToday;
     window.onDateChange = onDateChange;
+    window.onMemberFilterInput = onMemberFilterInput;
+    window.clearMemberFilter = clearMemberFilter;
     window.exportExcel = exportExcel;
 })();

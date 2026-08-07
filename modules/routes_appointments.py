@@ -14,7 +14,8 @@ from modules.config import get_db_connection
 from modules.helpers import (role_required, log_activity_async,
                              generate_appointment_display_id,
                              validate_appointment_input, detect_area,
-                             get_or_create_team)
+                             get_or_create_team, register_marketing_member,
+                             get_team_members)
 from modules.realtime import emit_event
 
 
@@ -107,6 +108,7 @@ def register_appointment_routes(app):
             team = request.args.get('team', '').strip()
             driver = request.args.get('driver', '').strip()
             marketing = request.args.get('marketing', '').strip()
+            member = request.args.get('member', '').strip()
 
             conn = get_db_connection()
             if not conn:
@@ -128,6 +130,9 @@ def register_appointment_routes(app):
                 if driver:
                     where.append("driver_name = %s")
                     params.append(driver)
+            if member:
+                where.append("marketing_member LIKE %s")
+                params.append(f"%{member}%")
             if sesi in ('1', '2'):
                 where.append("sesi = %s")
                 params.append(sesi)
@@ -140,12 +145,15 @@ def register_appointment_routes(app):
                 " ORDER BY sesi ASC, created_at ASC", params)
             rows = [_clean(r) for r in cursor.fetchall()]
 
-            # Stats ringkas untuk tanggal tersebut (selalu untuk scope user)
+            # Stats ringkas untuk tanggal tersebut (selalu untuk scope user + filter member)
             stats_where = ["appointment_date = %s"]
             stats_params = [target_date]
             if session.get('user_role') == 'marketing':
                 stats_where.append("marketing_username = %s")
                 stats_params.append(session.get('user_name'))
+            if member:
+                stats_where.append("marketing_member LIKE %s")
+                stats_params.append(f"%{member}%")
             cursor.execute(
                 "SELECT status, sesi, COUNT(*) c FROM appointments WHERE " +
                 " AND ".join(stats_where) + " GROUP BY status, sesi", stats_params)
@@ -226,15 +234,16 @@ def register_appointment_routes(app):
                     errors.append(errs)
                     continue
                 area = detect_area(norm['alamat'])
+                register_marketing_member(team_name, norm['marketing_member'])
                 display_id = generate_appointment_display_id(conn)
                 cursor.execute(
                     """INSERT INTO appointments
-                       (display_id, marketing_username, marketing_name, team_name,
-                        nasabah_name, nasabah_phone, alamat, area,
+                       (display_id, marketing_username, marketing_name, marketing_member,
+                        team_name, nasabah_name, nasabah_phone, alamat, area,
                         appointment_date, sesi, status, notes)
-                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'scheduled',%s)""",
-                    (display_id, user['username'], user['full_name'], team_name,
-                     norm['nasabah_name'], norm['nasabah_phone'], norm['alamat'], area,
+                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'scheduled',%s)""",
+                    (display_id, user['username'], user['full_name'], norm['marketing_member'],
+                     team_name, norm['nasabah_name'], norm['nasabah_phone'], norm['alamat'], area,
                      norm['appointment_date'], norm['sesi'], norm['notes']))
                 created.append({
                     'id': cursor.lastrowid,
@@ -297,8 +306,10 @@ def register_appointment_routes(app):
 
                 # Bangun data gabungan (existing + perubahan) lalu validasi ulang
                 candidate = {k: (row[k] or '') for k in
-                             ('nasabah_name', 'nasabah_phone', 'alamat', 'sesi', 'appointment_date', 'notes')}
-                for field in ('nasabah_name', 'nasabah_phone', 'alamat', 'sesi', 'appointment_date', 'notes'):
+                             ('nasabah_name', 'nasabah_phone', 'alamat', 'sesi',
+                              'appointment_date', 'notes', 'marketing_member')}
+                for field in ('nasabah_name', 'nasabah_phone', 'alamat', 'sesi',
+                              'appointment_date', 'notes', 'marketing_member'):
                     if field in data:
                         candidate[field] = str(data[field]).strip()
                 valid, errs, norm = validate_appointment_input(candidate)
@@ -309,10 +320,13 @@ def register_appointment_routes(app):
 
                 fields = []
                 params = []
-                for field in ('nasabah_name', 'nasabah_phone', 'alamat', 'sesi', 'appointment_date', 'notes'):
+                for field in ('nasabah_name', 'nasabah_phone', 'alamat', 'sesi',
+                              'appointment_date', 'notes', 'marketing_member'):
                     if field in data:
                         fields.append(f"{field} = %s")
                         params.append(norm[field])
+                if 'marketing_member' in data:
+                    register_marketing_member(row['team_name'] or '', norm['marketing_member'])
                 if 'alamat' in data:
                     fields.append("area = %s")
                     params.append(detect_area(norm['alamat']))
@@ -330,14 +344,39 @@ def register_appointment_routes(app):
                 return jsonify({'status': 'success', 'msg': 'Appointment diperbarui'})
             else:
                 # Chief driver / GA / Admin: boleh update catatan driver
+                # dan override area secara manual (perbaikan zona dari sistem).
+                updates = []
+                params = []
+                area_changed = None
                 if 'driver_note' in data:
-                    cursor.execute("UPDATE appointments SET driver_note=%s, updated_at=NOW() WHERE id=%s",
-                                   (str(data['driver_note']).strip()[:255], appt_id))
-                    conn.commit()
+                    updates.append("driver_note=%s")
+                    params.append(str(data['driver_note']).strip()[:255])
+                if 'area' in data:
+                    area_changed = str(data['area']).strip()[:100]
+                    if not area_changed:
+                        cursor.close(); conn.close()
+                        return jsonify({'status': 'error', 'msg': 'Area tidak boleh kosong'}), 400
+                    updates.append("area=%s")
+                    params.append(area_changed)
+                if not updates:
                     cursor.close(); conn.close()
-                    return jsonify({'status': 'success', 'msg': 'Catatan driver diperbarui'})
+                    return jsonify({'status': 'error', 'msg': 'Tidak ada field yang diubah'}), 400
+                params.append(appt_id)
+                cursor.execute(
+                    "UPDATE appointments SET " + ", ".join(updates) + ", updated_at=NOW() WHERE id=%s",
+                    params)
+                conn.commit()
+                user = _current_user()
+                log_activity_async(appt_id, 'appointment_area_edit', user['role'],
+                                   user['full_name'], new_data={'area': area_changed},
+                                   ip=request.remote_addr)
                 cursor.close(); conn.close()
-                return jsonify({'status': 'error', 'msg': 'Tidak ada field yang diubah'}), 400
+                if area_changed:
+                    emit_event('appointment_update',
+                               {'action': 'area_changed', 'id': appt_id, 'area': area_changed,
+                                'date': str(row['appointment_date'])},
+                               room='appointments_board')
+                return jsonify({'status': 'success', 'msg': 'Appointment diperbarui'})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
 
@@ -584,6 +623,43 @@ def register_appointment_routes(app):
             return jsonify({'error': str(e)}), 500
 
     # ================================================================
+    # MEMBER SUMMARY (ringkasan per marketing anggota untuk board chief driver)
+    # ================================================================
+    @app.route('/api/appointments/member-summary')
+    @role_required(['chief_driver', 'ga', 'admin'])
+    def api_member_summary():
+        try:
+            target_date = request.args.get('date', '').strip() or date.today().isoformat()
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'error': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(
+                """SELECT marketing_member,
+                          COUNT(*) AS total,
+                          SUM(status='scheduled') AS scheduled,
+                          SUM(status='assigned') AS assigned,
+                          SUM(status='completed') AS completed,
+                          SUM(status='cancelled') AS cancelled,
+                          SUM(sesi='1') AS sesi1,
+                          SUM(sesi='2') AS sesi2
+                   FROM appointments
+                   WHERE appointment_date=%s AND marketing_member<>''
+                   GROUP BY marketing_member
+                   ORDER BY total DESC, marketing_member ASC""",
+                (target_date,))
+            rows = []
+            for r in cursor.fetchall():
+                row = {'marketing_member': r['marketing_member']}
+                for k in ('total', 'scheduled', 'assigned', 'completed', 'cancelled', 'sesi1', 'sesi2'):
+                    row[k] = int(r.get(k) or 0)
+                rows.append(row)
+            cursor.close(); conn.close()
+            return jsonify({'date': target_date, 'members': rows})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    # ================================================================
     # DETECT AREA (preview alamat -> zona)
     # ================================================================
     @app.route('/api/appointments/detect-area')
@@ -599,13 +675,19 @@ def register_appointment_routes(app):
     def api_export_appointments():
         try:
             target_date = request.args.get('date', '').strip() or date.today().isoformat()
+            member = request.args.get('member', '').strip()
             conn = get_db_connection()
             if not conn:
                 return "DB error", 500
             cursor = conn.cursor(dictionary=True)
+            where = "appointment_date=%s"
+            params = [target_date]
+            if member:
+                where += " AND marketing_member LIKE %s"
+                params.append(f"%{member}%")
             cursor.execute(
-                "SELECT * FROM appointments WHERE appointment_date=%s ORDER BY sesi ASC, created_at ASC",
-                (target_date,))
+                "SELECT * FROM appointments WHERE " + where + " ORDER BY sesi ASC, created_at ASC",
+                params)
             rows = [_clean(r) for r in cursor.fetchall()]
             cursor.close(); conn.close()
 
@@ -660,6 +742,36 @@ def register_appointment_routes(app):
             return jsonify({'status': 'success', 'msg': 'Notifikasi dibaca'})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    # ================================================================
+    # MARKETING MEMBERS (anggota tim yang memprospek)
+    # ================================================================
+    @app.route('/api/marketing/members')
+    @role_required(['marketing', 'chief_driver', 'ga', 'admin'])
+    def api_marketing_members():
+        try:
+            team = request.args.get('team', '').strip()
+            if not team:
+                if session.get('user_role') == 'marketing':
+                    # Marketing: hanya anggota timnya sendiri (untuk saran input)
+                    team = _user_team_name(session.get('user_name'))
+                    members = get_team_members(team)
+                else:
+                    # Chief driver / GA / Admin: semua anggota lintas tim (untuk filter board)
+                    conn = get_db_connection()
+                    if not conn:
+                        return jsonify({'error': 'DB error'}), 500
+                    cursor = conn.cursor(dictionary=True)
+                    cursor.execute(
+                        "SELECT DISTINCT member_name FROM marketing_members "
+                        "WHERE is_active=1 AND member_name<>'' ORDER BY member_name")
+                    members = [r['member_name'] for r in cursor.fetchall()]
+                    cursor.close(); conn.close()
+            else:
+                members = get_team_members(team)
+            return jsonify({'members': members})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
 
     # ================================================================
     # MARKETING TEAMS

@@ -79,6 +79,7 @@ class TestValidasiInput:
     def test_valid_input(self):
         ok, errs, norm = validate_appointment_input({
             'nasabah_name': 'Budi Santoso',
+            'marketing_member': 'Icang',
             'nasabah_phone': '08123456789',
             'alamat': 'Jl. Darmo 10, Surabaya',
             'sesi': '1',
@@ -87,44 +88,54 @@ class TestValidasiInput:
         })
         assert ok, errs
         assert norm['nasabah_name'] == 'Budi Santoso'
+        assert norm['marketing_member'] == 'Icang'
         assert norm['sesi'] == '1'
         assert norm['appointment_date'] == '2026-08-08'
 
+    def test_missing_marketing_member(self):
+        ok, errs, _ = validate_appointment_input({
+            'nasabah_name': 'A', 'alamat': 'Jl. A', 'sesi': '1',
+            'appointment_date': '2026-08-08',
+        })
+        assert not ok
+        assert 'marketing_member' in errs
+
     def test_missing_nama(self):
         ok, errs, _ = validate_appointment_input({
-            'nasabah_name': '', 'alamat': 'Jl. A', 'sesi': '1',
-            'appointment_date': '2026-08-08',
+            'nasabah_name': '', 'marketing_member': 'Icang', 'alamat': 'Jl. A',
+            'sesi': '1', 'appointment_date': '2026-08-08',
         })
         assert not ok
         assert 'nasabah_name' in errs
 
     def test_missing_alamat(self):
         ok, errs, _ = validate_appointment_input({
-            'nasabah_name': 'A', 'alamat': '   ', 'sesi': '1',
-            'appointment_date': '2026-08-08',
+            'nasabah_name': 'A', 'marketing_member': 'Icang', 'alamat': '   ',
+            'sesi': '1', 'appointment_date': '2026-08-08',
         })
         assert not ok
         assert 'alamat' in errs
 
     def test_missing_sesi(self):
         ok, errs, _ = validate_appointment_input({
-            'nasabah_name': 'A', 'alamat': 'Jl. A', 'sesi': '',
-            'appointment_date': '2026-08-08',
+            'nasabah_name': 'A', 'marketing_member': 'Icang', 'alamat': 'Jl. A',
+            'sesi': '', 'appointment_date': '2026-08-08',
         })
         assert not ok
         assert 'sesi' in errs
 
     def test_sesi_invalid(self):
         ok, errs, _ = validate_appointment_input({
-            'nasabah_name': 'A', 'alamat': 'Jl. A', 'sesi': '3',
-            'appointment_date': '2026-08-08',
+            'nasabah_name': 'A', 'marketing_member': 'Icang', 'alamat': 'Jl. A',
+            'sesi': '3', 'appointment_date': '2026-08-08',
         })
         assert not ok
         assert 'sesi' in errs
 
     def test_missing_date(self):
         ok, errs, _ = validate_appointment_input({
-            'nasabah_name': 'A', 'alamat': 'Jl. A', 'sesi': '2',
+            'nasabah_name': 'A', 'marketing_member': 'Icang', 'alamat': 'Jl. A',
+            'sesi': '2',
         })
         assert not ok
         assert 'appointment_date' in errs
@@ -132,12 +143,14 @@ class TestValidasiInput:
     def test_trims_whitespace(self):
         ok, errs, norm = validate_appointment_input({
             'nasabah_name': '  Andi  ',
+            'marketing_member': '  Icang  ',
             'alamat': '  Jl. Rungkut  ',
             'sesi': '2',
             'appointment_date': '2026-08-08',
         })
         assert ok, errs
         assert norm['nasabah_name'] == 'Andi'
+        assert norm['marketing_member'] == 'Icang'
         assert norm['alamat'] == 'Jl. Rungkut'
 
 

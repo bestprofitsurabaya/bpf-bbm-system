@@ -221,20 +221,20 @@ def generate_appointment_report(target_date, rows):
     header_font = Font(name='Arial', bold=True, size=9, color='FFFFFF')
     normal_font = Font(name='Arial', size=9)
 
-    widths = {'A': 4, 'B': 13, 'C': 24, 'D': 16, 'E': 42, 'F': 18, 'G': 16, 'H': 16, 'I': 20}
+    widths = {'A': 4, 'B': 13, 'C': 24, 'D': 16, 'E': 42, 'F': 18, 'G': 16, 'H': 16, 'I': 20, 'J': 20}
     for col, width in widths.items():
         ws.column_dimensions[col].width = width
 
-    ws.merge_cells('A1:I1')
+    ws.merge_cells('A1:J1')
     ws['A1'] = 'LAPORAN APPOINTMENT HARIAN'
     ws['A1'].font = title_font
     ws['A1'].alignment = Alignment(horizontal='center')
-    ws.merge_cells('A2:I2')
+    ws.merge_cells('A2:J2')
     ws['A2'] = f'Tanggal: {target_date}  •  PT. BESTPROFIT FUTURES - Cab. Surabaya'
     ws['A2'].font = subtitle_font
     ws['A2'].alignment = Alignment(horizontal='center')
 
-    headers = ['No', 'Sesi', 'Nama Nasabah', 'No. HP', 'Alamat', 'Area', 'Tim', 'Marketing', 'Driver']
+    headers = ['No', 'Sesi', 'Nama Nasabah', 'No. HP', 'Alamat', 'Area', 'Tim', 'Marketing Akun', 'Marketing Anggota', 'Driver']
     for col_idx, h in enumerate(headers, 1):
         cell = ws.cell(row=4, column=col_idx, value=h)
         cell.font = header_font
@@ -249,7 +249,8 @@ def generate_appointment_report(target_date, rows):
         values = [
             i, sesi_label, r.get('nasabah_name', '-'), r.get('nasabah_phone', '-'),
             r.get('alamat', '-'), r.get('area', '-'), r.get('team_name', '-'),
-            r.get('marketing_name', '-'), r.get('driver_name') or 'Belum Ditugaskan',
+            r.get('marketing_name', '-'), r.get('marketing_member', '-'),
+            r.get('driver_name') or 'Belum Ditugaskan',
         ]
         for col_idx, val in enumerate(values, 1):
             cell = ws.cell(row=4 + i, column=col_idx, value=val)
@@ -259,7 +260,7 @@ def generate_appointment_report(target_date, rows):
                 cell.alignment = Alignment(horizontal='center')
 
     summary_row = 5 + len(rows) + 1
-    ws.merge_cells(f'A{summary_row}:I{summary_row}')
+    ws.merge_cells(f'A{summary_row}:J{summary_row}')
     ws[f'A{summary_row}'] = (
         f"RINGKASAN: Total {len(rows)} | Menunggu {status_counts['scheduled']} | "
         f"Ditugaskan {status_counts['assigned']} | Selesai {status_counts['completed']} | "

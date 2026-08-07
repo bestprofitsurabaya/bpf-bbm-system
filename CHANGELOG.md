@@ -6,6 +6,37 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [1.2.1] - 2026-08-07
+
+### ✨ Fitur Baru
+
+#### 👤 Nama Marketing Anggota per Appointment
+- Kolom baru `appointments.marketing_member` + tabel `marketing_members` (auto-register saat input).
+- Satu akun marketing (level manager, mis. Icang Tim Yusie) bisa input appointment untuk **banyak anggota tim** — wajib mencantumkan **nama marketing yang memprospek**.
+- Form & modal edit marketing: field **Nama Marketing** dengan **datalist saran** (nama anggota yang sudah pernah dipakai di tim tersebut).
+- Kartu appointment (Marketing & Chief Driver) menampilkan badge 👤 nama marketing anggota; kolom baru **"Marketing Anggota"** di Rekap Excel harian.
+- Endpoint baru `GET /api/marketing/members?team=...` untuk daftar anggota per tim.
+
+#### 🌍 Override Area Manual oleh Chief Driver
+- Tombol 🌍 di kartu appointment (Belum Ditugaskan & Tugas Per Driver) → Chief Driver/GA/Admin bisa **mengubah area hasil deteksi otomatis** secara manual (mis. koreksi zona, alamat daerah baru).
+- Perubahan area terekam di audit log (`appointment_area_edit`) + real-time ke board.
+
+#### 👤 Filter Marketing Anggota di Chief Driver
+- **Filter bar "Marketing Anggota"** di halaman Chief Driver: dropdown berisi semua anggota lintas tim (dari `marketing_members`), mendukung pencarian parsial.
+- Board, kartu statistik, dan **Rekap Excel** otomatis ikut terfilter per anggota — memudahkan evaluasi per anggota tim.
+- Backend: param `member` (LIKE) di `GET /api/appointments` (list + stats) dan `GET /api/appointments/export`; `GET /api/marketing/members` tanpa `team` kini mengembalikan semua anggota (untuk dropdown chief driver).
+
+#### 📊 Ringkasan per Marketing Anggota
+- Panel **"Ringkasan per Marketing Anggota"** di header board Chief Driver: tabel Total / ⏳ Menunggu / 🚗 Ditugaskan / ✅ Selesai / ✕ Batal / 🌅 Sesi 1 / 🌆 Sesi 2 per anggota (per tanggal terpilih, urut total terbesar).
+- **Klik baris anggota** → otomatis menerapkan filter board ke anggota tersebut (baris aktif ditandai).
+- Endpoint baru `GET /api/appointments/member-summary?date=...` (agregasi GROUP BY `marketing_member`).
+
+### 🛠 Perbaikan
+- Validasi `validate_appointment_input` kini mewajibkan `marketing_member` (dipakai di POST & PATCH).
+- Unit test diperbarui: 8 test validasi input dengan member + 1 test baru wajib member.
+
+---
+
 ## [1.1.0] - 2026-08-06
 
 ### ✨ Fitur Baru
@@ -115,5 +146,6 @@ Versi awal yang diluncurkan ke produksi.
 
 ---
 
+[1.2.1]: https://github.com/bestprofitsurabaya/bpf-bbm-system/releases/tag/v1.2.1
 [1.1.0]: https://github.com/bestprofitsurabaya/bpf-bbm-system/releases/tag/v1.1.0
 [1.0.0]: https://github.com/bestprofitsurabaya/bpf-bbm-system/releases/tag/v1.0.0

@@ -36,6 +36,19 @@ def ensure_appointments_schema():
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """, cursor, "marketing_teams")
 
+        # --- marketing_members (anggota tim marketing yang memprospek) ---
+        _run("""
+            CREATE TABLE IF NOT EXISTS marketing_members (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                team_name VARCHAR(100) NOT NULL DEFAULT '',
+                member_name VARCHAR(100) NOT NULL,
+                is_active TINYINT(1) DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY uq_team_member (team_name, member_name)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """, cursor, "marketing_members")
+
         # --- appointments ---
         _run("""
             CREATE TABLE IF NOT EXISTS appointments (
@@ -43,6 +56,7 @@ def ensure_appointments_schema():
                 display_id VARCHAR(30) NOT NULL UNIQUE,
                 marketing_username VARCHAR(50) NOT NULL,
                 marketing_name VARCHAR(100) NOT NULL,
+                marketing_member VARCHAR(100) DEFAULT '',
                 team_name VARCHAR(100) DEFAULT '',
                 nasabah_name VARCHAR(150) NOT NULL,
                 nasabah_phone VARCHAR(30) DEFAULT '',
@@ -79,6 +93,11 @@ def ensure_appointments_schema():
         _run("""
             ALTER TABLE trip_details ADD COLUMN appointment_id INT DEFAULT NULL
         """, cursor, "trip_details.appointment_id")
+
+        # --- appointments: marketing_member (upgrade DB lama) ---
+        _run("""
+            ALTER TABLE appointments ADD COLUMN marketing_member VARCHAR(100) DEFAULT ''
+        """, cursor, "appointments.marketing_member")
 
         conn.commit()
         cursor.close()

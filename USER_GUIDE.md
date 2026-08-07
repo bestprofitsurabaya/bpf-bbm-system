@@ -1,4 +1,4 @@
-# 📖 Panduan Pengguna BPF Fleet & BBM System v1.2
+# 📖 Panduan Pengguna BPF Fleet & BBM System v1.2.1
 
 **PT. Bestprofit Futures — Surabaya**
 
@@ -302,10 +302,13 @@ Kamu input appointment → Chief Driver bagi driver → Driver kunjungi nasabah
    - **Tanggal** kunjungan (default: hari ini)
    - **Sesi**: 🌅 **Sesi 1 (08.30)** atau 🌆 **Sesi 2 (14.30)** — tentukan slot perjalanan
    - **Nama Calon Nasabah** *(wajib)*
+   - **Nama Marketing** *(wajib)* — **nama anggota tim yang memprospek** calon nasabah ini. Karena satu akun (mis. Icang) bisa input untuk banyak anggota, pastikan nama marketing yang benar-benar menangani prospek itu yang dicantumkan. Saat mengetik, sistem menampilkan **saran nama** dari anggota tim yang sudah pernah dipakai.
    - **No. HP** calon nasabah *(opsional)*
    - **Alamat lengkap** *(wajib)* — sistem otomatis **mendeteksi area/wilayah** (mis. Surabaya Barat, Sidoarjo) sebagai bantuan Chief Driver membagi tugas
    - **Catatan** *(opsional)*, mis. nasabah lama / referral
 3. Butuh lebih dari satu? Klik **＋ Tambah Entry Lagi**, lalu isi semua sekaligus dan klik **📤 Simpan Appointment**.
+
+> 💡 **Satu akun, banyak anggota:** akun marketing kamu (level manager tim) boleh dipakai untuk input appointment milik seluruh anggota tim — sistem mencatat **siapa marketing yang memprospek** di setiap appointment, sehingga evaluasi per anggota (mis. perbandingan Tim Yusie vs tim lain) jadi mungkin.
 
 > 💡 **Tips:** Pilih sesi sesuai kesepakatan jadwal dengan nasabah. Sesi 1 untuk kunjungan pagi, Sesi 2 untuk kunjungan siang/sore.
 
@@ -322,7 +325,7 @@ Kamu input appointment → Chief Driver bagi driver → Driver kunjungi nasabah
 
 ### 5.4 Mengedit & Membatalkan
 
-- **✏️ Edit**: bisa mengubah data appointment **selama masih berstatus Menunggu Driver** (nama, HP, alamat, sesi, catatan).
+- **✏️ Edit**: bisa mengubah data appointment **selama masih berstatus Menunggu Driver** (nama nasabah, nama marketing, HP, alamat, sesi, catatan).
 - **Batal**: klik tombol **Batal** jika kunjungan tidak jadi — *hanya* bisa dilakukan sebelum appointment diproses driver.
 - Setelah driver ditugaskan atau selesai, appointment **tidak bisa diubah/dibatalkan** dari sisi marketing.
 
@@ -348,14 +351,18 @@ Login dengan akun **Chief Driver** (atau GA) → langsung diarahkan ke **🚛 Ch
 - Pilih **tanggal** (◀ ▶ atau tombol **Hari Ini**).
 - Kartu statistik menampilkan: Total, ⏳ Belum Tugas, 🚗 Ditugaskan, ✅ Selesai, ✕ Batal.
 - Banner **🔗 Integrasi Log Perjalanan** menunjukkan berapa appointment yang sudah selesai dan siap masuk log perjalanan driver.
+- **👤 Filter Marketing Anggota:** input di bawah pemilih tanggal untuk menampilkan hanya appointment milik satu anggota tim (mis. "Rizky"). Ketik sebagian nama untuk mencari. Kartu statistik, semua board, dan **Rekap Excel** otomatis ikut terfilter; klik **✕ Hapus** untuk kembali ke semua data.
+- **📊 Ringkasan per Marketing Anggota:** panel tabel di bawah filter menampilkan ringkasan tiap anggota untuk tanggal tersebut — Total, ⏳ Menunggu, 🚗 Ditugaskan, ✅ Selesai, ✕ Batal, serta jumlah per sesi. **Klik salah satu baris** untuk langsung memfilter board ke anggota itu (baris aktif ditandai biru).
 
 ### 6.3 Menugaskan Driver (Board "Belum Ditugaskan")
 
 1. Pada panel **📋 Belum Ditugaskan**, appointment dikelompokkan per sesi (🌅 08.30 / 🌆 14.30).
-2. Setiap kartu menampilkan: nama calon nasabah, **area otomatis** (dari alamat), tim & marketing penginput, dan no. HP.
+2. Setiap kartu menampilkan: nama calon nasabah, **area** (deteksi otomatis dari alamat), tim & **nama marketing anggota** yang memprospek, dan no. HP.
 3. Ada **⭐ saran sistem**: driver aktif dengan beban paling ringan pada sesi tersebut — bisa dipakai langsung.
 4. Pilih **driver** pada dropdown, lalu klik **Tugaskan**.
 5. Jika kunjungan batal, klik **✕** untuk membatalkan appointment (wajib diisi alasan).
+
+> 🌍 **Atur Area Manual:** area hasil deteksi otomatis bisa **diubah manual** oleh Chief Driver/GA — klik tombol **🌍** pada kartu (Belum Ditugaskan maupun Tugas Per Driver), lalu ketik area yang benar (mis. area baru atau alamat di luar zona yang dikenal). Perubahan ini tercatat di Audit Log.
 
 ### 6.4 Memantau Tugas Per Driver (Panel "Tugas Per Driver")
 
@@ -370,7 +377,7 @@ Appointment yang sudah ditugaskan dikelompokkan **per driver**, sehingga terliha
 
 ### 6.5 Unduh Rekap Harian 📥
 
-- Klik **📥 Unduh Rekap Excel** untuk mengunduh laporan lengkap tanggal tersebut: nasabah, sesi, alamat, area, tim, marketing, dan driver — siap untuk arsip atau rapat.
+- Klik **📥 Unduh Rekap Excel** untuk mengunduh laporan lengkap tanggal tersebut: nasabah, sesi, alamat, area, tim, **marketing akun**, **marketing anggota**, dan driver — siap untuk arsip atau rapat.
 
 ### 6.6 Real-Time ⚡
 
@@ -429,6 +436,8 @@ Di halaman ini kamu bisa mengelola akun pengguna sistem secara terpusat:
 | `chief_driver` | Pembagian driver appointment | – |
 
 **👥 Tim Marketing (baru):** saat membuat user dengan role **Marketing**, isi kolom **Tim Marketing** (mis. "Tim Yusie"). Ketik nama tim baru → sistem otomatis mendaftarkannya; atau pilih dari daftar tim yang sudah ada. Nama tim akan tampil di halaman Marketing dan di board Chief Driver.
+
+**👤 Nama Marketing Anggota (v1.2.1):** saat marketing mengisi appointment, wajib mencantumkan **nama anggota tim yang memprospek** (1 akun bisa input untuk banyak anggota). Nama anggota yang pernah dipakai **otomatis terdaftar** di tabel `marketing_members` per tim dan tampil sebagai **saran** pada input berikutnya — tidak perlu didaftarkan manual di sini.
 
 > 💡 Setelah login, Marketing otomatis diarahkan ke halaman Marketing, dan Chief Driver ke halaman Chief Driver.
 
@@ -607,6 +616,8 @@ Tabel berikut menjelaskan tindakan yang bisa dilakukan pada setiap status:
 | **Driver tidak muncul di dropdown penugasan** | Driver belum terdaftar / nonaktif. | Daftarkan driver via **Settings → Manajemen Driver** atau `/api/drivers/sync`, lalu muat ulang halaman. |
 | **Appointment selesai tidak muncul di form Trip driver** | Driver/ tanggal berbeda, atau status belum "Selesai". | Pastikan Chief Driver menandai **✅ Selesai**, dan driver memilih nama + tanggal yang sama pada tab Trip. |
 | **Tidak bisa edit appointment** | Status sudah diproses (ditugaskan/selesai). | Hanya appointment berstatus **Menunggu Driver** yang bisa diedit/dibatalkan oleh marketing. |
+| **Area appointment salah / ingin diubah** | Deteksi otomatis belum mengenali alamat. | Chief Driver/GA klik tombol **🌍** di kartu untuk mengatur area secara manual. |
+| **Saran nama marketing tidak muncul saat input** | Belum ada anggota tim yang pernah dicatat. | Cukup ketik nama anggota; nama tersebut akan tersimpan otomatis sebagai saran untuk input berikutnya. |
 
 ---
 
@@ -633,8 +644,10 @@ Tabel berikut menjelaskan tindakan yang bisa dilakukan pada setiap status:
 | **Sesi** | Slot waktu perjalanan appointment — **Sesi 1 (08.30)** dan **Sesi 2 (14.30)** |
 | **Deteksi Area** | Fitur sistem yang mengenali wilayah dari alamat (mis. Surabaya Barat, Sidoarjo) untuk membantu pembagian driver |
 | **Marketing** | Bagian yang mencatat dan mengelola appointment calon nasabah |
+| **Marketing Anggota** | Nama anggota tim yang memprospek sebuah appointment — wajib dicantumkan saat input (1 akun bisa input untuk banyak anggota) |
 | **Chief Driver** | Petugas yang membagi appointment ke driver dan memantau pelaksanaannya |
 | **Tim Marketing** | Kelompok marketing (mis. "Tim Yusie") tempat anggota marketing bernaung |
+| **Area Manual** | Area yang diubah langsung oleh Chief Driver (tombol 🌍) untuk mengoreksi hasil deteksi otomatis |
 
 ---
 

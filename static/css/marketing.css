@@ -263,8 +263,8 @@ textarea.form-control { resize: vertical; min-height: 52px; }
 .tag-team { background: #eef2ff; color: #4338ca; }
 .appt-alamat { font-size: 12px; color: var(--gray-500); margin-top: 5px; display: flex; gap: 6px; align-items: flex-start; }
 .appt-alamat svg { flex-shrink: 0; margin-top: 1px; }
-.appt-meta { display: flex; gap: 12px; margin-top: 6px; font-size: 11px; color: var(--gray-500); flex-wrap: wrap; }
-.appt-driver { background: #ecfdf5; color: #065f46; padding: 2px 8px; border-radius: 6px; font-weight: 600; font-size: 11px; }
+.appt-meta { display: flex; gap: 12px; margin-top: 6px; font-size: 11px; color: var(--gray-500); flex-wrap: wrap; } .appt-driver { background: #ecfdf5; color: #065f46; padding: 2px 8px; border-radius: 6px; font-weight: 600; font-size: 11px; }
+.appt-member { background: #eff6ff; color: #1d4ed8; padding: 2px 8px; border-radius: 6px; font-weight: 600; font-size: 11px; }
 .appt-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
 /* ============ NOTIFICATION PANEL ============ */

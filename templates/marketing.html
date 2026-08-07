@@ -67,6 +67,7 @@
                 <span class="card-hint" id="formHint">Bisa input beberapa sekaligus</span>
             </div>
             <div class="card-body">
+                <datalist id="memberList"></datalist>
                 <div id="entryContainer"></div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-outline" id="addEntryBtn" onclick="addEntry()">＋ Tambah Entry Lagi</button>
@@ -74,8 +75,9 @@
                     <span id="formMsg" class="form-msg"></span>
                 </div>
                 <div class="flow-note">
-                    💡 <strong>Alur:</strong> Marketing input appointment → <strong>Chief Driver</strong> menugaskan driver
-                    berdasarkan area alamat → appointment selesai otomatis masuk ke form <strong>Log Perjalanan</strong> driver.
+                    💡 <strong>Alur:</strong> Marketing input appointment (cantumkan <strong>nama anggota tim</strong> yang memprospek)
+                    → <strong>Chief Driver</strong> menugaskan driver berdasarkan area alamat → appointment selesai otomatis masuk
+                    ke form <strong>Log Perjalanan</strong> driver.
                 </div>
             </div>
         </div>
@@ -110,6 +112,8 @@
             <input type="hidden" id="editId">
             <label>Nama Calon Nasabah <span class="req">*</span></label>
             <input type="text" id="editName" class="form-control">
+            <label>Nama Marketing (yang memprospek) <span class="req">*</span></label>
+            <input type="text" id="editMember" class="form-control" list="memberList" placeholder="Nama anggota tim...">
             <label>No. HP</label>
             <input type="text" id="editPhone" class="form-control">
             <label>Alamat <span class="req">*</span></label>

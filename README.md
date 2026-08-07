@@ -16,6 +16,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 |-------|-----------|
 | **Login Role Marketing** | User marketing (mis. Icang dari Tim Yusie) login PIN → langsung ke halaman inputnya |
 | **Form Multi-Input** | Input 2+ appointment sekaligus: nama calon nasabah, no. HP, alamat, catatan |
+| **Nama Marketing Anggota** | 1 akun (manager) bisa input untuk banyak anggota — wajib cantumkan **siapa yang memprospek**; nama auto-register jadi daftar saran |
 | **Sesi Perjalanan** | 🌅 Sesi 1 (08.30) / 🌆 Sesi 2 (14.30) — menentukan slot kunjungan |
 | **Deteksi Area Otomatis** | Sistem mengenali zona alamat (Darmo, Rungkut, Sidoarjo, dsb.) |
 | **Notifikasi Real-Time** | Marketing tahu saat driver ditugaskan / appointment selesai |
@@ -25,7 +26,8 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 |-------|-----------|
 | **Board Belum Ditugaskan** | Per sesi + **saran driver otomatis** (load-balancing beban sesi) |
 | **Tugas Per Driver** | Jadwal lengkap per driver: ✅ Selesai, 🔄 Ganti, ↩️ Batal Tugas, ✕ Batal Appt |
-| **Rekap Excel Harian** | Unduh laporan appointment per tanggal (openpyxl) |
+| **🌍 Ubah Area Manual** | Chief Driver bisa **override area** hasil deteksi otomatis (tombol 🌍 di kartu) |
+| **Rekap Excel Harian** | Unduh laporan appointment per tanggal (openpyxl, termasuk nama marketing anggota) |
 | **Board Real-Time** | Perubahan langsung tampil (Socket.IO) |
 
 ### 🔗 Integrasi Log Perjalanan
@@ -153,7 +155,10 @@ Marketing 📣 → Chief Driver 🚛 → Driver 🗺️ → GA ✅
       nasabah +      (saran          perjalanan
       alamat +        otomatis       auto-terisi
       sesi 08.30/     per sesi/      dari alamat
-      14.30           area)          nasabah
+      14.30 +         area +         nasabah
+      nama            area bisa
+      marketing       diubah manual
+      anggota         🌍)
 
 ```
 
@@ -340,13 +345,13 @@ docker exec bbm_mariadb mysql -uroot -ppassword_db bpf_asset_system \
 
 ## 📋 Changelog v1.2
 
-- ✅ **Sistem Appointment**: tabel `appointments` + `marketing_teams`, role `marketing` & `chief_driver`, migrasi otomatis saat startup (`appointments_schema.py`)
-- ✅ **Halaman Marketing Hub** `/marketing`: form multi-input, sesi 08.30/14.30, deteksi area alamat otomatis, notifikasi real-time
-- ✅ **Halaman Chief Driver** `/chief-driver`: board penugasan per sesi & per driver, saran driver load-balancing, export Excel harian, board real-time
+- ✅ **Sistem Appointment**: tabel `appointments` + `marketing_teams` + `marketing_members`, role `marketing` & `chief_driver`, migrasi otomatis saat startup (`appointments_schema.py`)
+- ✅ **Halaman Marketing Hub** `/marketing`: form multi-input, **nama marketing anggota (wajib, ada saran otomatis)**, sesi 08.30/14.30, deteksi area alamat otomatis, notifikasi real-time
+- ✅ **Halaman Chief Driver** `/chief-driver`: board penugasan per sesi & per driver, saran driver load-balancing, **override area manual 🌍**, export Excel harian, board real-time
 - ✅ **Integrasi Log Perjalanan**: appointment selesai → auto-terisi di form Trip driver + jejak `appointment_id` di Trip Review
 - ✅ **Login redirect per-role**: marketing → `/marketing`, chief_driver → `/chief-driver`
 - ✅ **User management**: role Marketing + Chief Driver + field Tim Marketing (auto-register `marketing_teams`)
-- ✅ **Tests**: 48 test PASS + smoke test end-to-end 25 check
+- ✅ **Tests**: 48+ test PASS + smoke test end-to-end
 
 ## 📋 Changelog v1.1
 
@@ -371,7 +376,7 @@ docker exec bbm_mariadb mysql -uroot -ppassword_db bpf_asset_system \
 | GA Officer | Approve, reject, trip review, serah terima kendaraan, kasbon, chief driver board | 123456 |
 | Finance Officer | Payout, Archive, ZIP, Export, ODO Edit, kasbon | 123456 |
 | Chief Driver | Command center penugasan driver appointment | 123456 |
-| Marketing | Input & kelola appointment prospek nasabah | 123456 |
+| Marketing | Input & kelola appointment prospek nasabah (1 akun bisa untuk banyak anggota tim) | 123456 |
 | Driver | Submit BBM, Trip Log, Kasbon, Self-analytics, notifikasi (tanpa login) | - |
 
 ---
