@@ -151,18 +151,23 @@ def register_driver_routes(app, socketio):
             lokasi_tujuan_list = request.form.getlist('lokasi_tujuan[]')
             pukul_tujuan_list = request.form.getlist('pukul_tujuan[]')
             km_tujuan_list = request.form.getlist('km_tujuan[]')
+            # Referensi appointment (hasil integrasi appointment selesai -> log perjalanan)
+            appointment_id_list = request.form.getlist('appointment_id[]')
 
             detail_count = 0
             for i in range(len(lokasi_berangkat_list)):
                 if lokasi_berangkat_list[i].strip() and lokasi_tujuan_list[i].strip():
+                    appt_id = None
+                    if i < len(appointment_id_list) and appointment_id_list[i].strip().isdigit():
+                        appt_id = int(appointment_id_list[i])
                     cursor.execute("""
                         INSERT INTO trip_details (trip_master_id, no_urut, lokasi_berangkat,
                                                  pukul_berangkat, km_berangkat, lokasi_tujuan,
-                                                 pukul_tujuan, km_tujuan)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                                                 pukul_tujuan, km_tujuan, appointment_id)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """, (trip_id, i+1, lokasi_berangkat_list[i], pukul_berangkat_list[i] or None,
                           int(km_berangkat_list[i] or 0), lokasi_tujuan_list[i],
-                          pukul_tujuan_list[i] or None, int(km_tujuan_list[i] or 0)))
+                          pukul_tujuan_list[i] or None, int(km_tujuan_list[i] or 0), appt_id))
                     detail_count += 1
 
             conn.commit()

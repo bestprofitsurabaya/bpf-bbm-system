@@ -1,4 +1,4 @@
-# 📖 Panduan Pengguna BPF Fleet & BBM System v1.1
+# 📖 Panduan Pengguna BPF Fleet & BBM System v1.2
 
 **PT. Bestprofit Futures — Surabaya**
 
@@ -6,7 +6,7 @@
 
 Halo, rekan-rekan BPF! 👋
 
-Selamat datang di sistem manajemen armada dan BBM kita. Panduan ini akan menemani kamu memahami alur kerja sistem, dari mengajukan klaim BBM, mengelola kasbon, hingga memverifikasi laporan. Kami tulis dengan bahasa yang sederhana dan mudah diikuti, jadi tidak perlu khawatir meskipun baru pertama kali menggunakan.
+Selamat datang di sistem manajemen armada dan BBM kita. Panduan ini akan menemani kamu memahami alur kerja sistem, dari mengajukan klaim BBM, mengelola kasbon, memverifikasi laporan, hingga **mengelola appointment calon nasabah** (Marketing) dan **pembagian driver** (Chief Driver). Kami tulis dengan bahasa yang sederhana dan mudah diikuti, jadi tidak perlu khawatir meskipun baru pertama kali menggunakan.
 
 > ⚠️ **Peringatan Keamanan:** Demi keamanan data bersama, **segera ganti PIN bawaan (`123456`) saat pertama kali login.** Akun yang masih menggunakan PIN bawaan berisiko dinonaktifkan oleh sistem.
 
@@ -18,12 +18,14 @@ Selamat datang di sistem manajemen armada dan BBM kita. Panduan ini akan meneman
 2. [Untuk Driver](#2-untuk-driver)
 3. [Untuk GA (General Affairs)](#3-untuk-ga-general-affairs)
 4. [Untuk Finance](#4-untuk-finance)
-5. [Untuk Admin](#5-untuk-admin)
-6. [Panduan Arsip](#6-panduan-arsip)
-7. [Panduan Kasbon (Uang Muka BBM)](#7-panduan-kasbon-uang-muka-bbm)
-8. [Perbandingan: Klaim Biasa vs. Kasbon](#8-perbandingan-klaim-biasa-vs-kasbon)
-9. [Troubleshooting (Mengatasi Masalah)](#9-troubleshooting-mengatasi-masalah)
-10. [Glosarium](#10-glosarium)
+5. [Untuk Marketing (Input Appointment)](#5-untuk-marketing-input-appointment)
+6. [Untuk Chief Driver (Pembagian Driver)](#6-untuk-chief-driver-pembagian-driver)
+7. [Untuk Admin](#7-untuk-admin)
+8. [Panduan Arsip](#8-panduan-arsip)
+9. [Panduan Kasbon (Uang Muka BBM)](#9-panduan-kasbon-uang-muka-bbm)
+10. [Perbandingan: Klaim Biasa vs. Kasbon](#10-perbandingan-klaim-biasa-vs-kasbon)
+11. [Troubleshooting (Mengatasi Masalah)](#11-troubleshooting-mengatasi-masalah)
+12. [Glosarium](#12-glosarium)
 
 ---
 
@@ -33,22 +35,30 @@ Selamat datang di sistem manajemen armada dan BBM kita. Panduan ini akan meneman
 
 | Pengguna | URL | Perangkat yang Disarankan |
 |----------|-----|---------------------------|
-| Driver | `https://nasbpfsby.duckdns.org:5000/driver` | HP Android / iPhone |
-| **Login (semua admin)** | **`https://nasbpfsby.duckdns.org:5000/login`** | Komputer / Laptop |
-| GA, Finance, Admin | `https://nasbpfsby.duckdns.org:5000/admin` | Komputer / Laptop |
-| GA (Penugasan Kendaraan) | `https://nasbpfsby.duckdns.org:5000/ga/assignments` | Komputer / Laptop |
-| Analytics | `https://nasbpfsby.duckdns.org:5000/admin/analytics` | Komputer / Laptop |
-| Users (Admin saja) | `https://nasbpfsby.duckdns.org:5000/admin/users` | Komputer / Laptop |
-| Settings | `https://nasbpfsby.duckdns.org:5000/admin/settings` | Komputer / Laptop |
+| Driver | `https://census-biological-ran-stories.trycloudflare.com/driver` | HP Android / iPhone |
+| **Login (semua role)** | **`https://census-biological-ran-stories.trycloudflare.com/login`** | Komputer / Laptop |
+| **📣 Marketing (Input Appointment)** | `https://census-biological-ran-stories.trycloudflare.com/marketing` | Komputer / Laptop |
+| **🚛 Chief Driver (Pembagian Driver)** | `https://census-biological-ran-stories.trycloudflare.com/chief-driver` | Komputer / Laptop |
+| GA, Finance, Admin | `https://census-biological-ran-stories.trycloudflare.com/admin` | Komputer / Laptop |
+| GA (Penugasan Kendaraan) | `https://census-biological-ran-stories.trycloudflare.com/ga/assignments` | Komputer / Laptop |
+| GA (Review Trip) | `https://census-biological-ran-stories.trycloudflare.com/admin/trips` | Komputer / Laptop |
+| Analytics | `https://census-biological-ran-stories.trycloudflare.com/admin/analytics` | Komputer / Laptop |
+| Users (Admin saja) | `https://census-biological-ran-stories.trycloudflare.com/admin/users` | Komputer / Laptop |
+| Settings | `https://census-biological-ran-stories.trycloudflare.com/admin/settings` | Komputer / Laptop |
 
+> ⚠️ **URL online (Cloudflare Tunnel):** URL di atas adalah *quick tunnel* dan dapat **berubah setiap kali server di-restart**. Untuk melihat URL yang sedang aktif, jalankan `bash scripts/tunnel-url.sh` di server.
 > 🔐 **Baru di v1.1:** Semua halaman admin kini **wajib login**. Jika belum login, kamu akan diarahkan ke halaman Login. Driver PWA **tidak perlu login**.
+> 🌐 **Akses lokal (dev):** ganti `https://census-biological-ran-stories.trycloudflare.com` dengan `http://localhost:5001`.
 
 ### 1.2 Login & Logout
 
 1. Buka halaman **Login** (`/login`).
 2. Masukkan **Username** dan **PIN 6 digit** kamu.
 3. Klik **Masuk**.
-4. Setelah berhasil, kamu akan dibawa ke Dashboard Admin.
+4. Setelah berhasil, kamu akan dibawa ke halaman sesuai **peran (role)** kamu:
+   - **Marketing** → halaman **📣 Marketing Hub** (`/marketing`)
+   - **Chief Driver** → halaman **🚛 Chief Driver** (`/chief-driver`)
+   - **Admin / GA / Finance** → Dashboard Admin
 5. Untuk keluar, klik tombol **🚪 Keluar** di pojok kanan atas halaman mana pun.
 
 > 💡 **Tips:** Jika sesi kamu berakhir (mis. browser ditutup), sistem otomatis mengarahkan kembali ke halaman Login saat kamu mengakses halaman admin berikutnya. Driver tidak terpengaruh.
@@ -62,6 +72,8 @@ Selamat datang di sistem manajemen armada dan BBM kita. Panduan ini akan meneman
 | Admin | `admin` | `123456` |
 | GA | `ga_officer` | `123456` |
 | Finance | `finance_officer` | `123456` |
+| Marketing | dibuat oleh Admin (contoh: `icang`) | `123456` (bisa direset Admin) |
+| Chief Driver | dibuat oleh Admin (contoh: `chief_driver`) | `123456` (bisa direset Admin) |
 
 ### 1.4 Memasang Aplikasi di HP (Driver)
 
@@ -110,6 +122,17 @@ Tab yang sedang aktif akan ditandai dengan garis biru di bawahnya. Kamu bisa men
 3. Isi **KM Awal** dan **Jam**.
 4. Klik **+ Tambah Rute** — kamu bisa mengisi alamat secara manual atau mengetuk tombol **📍 GPS** untuk mengambil lokasi saat ini.
 5. Setelah selesai, klik **📋 Kirim Log Perjalanan**.
+
+#### 📅 Integrasi Appointment (Baru di v1.2)
+
+> Jika kamu mendapat penugasan **appointment** (kunjungan calon nasabah) dari Chief Driver:
+
+- Setiap appointment yang **sudah selesai** akan otomatis muncul di panel **📅 Appointment Selesai** pada tab Trip (tanggal yang sama).
+- Klik tombol **📥 Muat Semua ke Rute** — rute perjalanan terisi otomatis:
+  - **Lokasi tujuan** = alamat calon nasabah
+  - **Pukul** = jam sesi appointment (🌅 08.30 atau 🌆 14.30)
+- Kamu tinggal melengkapi **KM** dan menyesuaikan waktu, lalu klik **📋 Kirim Log Perjalanan**.
+- Trip yang dikirim tetap bisa diverifikasi GA seperti biasa, dan menampilkan badge **📅 APP-xxxx** di detail rute sebagai jejak appointment.
 
 ### 2.4 Mode Offline
 
@@ -261,11 +284,107 @@ Tugas tim Finance adalah mencairkan dana, melakukan koreksi data, dan mengarsipk
 
 ---
 
-## 5. Untuk Admin
+## 5. Untuk Marketing (Input Appointment)
+
+Sebagai Marketing, tugas kamu adalah **mencatat kunjungan calon nasabah** (appointment) yang akan diprospek, agar Chief Driver bisa menyiapkan driver dan kendaraan yang tepat.
+
+### 5.1 Alur Singkat
+
+```
+Kamu input appointment → Chief Driver bagi driver → Driver kunjungi nasabah
+→ appointment selesai → otomatis masuk Log Perjalanan driver
+```
+
+### 5.2 Mengisi Appointment Baru
+
+1. Login dengan akun **Marketing** — kamu langsung diarahkan ke halaman **📣 Marketing Hub** (`/marketing`).
+2. Di panel **➕ Input Appointment Baru**, isi:
+   - **Tanggal** kunjungan (default: hari ini)
+   - **Sesi**: 🌅 **Sesi 1 (08.30)** atau 🌆 **Sesi 2 (14.30)** — tentukan slot perjalanan
+   - **Nama Calon Nasabah** *(wajib)*
+   - **No. HP** calon nasabah *(opsional)*
+   - **Alamat lengkap** *(wajib)* — sistem otomatis **mendeteksi area/wilayah** (mis. Surabaya Barat, Sidoarjo) sebagai bantuan Chief Driver membagi tugas
+   - **Catatan** *(opsional)*, mis. nasabah lama / referral
+3. Butuh lebih dari satu? Klik **＋ Tambah Entry Lagi**, lalu isi semua sekaligus dan klik **📤 Simpan Appointment**.
+
+> 💡 **Tips:** Pilih sesi sesuai kesepakatan jadwal dengan nasabah. Sesi 1 untuk kunjungan pagi, Sesi 2 untuk kunjungan siang/sore.
+
+### 5.3 Memantau Jadwal Appointment
+
+- Gunakan **pemilih tanggal** di atas untuk berpindah hari.
+- Kartu statistik menampilkan ringkasan: total, Sesi 1, Sesi 2, menunggu driver, driver ditugaskan, dan selesai.
+- Daftar appointment dikelompokkan per sesi dengan status:
+  - ⏳ **Menunggu Driver** — belum ditugaskan
+  - 🚗 **Driver Ditugaskan** — Chief Driver sudah menunjuk driver (nama driver tampil)
+  - ✅ **Selesai** — nasabah sudah dikunjungi
+  - ✕ **Dibatalkan**
+- Filter **Semua / Sesi 1 / Sesi 2** untuk memfilter tampilan.
+
+### 5.4 Mengedit & Membatalkan
+
+- **✏️ Edit**: bisa mengubah data appointment **selama masih berstatus Menunggu Driver** (nama, HP, alamat, sesi, catatan).
+- **Batal**: klik tombol **Batal** jika kunjungan tidak jadi — *hanya* bisa dilakukan sebelum appointment diproses driver.
+- Setelah driver ditugaskan atau selesai, appointment **tidak bisa diubah/dibatalkan** dari sisi marketing.
+
+### 5.5 Notifikasi 🔔
+
+- Lonceng **🔔** di pojok kanan atas menampilkan notifikasi real-time, misalnya:
+  - 🚗 "Driver **AKHAD** ditugaskan ke appointment APP-xxxx"
+  - ✅ "Appointment APP-xxxx selesai dikunjungi"
+- Notifikasi muncul **langsung** saat Chief Driver memproses appointment kamu.
+
+---
+
+## 6. Untuk Chief Driver (Pembagian Driver)
+
+Tugas Chief Driver adalah **membagi appointment yang masuk kepada driver** berdasarkan alamat/area, memantau pelaksanaannya, dan memastikan semuanya tercatat di Log Perjalanan.
+
+### 6.1 Buka Halaman
+
+Login dengan akun **Chief Driver** (atau GA) → langsung diarahkan ke **🚛 Chief Driver Command Center** (`/chief-driver`).
+
+### 6.2 Ringkasan Harian
+
+- Pilih **tanggal** (◀ ▶ atau tombol **Hari Ini**).
+- Kartu statistik menampilkan: Total, ⏳ Belum Tugas, 🚗 Ditugaskan, ✅ Selesai, ✕ Batal.
+- Banner **🔗 Integrasi Log Perjalanan** menunjukkan berapa appointment yang sudah selesai dan siap masuk log perjalanan driver.
+
+### 6.3 Menugaskan Driver (Board "Belum Ditugaskan")
+
+1. Pada panel **📋 Belum Ditugaskan**, appointment dikelompokkan per sesi (🌅 08.30 / 🌆 14.30).
+2. Setiap kartu menampilkan: nama calon nasabah, **area otomatis** (dari alamat), tim & marketing penginput, dan no. HP.
+3. Ada **⭐ saran sistem**: driver aktif dengan beban paling ringan pada sesi tersebut — bisa dipakai langsung.
+4. Pilih **driver** pada dropdown, lalu klik **Tugaskan**.
+5. Jika kunjungan batal, klik **✕** untuk membatalkan appointment (wajib diisi alasan).
+
+### 6.4 Memantau Tugas Per Driver (Panel "Tugas Per Driver")
+
+Appointment yang sudah ditugaskan dikelompokkan **per driver**, sehingga terlihat jadwal lengkap satu driver dalam sehari:
+
+| Tombol | Fungsi |
+|--------|--------|
+| ✅ **Selesai** | Menandai appointment selesai dikunjungi → otomatis terintegrasi ke Log Perjalanan driver |
+| 🔄 **Ganti** | Memindahkan appointment ke driver lain |
+| ↩️ | Membatalkan penugasan (appointment kembali ke "Belum Ditugaskan") |
+| ✕ | Membatalkan appointment (dengan alasan) |
+
+### 6.5 Unduh Rekap Harian 📥
+
+- Klik **📥 Unduh Rekap Excel** untuk mengunduh laporan lengkap tanggal tersebut: nasabah, sesi, alamat, area, tim, marketing, dan driver — siap untuk arsip atau rapat.
+
+### 6.6 Real-Time ⚡
+
+- Board diperbarui otomatis (**tanpa reload**) setiap kali ada perubahan: appointment baru dari marketing, penugasan, atau penyelesaian.
+
+> 💡 **Alur yang benar:** Tugaskan driver di sesi yang sesuai dengan lokasi agar perjalanan efisien — gunakan saran area dan saran driver dari sistem.
+
+---
+
+## 7. Untuk Admin
 
 Admin bertanggung jawab mengelola data master, pengguna, dan konfigurasi sistem secara keseluruhan.
 
-### 5.1 Menu Settings (Pengaturan)
+### 7.1 Menu Settings (Pengaturan)
 
 Buka halaman `/admin/settings`. Halaman ini memiliki **PIN gate** tambahan — masukkan PIN Admin (`123456` atau PIN baru kamu).
 
@@ -288,7 +407,7 @@ Buka halaman `/admin/settings`. Halaman ini memiliki **PIN gate** tambahan — m
 - **📊 Batas Konsumsi KM/L:** Standar konsumsi BBM yang dianggap normal.
 - **💾 Backup Database:** Untuk mencadangkan seluruh data sistem secara manual.
 
-### 5.2 Halaman Users (Baru di v1.1) 👥
+### 7.2 Halaman Users 👥
 
 Buka halaman **Users** (`/admin/users`) — **khusus Admin**.
 
@@ -299,15 +418,27 @@ Di halaman ini kamu bisa mengelola akun pengguna sistem secara terpusat:
 - **Reset PIN** pengguna yang lupa PIN.
 - **Aktifkan / Nonaktifkan** akun (akun nonaktif tidak bisa login).
 
-> 💡 Halaman ini menggantikan pengelolaan user yang sebelumnya hanya ada di Settings, sehingga lebih lengkap dan khusus untuk Admin.
+**Role yang tersedia (v1.2):**
 
-### 5.3 Dark Mode 🌙
+| Role | Kegunaan | Catatan |
+|------|----------|---------|
+| `admin` | Akses penuh sistem | – |
+| `ga` | Verifikasi klaim, trip review, penugasan kendaraan | – |
+| `finance` | Pencairan dana, arsip | – |
+| `marketing` | Input & kelola appointment nasabah | **Wajib punya Tim Marketing** |
+| `chief_driver` | Pembagian driver appointment | – |
+
+**👥 Tim Marketing (baru):** saat membuat user dengan role **Marketing**, isi kolom **Tim Marketing** (mis. "Tim Yusie"). Ketik nama tim baru → sistem otomatis mendaftarkannya; atau pilih dari daftar tim yang sudah ada. Nama tim akan tampil di halaman Marketing dan di board Chief Driver.
+
+> 💡 Setelah login, Marketing otomatis diarahkan ke halaman Marketing, dan Chief Driver ke halaman Chief Driver.
+
+### 7.3 Dark Mode 🌙
 
 - Semua halaman admin punya tombol **🌙/☀️** di pojok kanan atas.
 - Klik untuk berganti tema terang/gelap.
 - Pilihan tersimpan otomatis — konsisten di semua halaman.
 
-### 5.4 Audit Log (Jejak Digital)
+### 7.4 Audit Log (Jejak Digital)
 
 - Buka **📝 Audit Log**.
 - Masukkan PIN Admin.
@@ -315,7 +446,7 @@ Di halaman ini kamu bisa mengelola akun pengguna sistem secara terpusat:
 
 ---
 
-## 6. Panduan Arsip
+## 8. Panduan Arsip
 
 ### 6.1 Mengakses Arsip
 
@@ -344,7 +475,7 @@ Di halaman ini kamu bisa mengelola akun pengguna sistem secara terpusat:
 
 ---
 
-## 7. Panduan Kasbon (Uang Muka BBM)
+## 9. Panduan Kasbon (Uang Muka BBM)
 
 Fitur Kasbon memungkinkan driver mengajukan uang muka BBM terlebih dahulu, sehingga tidak perlu mengeluarkan uang pribadi.
 
@@ -439,7 +570,7 @@ Tabel berikut menjelaskan tindakan yang bisa dilakukan pada setiap status:
 
 ---
 
-## 8. Perbandingan: Klaim Biasa vs. Kasbon
+## 10. Perbandingan: Klaim Biasa vs. Kasbon
 
 | Aspek | 🟢 Klaim Biasa | 💰 Kasbon (Uang Muka) |
 |-------|----------------|------------------------|
@@ -453,7 +584,7 @@ Tabel berikut menjelaskan tindakan yang bisa dilakukan pada setiap status:
 
 ---
 
-## 9. Troubleshooting (Mengatasi Masalah)
+## 11. Troubleshooting (Mengatasi Masalah)
 
 | Masalah | Penyebab Kemungkinan | Solusi |
 |---------|----------------------|--------|
@@ -470,10 +601,16 @@ Tabel berikut menjelaskan tindakan yang bisa dilakukan pada setiap status:
 | **Gagal menghasilkan PDF** | – | Hubungi tim IT. |
 | **Kode unik kasbon tidak muncul** | Finance belum mengatur kode unik hari ini. | Minta Finance untuk mengatur kode unik melalui tab Kasbon di Dashboard. |
 | **LPJ Kasbon tidak terkirim** | Koneksi internet bermasalah. | Tidak perlu khawatir. LPJ akan masuk ke antrean offline dan terkirim saat koneksi pulih. |
+| **Marketing tidak bisa login** | Akun belum dibuat / role salah. | Minta Admin membuat akun dengan role **Marketing** via halaman Users. |
+| **Halaman Marketing tidak bisa diakses GA/Admin** | Halaman khusus role Marketing. | Gunakan halaman **Chief Driver** (`/chief-driver`) untuk melihat & mengelola semua appointment. |
+| **Appointment belum muncul di board Chief Driver** | Tanggal berbeda / masih loading. | Pastikan tanggal di board sama dengan tanggal appointment; board memperbarui otomatis. |
+| **Driver tidak muncul di dropdown penugasan** | Driver belum terdaftar / nonaktif. | Daftarkan driver via **Settings → Manajemen Driver** atau `/api/drivers/sync`, lalu muat ulang halaman. |
+| **Appointment selesai tidak muncul di form Trip driver** | Driver/ tanggal berbeda, atau status belum "Selesai". | Pastikan Chief Driver menandai **✅ Selesai**, dan driver memilih nama + tanggal yang sama pada tab Trip. |
+| **Tidak bisa edit appointment** | Status sudah diproses (ditugaskan/selesai). | Hanya appointment berstatus **Menunggu Driver** yang bisa diedit/dibatalkan oleh marketing. |
 
 ---
 
-## 10. Glosarium
+## 12. Glosarium
 
 | Istilah | Kepanjangan / Penjelasan |
 |---------|--------------------------|
@@ -489,15 +626,22 @@ Tabel berikut menjelaskan tindakan yang bisa dilakukan pada setiap status:
 | **Audit Trail** | Jejak digital semua aktivitas untuk keperluan audit |
 | **Session** | Status login pengguna yang tersimpan di browser (berakhir saat logout/browser ditutup) |
 | **CSRF** | Cross-Site Request Forgery — perlindungan agar aksi di sistem tidak bisa dipalsukan dari situs lain |
-| **Role-Based Access** | Pengaturan hak akses berdasarkan peran (Admin / GA / Finance) |
+| **Role-Based Access** | Pengaturan hak akses berdasarkan peran (Admin / GA / Finance / Marketing / Chief Driver) |
 | **Notifikasi Real-Time** | Pemberitahuan langsung yang muncul di HP driver saat transaksinya diproses |
+| **Appointment** | Jadwal kunjungan ke calon nasabah yang dicatat Marketing dan ditugaskan ke driver oleh Chief Driver |
+| **Calon Nasabah** | Prospek/calon nasabah yang akan dikunjungi marketing (nama, alamat, dan jadwal) |
+| **Sesi** | Slot waktu perjalanan appointment — **Sesi 1 (08.30)** dan **Sesi 2 (14.30)** |
+| **Deteksi Area** | Fitur sistem yang mengenali wilayah dari alamat (mis. Surabaya Barat, Sidoarjo) untuk membantu pembagian driver |
+| **Marketing** | Bagian yang mencatat dan mengelola appointment calon nasabah |
+| **Chief Driver** | Petugas yang membagi appointment ke driver dan memantau pelaksanaannya |
+| **Tim Marketing** | Kelompok marketing (mis. "Tim Yusie") tempat anggota marketing bernaung |
 
 ---
 
 ## 📞 Kontak & Dukungan
 
 **PT. Bestprofit Futures — Surabaya**  
-BPF Fleet & BBM System v1.1  
+BPF Fleet & BBM System v1.2  
 Dikembangkan oleh **Tim IT BPF Surabaya**
 
 > *"Sistem yang baik adalah sistem yang memudahkan pekerjaan, bukan menambah beban."*  

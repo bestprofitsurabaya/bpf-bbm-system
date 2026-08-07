@@ -43,6 +43,10 @@ init_pool()
 from modules.notifications import ensure_notifications_table
 ensure_notifications_table()
 
+# Ensure appointment system tables/columns (safe on every startup)
+from modules.appointments_schema import ensure_appointments_schema
+ensure_appointments_schema()
+
 # Register all route modules
 from modules.routes_driver import register_driver_routes
 from modules.routes_api_master import register_master_api
@@ -54,6 +58,7 @@ from modules.routes_cash import register_cash_routes
 from modules.routes_settings import register_settings_routes
 from modules.routes_notifications import register_notification_routes
 from modules.routes_auth import register_auth_routes
+from modules.routes_appointments import register_appointment_routes
 
 register_driver_routes(app, socketio)
 register_auth_routes(app)
@@ -65,6 +70,7 @@ register_admin_routes(app)
 register_report_routes(app)
 register_settings_routes(app)
 register_notification_routes(app)
+register_appointment_routes(app)
 
 # ================================================================
 # CSRF PROTECTION (berlaku untuk sesi admin yang login)

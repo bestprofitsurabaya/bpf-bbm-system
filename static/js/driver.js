@@ -925,5 +925,121 @@ var _kasbonLoaded=false;var _origSwitchTab=switchTab;switchTab=function(p){_orig
         document.getElementById('darkToggle').textContent = '☀️';
     }
 
+// ============================================================
+// APPOINTMENT -> TRIP LOG INTEGRATION
+// ============================================================
+var completedApps = [];
+
+function loadAppointmentPanel() {
+    var panel = document.getElementById('apptPanel');
+    var driverSel = document.getElementById('trip_driver');
+    var dateEl = document.getElementById('trip_date');
+    var driver = driverSel ? driverSel.value.trim().toUpperCase() : '';
+    var tripDate = dateEl ? dateEl.value : '';
+    if (!panel) return;
+    if (!driver || !tripDate) { panel.style.display = 'none'; return; }
+
+    fetch('/api/appointments/completed?driver=' + encodeURIComponent(driver) + '&date=' + encodeURIComponent(tripDate))
+        .then(function(r) { return r.json(); })
+        .then(function(list) {
+            if (!Array.isArray(list)) return;
+            completedApps = list;
+            var panelList = document.getElementById('apptPanelList');
+            var countEl = document.getElementById('apptPanelCount');
+            var btn = document.getElementById('fillApptBtn');
+            if (!completedApps.length) {
+                panel.style.display = 'none';
+                return;
+            }
+            panel.style.display = 'block';
+            countEl.textContent = completedApps.length;
+            var html = '';
+            for (var i = 0; i < completedApps.length; i++) {
+                var a = completedApps[i];
+                var waktu = a.sesi === '1' ? '🌅 08.30' : '🌆 14.30';
+                html += '<div class="appt-item">' +
+                    '<span class="appt-item-time">' + waktu + '</span>' +
+                    '<div class="appt-item-body"><strong>' + a.nasabah_name + '</strong>' +
+                    '<div>' + a.alamat + '</div>' +
+                    '<div class="appt-item-meta">' + a.display_id + (a.area ? ' · ' + a.area : '') + '</div></div>' +
+                '</div>';
+            }
+            panelList.innerHTML = html;
+            btn.style.display = 'block';
+        })
+        .catch(function() {});
+}
+
+function fillTripFromAppointments() {
+    if (!completedApps.length) { showToast('Tidak ada appointment selesai', 'error'); return; }
+    var rowsWrap = document.getElementById('tripRows');
+    if (!rowsWrap) return;
+
+    // Hapus hidden appointment_id lama agar tidak duplikat
+    rowsWrap.querySelectorAll('input[name="appointment_id[]"]').forEach(function(h) { h.remove(); });
+
+    // Pastikan jumlah row cukup
+    while (rowsWrap.children.length < completedApps.length) addTripRow();
+
+    var previousTujuan = null;
+    var previousPukul = null;
+    var previousKm = null;
+    for (var i = 0; i < completedApps.length; i++) {
+        var a = completedApps[i];
+        var row = rowsWrap.children[i];
+        if (!row) continue;
+        var waktu = a.sesi === '1' ? '08:30' : '14:30';
+
+        var locInputs = row.querySelectorAll('.loc-input');
+        var timeInputs = row.querySelectorAll('.time-input');
+        var kmInputs = row.querySelectorAll('.km-input');
+
+        // Lokasi berangkat: sambung dari tujuan sebelumnya (rute berantai)
+        if (previousTujuan) {
+            locInputs[0].value = previousTujuan;
+        } else {
+            locInputs[0].value = '';
+            locInputs[0].placeholder = 'Kantor / titik awal keberangkatan';
+        }
+        timeInputs[0].value = previousPukul || waktu;
+        kmInputs[0].value = previousKm != null ? previousKm : 0;
+
+        // Lokasi tujuan = alamat nasabah appointment
+        locInputs[1].value = a.alamat;
+        timeInputs[1].value = waktu;
+        kmInputs[1].value = 0;
+
+        // Tandai baris sebagai terisi otomatis
+        row.style.background = '#f0fdf4';
+        row.style.borderLeft = '3px solid #059669';
+
+        // Simpan referensi appointment (terintegrasi di trip_details)
+        var hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'appointment_id[]';
+        hidden.value = a.id;
+        row.appendChild(hidden);
+
+        previousTujuan = a.alamat;
+        previousPukul = waktu;
+        previousKm = 0;
+    }
+    showToast('📥 ' + completedApps.length + ' rute appointment dimuat. Lengkapi KM & pukul bila perlu.', '');
+}
+
+// Panggil panel saat driver/tanggal trip berubah atau tab trip dibuka
+var _origAutoFillTrip = autoFillTrip;
+autoFillTrip = function() {
+    _origAutoFillTrip();
+    loadAppointmentPanel();
+};
+document.getElementById('trip_date').addEventListener('change', loadAppointmentPanel);
+var _origSwitchTab3 = switchTab;
+switchTab = function(p) {
+    _origSwitchTab3(p);
+    if (p === 'trip') setTimeout(loadAppointmentPanel, 100);
+};
+
 addTripRow();
 document.getElementById('trip_date').value = new Date().toISOString().split('T')[0];
+setTimeout(loadAppointmentPanel, 300);

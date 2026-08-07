@@ -173,6 +173,14 @@
                 <div class="form-group"><label>Jam Tiba</label><input type="time" name="jam_tiba" class="form-control"></div>
             </div>
 
+            <!-- APPOINTMENT INTEGRATION PANEL -->
+            <div class="appt-panel" id="apptPanel" style="display:none;">
+                <div class="appt-panel-head">📅 Appointment Selesai Hari Ini <span id="apptPanelCount" class="appt-panel-count">0</span></div>
+                <div class="appt-panel-sub">Perjalanan appointment yang sudah selesai otomatis terintegrasi di sini — klik tombol di bawah untuk memuat ke rute log perjalanan.</div>
+                <div id="apptPanelList"></div>
+                <button type="button" class="btn-submit" id="fillApptBtn" style="margin-top:8px;display:none;" onclick="fillTripFromAppointments()">📥 Muat Semua ke Rute</button>
+            </div>
+
             <div class="divider"></div>
             <h4 style="font-size:13px;color:var(--gray-700);margin-bottom:6px;">📍 Rute Perjalanan</h4>
             <div id="tripRows"></div>

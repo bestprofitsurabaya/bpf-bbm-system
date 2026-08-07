@@ -65,6 +65,39 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [1.2.0] - 2026-08-07
+
+### ✨ Fitur Baru: Sistem Appointment Canggih
+
+#### 📣 Halaman Marketing (`/marketing`)
+- Role baru **marketing** (mis. Icang dari Tim Yusie): login PIN → langsung ke halaman input appointment.
+- **Form multi-input**: bisa isi 2+ appointment sekaligus dalam satu submit (nama calon nasabah, no. HP, alamat, catatan).
+- **Sesi toggle**: Sesi 1 (🌅 08.30) & Sesi 2 (🌆 14.30) — menentukan slot perjalanan.
+- **Deteksi area otomatis**: sistem mengenali zona wilayah dari alamat (Darmo, Rungkut, Sidoarjo, dsb.) sebagai preview + data untuk Chief Driver.
+- Statistik harian, filter sesi, edit/batal (sebelum ditugaskan), notifikasi real-time saat driver ditugaskan/diproses.
+
+#### 🚛 Halaman Chief Driver (`/chief-driver`)
+- Role **chief_driver** (+ GA/Admin) — command center pembagian driver.
+- **Board Belum Ditugaskan** per sesi dengan **saran driver sistem** (load-balancing: driver dengan beban paling ringan pada sesi itu).
+- **Tugas Per Driver**: lihat jadwal lengkap per driver, tandai ✅ Selesai, 🔄 ganti driver, ↩️ batalkan penugasan, ✕ batalkan appointment.
+- **Unduh Rekap Excel** harian (openpyxl) + ringkasan status.
+- Board real-time (Socket.IO) — semua perubahan langsung terlihat.
+
+#### 🔗 Integrasi Log Perjalanan
+- Appointment yang **selesai** otomatis tersedia di form **Trip** PWA driver pada tanggal yang sama.
+- Tombol **"📥 Muat Semua ke Rute"**: rute (lokasi tujuan = alamat nasabah, pukul = jam sesi) terisi otomatis ke `trip_details`.
+- `trip_details.appointment_id` menyimpan referensi; badge **"📅 APP-xxxx · nama nasabah"** muncul di detail Trip Review.
+- Notifikasi marketing real-time: driver ditugaskan / selesai / penugasan dibatalkan.
+
+#### 👥 User & Teams
+- Role dropdown Users: **Marketing** + **Chief Driver**; field **Tim Marketing** (ketik nama tim baru → auto-register ke `marketing_teams`).
+- Login redirect berbasis role: marketing → `/marketing`, chief_driver → `/chief-driver`.
+
+### 🧪 Test
+- Test baru `test_appointments.py`: deteksi area, sesi, validasi input, display ID (12 test).
+
+---
+
 ## [1.0.0] - 2026-07-30
 
 Versi awal yang diluncurkan ke produksi.

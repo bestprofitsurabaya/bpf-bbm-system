@@ -65,8 +65,9 @@ CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     full_name VARCHAR(100) NOT NULL,
-    role ENUM('admin','ga','finance') NOT NULL DEFAULT 'ga',
+    role ENUM('admin','ga','finance','marketing','chief_driver') NOT NULL DEFAULT 'ga',
     pin VARCHAR(255) NOT NULL,
+    team_name VARCHAR(100) DEFAULT '',
     is_active TINYINT(1) DEFAULT 1,
     last_login DATETIME DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -196,8 +197,10 @@ CREATE TABLE IF NOT EXISTS trip_details (
     lokasi_tujuan VARCHAR(255) NOT NULL,
     pukul_tujuan TIME NOT NULL,
     km_tujuan INT NOT NULL,
+    appointment_id INT DEFAULT NULL,
     FOREIGN KEY (trip_master_id) REFERENCES trip_masters(id) ON DELETE CASCADE,
-    INDEX idx_trip_master (trip_master_id)
+    INDEX idx_trip_master (trip_master_id),
+    INDEX idx_appointment (appointment_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Vehicle Assignments
@@ -213,6 +216,47 @@ CREATE TABLE IF NOT EXISTS vehicle_assignments (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_driver (driver_name),
     INDEX idx_nopol (nopol)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- MARKETING TEAMS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS marketing_teams (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    leader_name VARCHAR(100) DEFAULT '',
+    is_active TINYINT(1) DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- APPOINTMENTS (Marketing -> Chief Driver -> Trip Log)
+-- Sesi 1 = 08.30, Sesi 2 = 14.30
+-- ============================================================
+CREATE TABLE IF NOT EXISTS appointments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    display_id VARCHAR(30) NOT NULL UNIQUE,
+    marketing_username VARCHAR(50) NOT NULL,
+    marketing_name VARCHAR(100) NOT NULL,
+    team_name VARCHAR(100) DEFAULT '',
+    nasabah_name VARCHAR(150) NOT NULL,
+    nasabah_phone VARCHAR(30) DEFAULT '',
+    alamat VARCHAR(500) NOT NULL,
+    area VARCHAR(100) DEFAULT '',
+    appointment_date DATE NOT NULL,
+    sesi ENUM('1','2') NOT NULL DEFAULT '1',
+    status ENUM('scheduled','assigned','completed','cancelled') DEFAULT 'scheduled',
+    driver_name VARCHAR(100) DEFAULT NULL,
+    driver_note VARCHAR(255) DEFAULT '',
+    notes VARCHAR(500) DEFAULT '',
+    completed_at DATETIME DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_date_sesi (appointment_date, sesi),
+    INDEX idx_driver (driver_name),
+    INDEX idx_status (status),
+    INDEX idx_marketing (marketing_username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================

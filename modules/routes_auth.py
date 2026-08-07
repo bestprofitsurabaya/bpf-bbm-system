@@ -3,14 +3,25 @@ from flask import render_template, request, redirect, url_for, session, flash
 from modules.config import get_db_connection
 from urllib.parse import urlparse
 
+# Halaman awal per role setelah login
+ROLE_HOME = {
+    'marketing': '/marketing',
+    'chief_driver': '/chief-driver',
+}
+
+
+def _role_home(role):
+    """Halaman awal sesuai role user setelah login."""
+    return ROLE_HOME.get(role, url_for('admin_dashboard'))
+
 
 def register_auth_routes(app):
 
     @app.route('/login', methods=['GET', 'POST'])
     def login_page():
-        # Sudah login? langsung ke dashboard
+        # Sudah login? langsung ke halaman sesuai role
         if session.get('user_role'):
-            return redirect(url_for('admin_dashboard'))
+            return redirect(_role_home(session.get('user_role')))
 
         if request.method == 'POST':
             username = request.form.get('username', '').strip()
@@ -47,7 +58,7 @@ def register_auth_routes(app):
                 parsed = urlparse(nxt)
                 if nxt and nxt.startswith('/') and not nxt.startswith('//') and not parsed.netloc:
                     return redirect(nxt)
-                return redirect(url_for('admin_dashboard'))
+                return redirect(_role_home(user['role']))
 
             flash('Username atau PIN salah.', 'error')
             return redirect(login_retry)

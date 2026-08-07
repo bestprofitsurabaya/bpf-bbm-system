@@ -196,3 +196,83 @@ def generate_trip_logsheet(master, details):
     wb.save(output)
     output.seek(0)
     return output.read()
+
+
+# ============================================================
+# APPOINTMENT DAILY REPORT EXPORT
+# ============================================================
+def generate_appointment_report(target_date, rows):
+    """Generate rekap harian appointment (laporan Chief Driver)."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+    import io
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = f"Appointment {target_date}"
+
+    thin_border = Border(
+        left=Side(style='thin'), right=Side(style='thin'),
+        top=Side(style='thin'), bottom=Side(style='thin')
+    )
+    header_fill = PatternFill(start_color='1D4ED8', end_color='1D4ED8', fill_type='solid')
+    title_font = Font(name='Arial', bold=True, size=14, color='1E293B')
+    subtitle_font = Font(name='Arial', bold=True, size=10)
+    header_font = Font(name='Arial', bold=True, size=9, color='FFFFFF')
+    normal_font = Font(name='Arial', size=9)
+
+    widths = {'A': 4, 'B': 13, 'C': 24, 'D': 16, 'E': 42, 'F': 18, 'G': 16, 'H': 16, 'I': 20}
+    for col, width in widths.items():
+        ws.column_dimensions[col].width = width
+
+    ws.merge_cells('A1:I1')
+    ws['A1'] = 'LAPORAN APPOINTMENT HARIAN'
+    ws['A1'].font = title_font
+    ws['A1'].alignment = Alignment(horizontal='center')
+    ws.merge_cells('A2:I2')
+    ws['A2'] = f'Tanggal: {target_date}  •  PT. BESTPROFIT FUTURES - Cab. Surabaya'
+    ws['A2'].font = subtitle_font
+    ws['A2'].alignment = Alignment(horizontal='center')
+
+    headers = ['No', 'Sesi', 'Nama Nasabah', 'No. HP', 'Alamat', 'Area', 'Tim', 'Marketing', 'Driver']
+    for col_idx, h in enumerate(headers, 1):
+        cell = ws.cell(row=4, column=col_idx, value=h)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.border = thin_border
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+    status_counts = {'scheduled': 0, 'assigned': 0, 'completed': 0, 'cancelled': 0}
+    for i, r in enumerate(rows, 1):
+        status_counts[r.get('status', 'scheduled')] = status_counts.get(r.get('status', 'scheduled'), 0) + 1
+        sesi_label = 'Sesi 1 (08.30)' if r.get('sesi') == '1' else 'Sesi 2 (14.30)'
+        values = [
+            i, sesi_label, r.get('nasabah_name', '-'), r.get('nasabah_phone', '-'),
+            r.get('alamat', '-'), r.get('area', '-'), r.get('team_name', '-'),
+            r.get('marketing_name', '-'), r.get('driver_name') or 'Belum Ditugaskan',
+        ]
+        for col_idx, val in enumerate(values, 1):
+            cell = ws.cell(row=4 + i, column=col_idx, value=val)
+            cell.font = normal_font
+            cell.border = thin_border
+            if col_idx in (1, 2, 6):
+                cell.alignment = Alignment(horizontal='center')
+
+    summary_row = 5 + len(rows) + 1
+    ws.merge_cells(f'A{summary_row}:I{summary_row}')
+    ws[f'A{summary_row}'] = (
+        f"RINGKASAN: Total {len(rows)} | Menunggu {status_counts['scheduled']} | "
+        f"Ditugaskan {status_counts['assigned']} | Selesai {status_counts['completed']} | "
+        f"Batal {status_counts['cancelled']}"
+    )
+    ws[f'A{summary_row}'].font = Font(name='Arial', bold=True, size=9)
+
+    ws.page_setup.orientation = 'landscape'
+    ws.page_setup.fitToWidth = 1
+    ws.page_margins.left = 0.4
+    ws.page_margins.right = 0.4
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return output.read()

@@ -102,7 +102,7 @@ def register_master_api(app):
     def api_users():
         try:
             conn = get_db_connection(); cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT id, username, full_name, role, is_active, last_login FROM users ORDER BY role, username")
+            cursor.execute("SELECT id, username, full_name, role, team_name, is_active, last_login FROM users ORDER BY role, username")
             data = cursor.fetchall(); cursor.close(); conn.close()
             return jsonify(data)
         except Exception as e:
@@ -115,11 +115,30 @@ def register_master_api(app):
             data = request.get_json()
             u = data.get('username', '').strip(); f = data.get('full_name', '').strip()
             r = data.get('role', 'ga'); p = data.get('pin', '123456'); a = data.get('is_active', True)
+            if r not in ('admin', 'ga', 'finance', 'marketing', 'chief_driver'):
+                return jsonify({'status': 'error', 'msg': 'Role tidak valid'}), 400
             if not u or not f: return jsonify({'status': 'error', 'msg': 'Username dan nama wajib'}), 400
+
+            # Team hanya diubah bila dikirim eksplisit (agar toggle is_active
+            # atau update role tidak menghapus tim marketing yang sudah ada).
+            team = None
+            if 'team_name' in data:
+                team = str(data.get('team_name', '') or '').strip()
+                if r == 'marketing':
+                    if not team:
+                        return jsonify({'status': 'error', 'msg': 'User marketing wajib memiliki tim'}), 400
+                    from modules.helpers import get_or_create_team
+                    team = get_or_create_team(team)
+
             conn = get_db_connection(); cursor = conn.cursor()
-            cursor.execute("INSERT INTO users (username, full_name, role, pin, is_active) VALUES (%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE full_name=VALUES(full_name), role=VALUES(role), pin=VALUES(pin), is_active=VALUES(is_active)", (u, f, r, p, a))
+            if team is None:
+                # Pertahankan team_name existing (jangan di-reset)
+                cursor.execute("SELECT team_name FROM users WHERE username=%s", (u,))
+                row = cursor.fetchone()
+                team = row[0] if row else ''
+            cursor.execute("INSERT INTO users (username, full_name, role, pin, team_name, is_active) VALUES (%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE full_name=VALUES(full_name), role=VALUES(role), pin=VALUES(pin), team_name=VALUES(team_name), is_active=VALUES(is_active)", (u, f, r, p, team, a))
             conn.commit(); cursor.close(); conn.close()
-            log_activity_async(0, 'user_sync', 'admin', 'Admin', new_data={'username': u, 'role': r}, ip=request.remote_addr)
+            log_activity_async(0, 'user_sync', 'admin', 'Admin', new_data={'username': u, 'role': r, 'team': team}, ip=request.remote_addr)
             return jsonify({'status': 'success', 'msg': f'User {u} saved'})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500

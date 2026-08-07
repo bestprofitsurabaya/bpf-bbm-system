@@ -16,6 +16,8 @@
 
         .badge-good { background: var(--success-light); color: var(--success); }
         .badge-danger { background: var(--danger-light); color: var(--danger); }
+        .badge-marketing { background: #dbeafe; color: #1d4ed8; }
+        .badge-chief { background: #fef3c7; color: #92400e; }
 
 
         .btn-add { background: var(--success); color: white; padding: 8px 16px; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 12px; font-weight: 600; margin-top: 10px; }

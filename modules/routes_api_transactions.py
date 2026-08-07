@@ -388,7 +388,10 @@ def register_transaction_api(app):
             cursor.execute("SELECT * FROM trip_masters WHERE id = %s", (trip_id,))
             master = cursor.fetchone()
             if not master: cursor.close(); conn.close(); return jsonify({'error': 'Trip not found'}), 404
-            cursor.execute("SELECT * FROM trip_details WHERE trip_master_id = %s ORDER BY no_urut", (trip_id,))
+            cursor.execute("""SELECT td.*, a.display_id AS appointment_display, a.nasabah_name AS appointment_nasabah
+                             FROM trip_details td
+                             LEFT JOIN appointments a ON td.appointment_id = a.id
+                             WHERE td.trip_master_id = %s ORDER BY td.no_urut""", (trip_id,))
             details = cursor.fetchall(); cursor.close(); conn.close()
             if master.get('jam_keberangkatan'): master['jam_keberangkatan'] = str(master['jam_keberangkatan'])
             if master.get('jam_tiba'): master['jam_tiba'] = str(master['jam_tiba'])

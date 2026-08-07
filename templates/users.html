@@ -25,6 +25,7 @@
         <div class="nav-links">
             <a href="/admin">Dashboard</a>
             <a href="/ga/assignments">Assignments</a>
+            <a href="/chief-driver">🚛 Chief Driver</a>
             <a href="/admin/rekap">Rekap</a>
             <a href="/admin/analytics">Analytics</a>
             <a href="/admin/trips">Trips</a>
@@ -43,13 +44,14 @@
             </div>
             <div class="card-body">
                 <table>
-                    <thead><tr><th>Username</th><th>Nama</th><th>Role</th><th>Status</th><th>Login Terakhir</th><th>Aksi</th></tr></thead>
+                    <thead><tr><th>Username</th><th>Nama</th><th>Role</th><th>Tim</th><th>Status</th><th>Login Terakhir</th><th>Aksi</th></tr></thead>
                     <tbody id="user-table">
                         {% for u in users %}
                         <tr>
                             <td><strong>{{ u.username }}</strong></td>
                             <td>{{ u.full_name }}</td>
-                            <td><span class="badge {% if u.role == 'admin' %}badge-danger{% elif u.role == 'finance' %}badge-finance{% else %}badge-ga{% endif %}">{{ u.role|upper }}</span></td>
+                            <td><span class="badge {% if u.role == 'admin' %}badge-danger{% elif u.role == 'finance' %}badge-finance{% elif u.role == 'marketing' %}badge-marketing{% elif u.role == 'chief_driver' %}badge-chief{% else %}badge-ga{% endif %}">{{ u.role|replace('_',' ')|upper }}</span></td>
+                            <td>{% if u.role == 'marketing' %}<span class="tag" style="background:#dbeafe;color:#1e40af;">👥 {{ u.team_name or '-' }}</span>{% else %}<span style="color:var(--gray-400);">-</span>{% endif %}</td>
                             <td>{% if u.is_active %}<span class="badge badge-good">✅ Aktif</span>{% else %}<span class="badge badge-danger">⛔ Nonaktif</span>{% endif %}</td>
                             <td style="font-size:11px;">{{ u.last_login.strftime('%d/%m/%Y %H:%M') if u.last_login else '-' }}</td>
                             <td>
@@ -65,12 +67,19 @@
                 <div style="margin-top:16px;padding:14px;background:var(--gray-100);border-radius:10px;">
                     <strong>➕ Tambah / Update User:</strong>
                     <div class="row-4" style="margin-top:8px;">
-                        <input type="text" id="newUsername" class="form-control" placeholder="Username (cth: admin)">
+                        <input type="text" id="newUsername" class="form-control" placeholder="Username (cth: icang)">
                         <input type="text" id="newFullName" class="form-control" placeholder="Nama Lengkap">
-                        <select id="newRole" class="form-control">
+                        <select id="newRole" class="form-control" onchange="onRoleChange()">
                             <option value="ga">GA</option><option value="finance">Finance</option><option value="admin">Admin</option>
+                            <option value="marketing">📣 Marketing</option><option value="chief_driver">🚛 Chief Driver</option>
                         </select>
                         <input type="text" id="newPin" class="form-control" placeholder="PIN 6-digit" maxlength="6">
+                    </div>
+                    <div id="teamRow" style="margin-top:10px;display:none;">
+                        <label style="font-weight:600;font-size:11px;">👥 Tim Marketing <span style="color:var(--danger);">*</span></label>
+                        <input type="text" id="newTeam" class="form-control" list="teamList" placeholder="Ketik nama tim (cth: Tim Yusie) atau pilih dari daftar" style="max-width:420px;">
+                        <datalist id="teamList"></datalist>
+                        <div style="font-size:10px;color:var(--gray-500);margin-top:4px;">Ketik nama tim baru untuk membuatnya otomatis, atau pilih tim yang sudah ada.</div>
                     </div>
                     <button class="btn-add" onclick="syncUser()">+ Simpan User</button>
                     <span id="syncUserStatus" style="font-size:12px;margin-left:10px;"></span>
@@ -111,24 +120,30 @@
     // ============================================================
     // USERS
     // ============================================================
+    var usersMap = {};
     async function loadUsers() {
         try {
             var res = await fetch('/api/users');
             var data = await res.json();
             var tbody = document.getElementById('user-table');
             if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--gray-400);">Tidak ada user</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--gray-400);">Tidak ada user</td></tr>';
                 return;
             }
             var rows = '';
+            usersMap = {};
             for (var i = 0; i < data.length; i++) {
                 var u = data[i];
+                usersMap[u.username] = u;
                 var statusBadge = u.is_active ? '<span class="badge badge-good">✅ Aktif</span>' : '<span class="badge badge-danger">⛔ Nonaktif</span>';
                 var toggleLabel = u.is_active ? 'Nonaktifkan' : 'Aktifkan';
+                var roleBadge = u.role==='admin' ? 'badge-danger' : u.role==='finance' ? 'badge-finance' : u.role==='marketing' ? 'badge-marketing' : u.role==='chief_driver' ? 'badge-chief' : 'badge-ga';
+                var teamCell = u.role==='marketing' ? '<span class="tag" style="background:#dbeafe;color:#1e40af;">👥 '+(u.team_name||'-')+'</span>' : '<span style="color:var(--gray-400);">-</span>';
                 rows += '<tr>' +
                     '<td><strong>'+u.username+'</strong></td>' +
                     '<td>'+u.full_name+'</td>' +
-                    '<td><span class="badge '+(u.role==='admin'?'badge-danger':u.role==='finance'?'badge-finance':'badge-ga')+'">'+u.role.toUpperCase()+'</span></td>' +
+                    '<td><span class="badge '+roleBadge+'">'+u.role.replace(/_/g,' ').toUpperCase()+'</span></td>' +
+                    '<td>'+teamCell+'</td>' +
                     '<td>'+statusBadge+'</td>' +
                     '<td style="font-size:11px;">'+(u.last_login ? new Date(u.last_login).toLocaleString('id-ID') : '-')+'</td>' +
                     '<td>' +
@@ -142,16 +157,34 @@
         } catch (e) { console.error(e); }
     }
 
+    async function loadTeams() {
+        try {
+            var res = await fetch('/api/teams');
+            var data = await res.json();
+            if (!Array.isArray(data)) return;
+            var opts = '';
+            data.forEach(function(t) { opts += '<option value="' + t.name + '">' + (t.leader_name ? t.name + ' (Ketua: ' + t.leader_name + ')' : t.name) + '</option>'; });
+            document.getElementById('teamList').innerHTML = opts;
+        } catch(e) {}
+    }
+
+    function onRoleChange() {
+        var r = document.getElementById('newRole').value;
+        document.getElementById('teamRow').style.display = r === 'marketing' ? 'block' : 'none';
+    }
+
     async function syncUser() {
         var u = document.getElementById('newUsername').value.trim();
         var f = document.getElementById('newFullName').value.trim();
         var r = document.getElementById('newRole').value;
         var p = document.getElementById('newPin').value.trim();
+        var t = document.getElementById('newTeam').value.trim();
         var s = document.getElementById('syncUserStatus');
         if (!u || !f || !p) { s.textContent = 'Semua field wajib!'; s.style.color = 'red'; return; }
         if (!/^\d{6}$/.test(p)) { s.textContent = 'PIN harus 6 digit angka!'; s.style.color = 'red'; return; }
+        if (r === 'marketing' && !t) { s.textContent = 'Marketing harus memiliki Tim!'; s.style.color = 'red'; return; }
         try {
-            var res = await fetch('/api/users/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u, full_name: f, role: r, pin: p, is_active: true }) });
+            var res = await fetch('/api/users/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u, full_name: f, role: r, pin: p, is_active: true, team_name: t }) });
             var d = await res.json();
             s.textContent = d.status === 'success' ? '✅ Berhasil!' : '❌ ' + (d.msg || 'Gagal');
             s.style.color = d.status === 'success' ? 'green' : 'red';
@@ -159,7 +192,8 @@
                 document.getElementById('newUsername').value = '';
                 document.getElementById('newFullName').value = '';
                 document.getElementById('newPin').value = '';
-                loadUsers();
+                document.getElementById('newTeam').value = '';
+                loadUsers(); loadTeams();
             }
         } catch (e) { s.textContent = 'Error koneksi'; s.style.color = 'red'; }
     }
@@ -167,10 +201,11 @@
     async function toggleUser(username, isActive) {
         var action = isActive ? 'nonaktifkan' : 'aktifkan';
         if (!confirm('Yakin ' + action + ' user ' + username + '?')) return;
+        var u = usersMap[username] || {};
         try {
             await fetch('/api/users/sync', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: username, full_name: username, role: 'ga', pin: '000000', is_active: !isActive })
+                body: JSON.stringify({ username: username, full_name: u.full_name || username, role: u.role || 'ga', pin: '000000', is_active: !isActive, team_name: u.team_name || '' })
             });
             loadUsers();
         } catch (e) { alert('Gagal: ' + e.message); }
@@ -178,10 +213,11 @@
 
     async function deleteUser(username) {
         if (!confirm('HAPUS user ' + username + '?')) return;
+        var u = usersMap[username] || {};
         try {
             await fetch('/api/users/sync', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: username, full_name: username, role: 'ga', pin: '000000', is_active: false })
+                body: JSON.stringify({ username: username, full_name: u.full_name || username, role: u.role || 'ga', pin: '000000', is_active: false, team_name: u.team_name || '' })
             });
             loadUsers();
         } catch (e) { alert('Error: ' + e.message); }
@@ -228,6 +264,8 @@
     document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeResetPin(); });
     document.getElementById('resetPinModal').addEventListener('click', function(e) { if (e.target === this) closeResetPin(); });
     loadUsers();
+    loadTeams();
+    onRoleChange();
     </script>
 
     <script>

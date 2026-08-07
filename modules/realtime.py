@@ -31,6 +31,22 @@ def init_socketio(sio):
             except Exception as e:
                 print(f"[realtime] join_driver error: {e}")
 
+        @sio.on('join_room')
+        def _join_room(data):
+            """Generic room join (mis. marketing_<username> untuk halaman marketing)."""
+            try:
+                room = str((data or {}).get('room', '')).strip()
+                if not room:
+                    return
+                sid = request.sid
+                prev = _sid_room.get(sid)
+                if prev and prev != room:
+                    sio.leave_room(sid, prev)
+                sio.enter_room(sid, room)
+                _sid_room[sid] = room
+            except Exception as e:
+                print(f"[realtime] join_room error: {e}")
+
         @sio.on('disconnect')
         def _on_disconnect():
             _sid_room.pop(request.sid, None)

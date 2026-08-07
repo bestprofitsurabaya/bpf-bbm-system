@@ -1,11 +1,39 @@
-# ⛽ BPF Fleet & BBM System v1.1
+# ⛽ BPF Fleet & BBM System v1.2
 
-**Sistem Manajemen Armada, Klaim BBM, Kasbon & Log Perjalanan**  
+**Sistem Manajemen Armada, Klaim BBM, Kasbon, Log Perjalanan & Appointment**  
 **PT. Bestprofit Futures - Surabaya**
 
 ---
 
-Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pengarsipan klaim BBM, **pengajuan kasbon dengan kode unik**, dan log perjalanan harian (logsheet) dengan workflow GA → Finance → Archive. Dilengkapi deteksi anomali Machine Learning, GPS tracking, **watermark foto otomatis**, PIN security, **session-based login & role-based access**, **CSRF protection**, **notifikasi driver real-time**, import Excel, audit trail, Chart.js visualization, **PWA offline-first**, dan **WebSocket real-time**.
+Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pengarsipan klaim BBM, **pengajuan kasbon dengan kode unik**, dan log perjalanan harian (logsheet) dengan workflow GA → Finance → Archive. Dilengkapi **sistem appointment canggih** (Marketing → Chief Driver → Log Perjalanan), deteksi anomali Machine Learning, GPS tracking, **watermark foto otomatis**, PIN security, **session-based login & role-based access**, **CSRF protection**, **notifikasi real-time**, import Excel, audit trail, Chart.js visualization, **PWA offline-first**, dan **WebSocket real-time**.
+
+---
+
+## 🆕 Fitur Terbaru v1.2 — Sistem Appointment
+
+### 📣 Marketing Hub (`/marketing`)
+| Fitur | Deskripsi |
+|-------|-----------|
+| **Login Role Marketing** | User marketing (mis. Icang dari Tim Yusie) login PIN → langsung ke halaman inputnya |
+| **Form Multi-Input** | Input 2+ appointment sekaligus: nama calon nasabah, no. HP, alamat, catatan |
+| **Sesi Perjalanan** | 🌅 Sesi 1 (08.30) / 🌆 Sesi 2 (14.30) — menentukan slot kunjungan |
+| **Deteksi Area Otomatis** | Sistem mengenali zona alamat (Darmo, Rungkut, Sidoarjo, dsb.) |
+| **Notifikasi Real-Time** | Marketing tahu saat driver ditugaskan / appointment selesai |
+
+### 🚛 Chief Driver Command Center (`/chief-driver`)
+| Fitur | Deskripsi |
+|-------|-----------|
+| **Board Belum Ditugaskan** | Per sesi + **saran driver otomatis** (load-balancing beban sesi) |
+| **Tugas Per Driver** | Jadwal lengkap per driver: ✅ Selesai, 🔄 Ganti, ↩️ Batal Tugas, ✕ Batal Appt |
+| **Rekap Excel Harian** | Unduh laporan appointment per tanggal (openpyxl) |
+| **Board Real-Time** | Perubahan langsung tampil (Socket.IO) |
+
+### 🔗 Integrasi Log Perjalanan
+| Fitur | Deskripsi |
+|-------|-----------|
+| **Auto-Integrasi** | Appointment selesai → otomatis muncul di form Trip driver pada tanggal sama |
+| **Muat Sekali Klik** | "📥 Muat Semua ke Rute" mengisi rute dari alamat nasabah + jam sesi |
+| **Audit Jejak** | `trip_details.appointment_id` + badge "📅 APP-xxxx" di Trip Review |
 
 ---
 
@@ -116,6 +144,19 @@ Driver 💰→ GA ✅→ Finance 💰→ GA 🤝→ Driver ⛽→ LPJ 📋→ �
 
 ```
 
+### Alur Appointment (v1.2)
+```
+
+Marketing 📣 → Chief Driver 🚛 → Driver 🗺️ → GA ✅
+   │              │                │            │
+   └─ input       └─ bagi driver    └─ log       └─ review trip
+      nasabah +      (saran          perjalanan
+      alamat +        otomatis       auto-terisi
+      sesi 08.30/     per sesi/      dari alamat
+      14.30           area)          nasabah
+
+```
+
 ---
 
 ## 🛠 Tech Stack
@@ -123,7 +164,7 @@ Driver 💰→ GA ✅→ Finance 💰→ GA 🤝→ Driver ⛽→ LPJ 📋→ �
 | Layer | Technology |
 |-------|-----------|
 | Backend | Python 3.11 + Flask |
-| Architecture | **Modular** (10 route modules + service layer) |
+| Architecture | **Modular** (11 route modules + service layer) |
 | Auth | Session-based (PIN users) + role_required + CSRF |
 | Real-Time | Flask-SocketIO + eventlet + per-driver rooms |
 | Database | MariaDB 10.11 |
@@ -131,7 +172,7 @@ Driver 💰→ GA ✅→ Finance 💰→ GA 🤝→ Driver ⛽→ LPJ 📋→ �
 | PDF | FPDF + DejaVu Sans (Unicode) |
 | Excel | openpyxl |
 | Charts | Chart.js 4.4 |
-| Frontend | HTML5 + CSS3 + Vanilla JS (12 JS modules + 9 CSS) |
+| Frontend | HTML5 + CSS3 + Vanilla JS (13 JS modules + 11 CSS) |
 | PWA | Service Worker + IndexedDB + localStorage |
 | Container | Docker + Docker Compose |
 | Font | Inter (Google Fonts) + DejaVu Sans |
@@ -154,9 +195,14 @@ Aplikasi dapat diakses publik tanpa port forwarding via Cloudflare Tunnel:
 
 | Halaman | URL Online |
 |---------|------------|
-| **Login admin** | `https://miles-attribute-insulin-fraction.trycloudflare.com/login` |
-| **Driver PWA** | `https://miles-attribute-insulin-fraction.trycloudflare.com/driver` |
-| Dashboard | `https://miles-attribute-insulin-fraction.trycloudflare.com/admin` |
+| **Login (semua role)** | `https://census-biological-ran-stories.trycloudflare.com/login` |
+| **📣 Marketing Hub** | `https://census-biological-ran-stories.trycloudflare.com/marketing` |
+| **🚛 Chief Driver** | `https://census-biological-ran-stories.trycloudflare.com/chief-driver` |
+| **📱 Driver PWA** | `https://census-biological-ran-stories.trycloudflare.com/driver` |
+| Dashboard Admin | `https://census-biological-ran-stories.trycloudflare.com/admin` |
+| GA Assignments | `https://census-biological-ran-stories.trycloudflare.com/ga/assignments` |
+| Trips | `https://census-biological-ran-stories.trycloudflare.com/admin/trips` |
+| Users | `https://census-biological-ran-stories.trycloudflare.com/admin/users` |
 
 > ⚠️ **Catatan:** Ini *quick tunnel* — URL acak dan dapat **berubah saat container `cloudflared` di-restart**.
 > Gunakan `bash scripts/tunnel-check.sh` untuk melihat & memeriksa URL yang sedang aktif,
@@ -169,6 +215,8 @@ Aplikasi dapat diakses publik tanpa port forwarding via Cloudflare Tunnel:
 |---------|-----|-------|
 | Login | http://localhost:5001/login | Semua |
 | Driver | http://localhost:5001/driver | Driver (tanpa login) |
+| **Marketing Hub** | http://localhost:5001/marketing | Marketing |
+| **Chief Driver** | http://localhost:5001/chief-driver | Chief Driver, GA |
 | Dashboard | http://localhost:5001/admin | GA, Finance, Admin |
 | GA Assignments | http://localhost:5001/ga/assignments | GA |
 | Rekap | http://localhost:5001/admin/rekap | Finance, Admin |
@@ -187,6 +235,8 @@ Default Credentials
 | Admin | admin | 123456 |
 | GA | ga_officer | 123456 |
 | Finance | finance_officer | 123456 |
+| Marketing (buat via Users) | mis. icang | 123456 (set via Users) |
+| Chief Driver (buat via Users) | mis. chief_driver | 123456 (set via Users) |
 
 ---
 
@@ -203,8 +253,10 @@ bpf-bbm-system/
 │   ├── pdf_generator.py            # PDF classes (enterprise)
 │   ├── excel_generator.py          # Excel export
 │   ├── realtime.py                 # SocketIO bus + per-driver rooms
-│   ├── notifications.py            # Store & push notifikasi driver
-│   ├── routes_auth.py              # Login / logout (session)
+│   ├── notifications.py            # Store & push notifikasi driver/marketing
+│   ├── appointments_schema.py      # Migrasi tabel appointments (startup)
+│   ├── routes_auth.py              # Login / logout (session, redirect per-role)
+│   ├── routes_appointments.py      # Marketing & Chief Driver (halaman + API)
 │   ├── routes_driver.py            # Driver & PWA routes
 │   ├── routes_admin.py             # Admin dashboard & workflow
 │   ├── routes_reports.py           # Reports, rekap, analytics
@@ -228,7 +280,7 @@ bpf-bbm-system/
 │   │   ├── sync.js                 # Background sync
 │   │   └── drivers.js              # Driver data loader
 │   └── css/                        # 1 file per halaman (base.css + admin/driver/analytics/...)
-├── templates/                      # 12 HTML templates (+ _tab_content fragment)
+├── templates/                      # 14 HTML templates (+ _tab_content fragment)
 ├── scripts/
 │   ├── tunnel-check.sh             # Periksa status URL public (online/offline)
 │   ├── tunnel-url.sh               # Tampilkan URL public aktif
@@ -278,9 +330,23 @@ docker exec bbm_mariadb mysql -uroot -ppassword_db bpf_asset_system \
 # Notifikasi driver
 docker exec bbm_mariadb mysql -uroot -ppassword_db bpf_asset_system \
   -e "SELECT driver_name, type, message, is_read, created_at FROM notifications ORDER BY id DESC LIMIT 20;"
+
+# Appointment harian
+docker exec bbm_mariadb mysql -uroot -ppassword_db bpf_asset_system \
+  -e "SELECT appointment_date, sesi, status, COUNT(*) FROM appointments GROUP BY appointment_date, sesi, status ORDER BY appointment_date DESC LIMIT 20;"
 ```
 
 ---
+
+## 📋 Changelog v1.2
+
+- ✅ **Sistem Appointment**: tabel `appointments` + `marketing_teams`, role `marketing` & `chief_driver`, migrasi otomatis saat startup (`appointments_schema.py`)
+- ✅ **Halaman Marketing Hub** `/marketing`: form multi-input, sesi 08.30/14.30, deteksi area alamat otomatis, notifikasi real-time
+- ✅ **Halaman Chief Driver** `/chief-driver`: board penugasan per sesi & per driver, saran driver load-balancing, export Excel harian, board real-time
+- ✅ **Integrasi Log Perjalanan**: appointment selesai → auto-terisi di form Trip driver + jejak `appointment_id` di Trip Review
+- ✅ **Login redirect per-role**: marketing → `/marketing`, chief_driver → `/chief-driver`
+- ✅ **User management**: role Marketing + Chief Driver + field Tim Marketing (auto-register `marketing_teams`)
+- ✅ **Tests**: 48 test PASS + smoke test end-to-end 25 check
 
 ## 📋 Changelog v1.1
 
@@ -302,8 +368,10 @@ docker exec bbm_mariadb mysql -uroot -ppassword_db bpf_asset_system \
 | Role | Akses | Default PIN |
 |------|-------|-------------|
 | Admin | Settings, Users, Audit Log, semua dashboard | 123456 |
-| GA Officer | Approve, reject, trip review, serah terima kendaraan, kasbon | 123456 |
+| GA Officer | Approve, reject, trip review, serah terima kendaraan, kasbon, chief driver board | 123456 |
 | Finance Officer | Payout, Archive, ZIP, Export, ODO Edit, kasbon | 123456 |
+| Chief Driver | Command center penugasan driver appointment | 123456 |
+| Marketing | Input & kelola appointment prospek nasabah | 123456 |
 | Driver | Submit BBM, Trip Log, Kasbon, Self-analytics, notifikasi (tanpa login) | - |
 
 ---
@@ -311,5 +379,5 @@ docker exec bbm_mariadb mysql -uroot -ppassword_db bpf_asset_system \
 ## 📄 License
 
 Internal use - PT. Bestprofit Futures Surabaya  
-Version 1.1 | August 2026  
+Version 1.2 | August 2026  
 Developed & Maintained by IT BPF Surabaya

@@ -1,6 +1,7 @@
 """Helper functions for BPF BBM System"""
 import os
 import json
+import threading
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 
@@ -29,25 +30,48 @@ def resolve_driver_form_context(driver_data, driver_name, nopol, vehicle_type, b
         'bbm_type': resolved_bbm_type,
     }
 
+_generated_display_ids = set()
+_display_id_lock = threading.Lock()
+
+
 def generate_display_id(prefix='BPF', conn=None):
-    """Generate unique display ID: BPF-YYYYMMDD-XXXXXX (timestamp-based)"""
+    """Generate unique display ID: BPF-YYYYMMDD-HHMMSSXX (timestamp + random).
+
+    Uniqueness dijaga via dedupe in-memory thread-safe + double-check di DB
+    bila koneksi tersedia.
+    """
     import random, string
     now = datetime.now()
     date_part = now.strftime('%Y%m%d')
     time_part = now.strftime('%H%M%S')
-    random_part = ''.join(random.choices(string.digits, k=2))
-    unique_id = f"{prefix}-{date_part}-{time_part}{random_part}"
 
-    # Double-check uniqueness in DB
+    def _candidate():
+        random_part = ''.join(random.choices(string.digits, k=2))
+        return f"{prefix}-{date_part}-{time_part}{random_part}"
+
+    unique_id = _candidate()
+    guard = 0
+    with _display_id_lock:
+        while unique_id in _generated_display_ids:
+            unique_id = _candidate()
+            guard += 1
+            if guard > 500:
+                break
+        _generated_display_ids.add(unique_id)
+
+    # Double-check uniqueness in DB (rare collision lintas-restart)
     if conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) as c FROM transactions WHERE display_id = %s", (unique_id,))
-        exists = cursor.fetchone()[0]
-        cursor.close()
-        if exists > 0:
-            # Very rare collision: add more random
-            extra = ''.join(random.choices(string.digits, k=3))
-            unique_id = f"{prefix}-{date_part}-{time_part}{extra}"
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) as c FROM transactions WHERE display_id = %s", (unique_id,))
+            exists = cursor.fetchone()[0]
+            cursor.close()
+            if exists > 0:
+                with _display_id_lock:
+                    unique_id = _candidate()
+                    _generated_display_ids.add(unique_id)
+        except Exception:
+            pass
 
     return unique_id
 
@@ -269,3 +293,126 @@ def ga_or_admin_required(f):
 def finance_or_admin_required(f):
     """Shortcut decorator: Finance atau admin."""
     return role_required(['finance', 'admin'])(f)
+
+
+# ============================================================
+# APPOINTMENT SYSTEM HELPERS
+# ============================================================
+
+# Sesi perjalanan appointment. Sesi 1 = 08.30, Sesi 2 = 14.30.
+SESI_INFO = {
+    '1': {'label': 'Sesi 1', 'time': '08:30', 'display': '08.30', 'icon': '🌅'},
+    '2': {'label': 'Sesi 2', 'time': '14:30', 'display': '14.30', 'icon': '🌆'},
+}
+VALID_SESI = ('1', '2')
+APPOINTMENT_STATUSES = ('scheduled', 'assigned', 'completed', 'cancelled')
+
+
+def sesi_info(sesi):
+    """Return dict sesi (label, waktu mulai, display) atau None jika tidak valid."""
+    return SESI_INFO.get(str(sesi))
+
+
+def sesi_time(sesi):
+    """Jam mulai sesi sebagai string HH:MM ('08:30' / '14:30')."""
+    info = SESI_INFO.get(str(sesi))
+    return info['time'] if info else None
+
+
+# Pemetaan kata kunci area -> zona (digunakan untuk membantu Chief Driver
+# membagi driver berdasarkan wilayah, dan preview otomatis untuk marketing).
+AREA_KEYWORDS = [
+    ('Surabaya Pusat', ['surabaya pusat', 'pasar atom', 'tunjungan', 'genteng', 'gubeng', 'tegalsari', 'sawahan', 'simokerto', 'bubutan', 'krejongan', 'gemblongan']),
+    ('Surabaya Barat', ['surabaya barat', 'darmo', 'darmo permai', 'darmo park', 'wiyung', 'karang pilang', 'lakarsantri', 'benowo', 'pakal', 'tandes', 'sukomanunggal', 'asemrowo']),
+    ('Surabaya Utara', ['surabaya utara', 'kenjeran', 'bulak', 'semampir', 'pabean cantian', 'krembangan', 'perak', 'tanjung perak']),
+    ('Surabaya Timur', ['surabaya timur', 'rungkut', 'gunung anyar', 'mulyorejo', 'sukolilo', 'tambaksari', 'tenggilis', 'gayungan', 'wonocolo', 'medokan']),
+    ('Surabaya Selatan', ['surabaya selatan', 'wonokromo', 'jambangan', 'wonokusumo', 'karang gayam', 'pucang', 'siwalankerto', 'ketintang']),
+    ('Sidoarjo', ['sidoarjo', 'gedangan', 'taman', 'waru', 'sedati', 'buduran', 'candi', 'tanggulangin', 'porong', 'jabon', 'krian', 'balongbendo', 'wonoayu', 'tarik', 'prambon', 'tulangan']),
+    ('Gresik', ['gresik', 'kebomas', 'manyar', 'bunder', 'driyorejo', 'menganti', 'cerme']),
+    ('Mojokerto', ['mojokerto', 'puri', 'sooko', 'jetis', 'gedeg', 'dawarblandong']),
+    ('Pasuruan', ['pasuruan', 'pandaan', 'gempol', 'bangil', 'beji']),
+    ('Lamongan', ['lamongan', 'kembangbahu', 'sugio', 'turi', 'paciran']),
+]
+
+
+def detect_area(alamat):
+    """Deteksi zona wilayah dari teks alamat (Surabaya & sekitarnya).
+
+    Return nama area ('Surabaya Timur', 'Sidoarjo', ...) atau 'Lainnya'.
+    """
+    if not alamat:
+        return 'Lainnya'
+    text = str(alamat).lower()
+    for area, keywords in AREA_KEYWORDS:
+        for kw in keywords:
+            if kw in text:
+                return area
+    return 'Lainnya'
+
+
+def generate_appointment_display_id(conn=None):
+    """Generate display ID appointment: APP-YYYYMMDD-HHMMSSXX"""
+    return generate_display_id('APP', conn)
+
+
+def get_or_create_team(name, leader_name=''):
+    """Pastikan tim marketing ada di marketing_teams; return nama tim."""
+    name = (name or '').strip()
+    if not name:
+        return ''
+    from modules.config import get_db_connection
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return name
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO marketing_teams (name, leader_name, is_active) VALUES (%s, %s, 1) "
+            "ON DUPLICATE KEY UPDATE is_active=1",
+            (name, leader_name)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f"get_or_create_team error: {e}")
+    return name
+
+
+def validate_appointment_input(item):
+    """Validasi satu item input appointment.
+
+    Return (is_valid, errors_dict, normalized_dict).
+    """
+    errors = {}
+    nasabah = str(item.get('nasabah_name', '') or '').strip()
+    alamat = str(item.get('alamat', '') or '').strip()
+    sesi = str(item.get('sesi', '') or '').strip()
+    tanggal = str(item.get('appointment_date', '') or item.get('date', '') or '').strip()
+    phone = str(item.get('nasabah_phone', '') or '').strip()
+    notes = str(item.get('notes', '') or '').strip()
+
+    if not nasabah:
+        errors['nasabah_name'] = 'Nama calon nasabah wajib diisi'
+    if not alamat:
+        errors['alamat'] = 'Alamat wajib diisi'
+    elif len(alamat) > 500:
+        errors['alamat'] = 'Alamat maksimal 500 karakter'
+    if sesi not in VALID_SESI:
+        errors['sesi'] = 'Pilih sesi (1 = 08.30 atau 2 = 14.30)'
+    if not tanggal:
+        errors['appointment_date'] = 'Tanggal appointment wajib diisi'
+    if len(nasabah) > 150:
+        errors['nasabah_name'] = 'Nama maksimal 150 karakter'
+    if len(phone) > 30:
+        errors['nasabah_phone'] = 'No. HP maksimal 30 karakter'
+
+    normalized = {
+        'nasabah_name': nasabah,
+        'nasabah_phone': phone,
+        'alamat': alamat,
+        'sesi': sesi,
+        'appointment_date': tanggal,
+        'notes': notes[:500],
+    }
+    return (not errors, errors, normalized)

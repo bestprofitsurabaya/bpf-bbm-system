@@ -25,6 +25,7 @@
         <div class="nav-links">
             <a href="/admin">Dashboard</a>
             <a href="/ga/assignments">Assignments</a>
+            <a href="/chief-driver">🚛 Chief Driver</a>
             <a href="/admin/rekap">Rekap</a>
             <a href="/admin/analytics">Analytics</a>
             <a href="/admin/trips" class="active">Trips</a>
@@ -196,6 +197,11 @@
     // ============================================================
     // TRIP DETAIL MODAL
     // ============================================================
+    function escapeHtml(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
     async function showTripDetail(tripId) {
         document.getElementById('detailTripId').textContent = '#' + tripId;
         document.getElementById('tripDetailBody').innerHTML = '<p style="text-align:center;color:var(--gray-500);padding:20px;">⏳ Memuat...</p>';
@@ -229,7 +235,7 @@
                     html += '<td class="loc-cell">📍 ' + d.lokasi_berangkat + '</td>';
                     html += '<td>' + (d.pukul_berangkat || '-') + '</td>';
                     html += '<td>' + d.km_berangkat + '</td>';
-                    html += '<td class="loc-cell">🏁 ' + d.lokasi_tujuan + '</td>';
+                    html += '<td class="loc-cell">🏁 ' + escapeHtml(d.lokasi_tujuan) + (d.appointment_display ? '<div style="font-size:9px;color:#059669;margin-top:3px;">📅 ' + escapeHtml(d.appointment_display) + ' · ' + escapeHtml(d.appointment_nasabah) + '</div>' : '') + '</td>';
                     html += '<td>' + (d.pukul_tujuan || '-') + '</td>';
                     html += '<td>' + d.km_tujuan + '</td>';
                     html += '</tr>';

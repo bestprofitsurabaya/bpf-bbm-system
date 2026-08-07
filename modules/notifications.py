@@ -83,3 +83,49 @@ def push_driver_notification(driver_name, ntype, action, message, ref_id=None):
         'created_at': created,
     })
     return notif_id
+
+
+def push_marketing_notification(username, ntype, action, message, ref_id=None):
+    """Persist + realtime-push notifikasi untuk user marketing (reuse tabel notifications).
+
+    Emit ke room marketing_<username> sehingga halaman marketing menerima update langsung.
+    """
+    if not username:
+        return None
+    user = str(username).strip().lower()
+    notif_id = None
+    created = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO notifications (driver_name, type, action, message, ref_id, created_at) "
+                "VALUES (%s, %s, %s, %s, %s, %s)",
+                (user, ntype, action, str(message)[:255], ref_id, created),
+            )
+            conn.commit()
+            notif_id = cursor.lastrowid
+    except Exception as e:
+        print(f"[notifications] push_marketing error: {e}")
+    finally:
+        if cursor:
+            try: cursor.close()
+            except Exception: pass
+        if conn:
+            try: conn.close()
+            except Exception: pass
+
+    from modules.realtime import emit_event
+    emit_event('appointment_update', {
+        'id': notif_id,
+        'username': user,
+        'type': ntype,
+        'action': action,
+        'message': str(message)[:255],
+        'ref_id': ref_id,
+        'created_at': created,
+    }, room='marketing_' + user)
+    return notif_id
