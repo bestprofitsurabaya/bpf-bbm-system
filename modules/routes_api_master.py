@@ -1,7 +1,7 @@
 """API Routes - Master Data (Vehicles, BBM, Drivers, Users)"""
 from flask import request, jsonify
 from modules.config import get_db_connection
-from modules.helpers import log_activity_async, role_required
+from modules.helpers import finalize_pin, log_activity_async, resolve_user_pin, role_required
 
 def register_master_api(app):
 
@@ -121,9 +121,7 @@ def register_master_api(app):
 
             # PIN hanya diubah bila dikirim eksplisit & tidak kosong (agar
             # toggle is_active / update role / delete tidak menimpa PIN user).
-            pin = None
-            if 'pin' in data and str(data.get('pin') or '').strip():
-                pin = str(data.get('pin') or '').strip()
+            pin = resolve_user_pin(data.get('pin'))
 
             # Team hanya diubah bila dikirim eksplisit (agar toggle is_active
             # atau update role tidak menghapus tim marketing yang sudah ada).
@@ -143,7 +141,7 @@ def register_master_api(app):
                 if team is None:
                     team = row[0] if row else ''
                 if pin is None:
-                    pin = row[1] if row else '123456'
+                    pin = finalize_pin(None, row[1] if row else None)
             cursor.execute("INSERT INTO users (username, full_name, role, pin, team_name, is_active) VALUES (%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE full_name=VALUES(full_name), role=VALUES(role), pin=VALUES(pin), team_name=VALUES(team_name), is_active=VALUES(is_active)", (u, f, r, pin, team, a))
             conn.commit(); cursor.close(); conn.close()
             log_activity_async(0, 'user_sync', 'admin', 'Admin', new_data={'username': u, 'role': r, 'team': team}, ip=request.remote_addr)

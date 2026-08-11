@@ -6,6 +6,25 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.2.1] - 2026-08-11
+
+### 🧪 Cakupan Pengujian Diperluas (ISO 9001 · proses mutu)
+
+- **Unit test frontend (Vitest) naik ke 29 test** — tambah 17 test untuk view baru v2.2: `AnalyticsView` (kartu statistik, 3 grafik Chart.js di-mock, tabel Top 5, state error), `LogsView` (render, filter aksi/peran, badge hari ini & total), `SettingsView` (toggle driver, modal tambah driver dengan uppercase, hapus driver dengan konfirmasi, dedupe tipe kendaraan), `UsersView` (render, toggle & hapus **tanpa field pin** — proteksi PIN, tambah user dengan pin).
+- **Test backend (pytest) naik ke 55 test** — file baru `tests/test_user_pin_protection.py` (6 test) untuk kebijakan `resolve_user_pin`: PIN eksplisit mengganti, `None`/kosong berarti jangan ubah, strip whitespace, user baru dapat default.
+
+### 🐛 Perbaikan Bug
+
+- **Chief Driver Dashboard — select driver kini per-baris** — sebelumnya satu `<select>` dibagikan ke semua baris "Belum Ditugaskan" sehingga memilih driver di satu baris mengubah semua baris; kini tiap baris punya pilihan driver sendiri (`selDriver[apptId]`).
+- **Refactor `resolve_user_pin` + perbaikan kontrak** — logika proteksi PIN diekstrak ke `modules/helpers.py`; helper kini mengembalikan `None` (bukan default `'123456'`) saat field `pin` tidak dikirim, sehingga route benar-benar mempertahankan PIN existing dari DB. Bug pada refactor awal terdeteksi oleh pengujian end-to-end: create user PIN `777333` → toggle nonaktif → PIN tetap `777333` ✅.
+
+### 🧪 Verifikasi
+
+- `npm test` → **29 passed** ✅ · `npm run build` → sukses ✅
+- `pytest tests/` → **55 PASS** ✅ · e2e: create user + toggle nonaktif tanpa pin → PIN dipertahankan ✅
+
+---
+
 ## [2.2.0] - 2026-08-11
 
 ### 🐛 Perbaikan Halaman Analytics SPA

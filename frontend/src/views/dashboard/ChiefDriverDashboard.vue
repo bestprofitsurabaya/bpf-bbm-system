@@ -10,7 +10,7 @@ const stats = ref(null)
 const drivers = ref([])
 const loading = ref(true)
 const err = ref('')
-const assign = ref({ apptId: null, driver: '' })
+const selDriver = ref({})
 const busy = ref(false)
 const msg = ref('')
 
@@ -35,13 +35,14 @@ const byDriver = computed(() => {
   return Object.entries(m)
 })
 
-async function doAssign() {
-  if (!assign.value.apptId || !assign.value.driver) return
+async function doAssign(a) {
+  const driver = selDriver.value[a.id]
+  if (!driver) return
   busy.value = true; msg.value = ''
   try {
-    const r = await api(`/api/appointments/${assign.value.apptId}/assign`, { method: 'POST', body: { driver_name: assign.value.driver } })
+    const r = await api(`/api/appointments/${a.id}/assign`, { method: 'POST', body: { driver_name: driver } })
     msg.value = '✅ ' + (r.message || r.msg || 'Ditugaskan')
-    assign.value.apptId = null; assign.value.driver = ''
+    selDriver.value[a.id] = ''
     load()
   } catch (e) { msg.value = '❌ ' + e.message }
   finally { busy.value = false }
@@ -88,12 +89,12 @@ onMounted(load)
                 <td>{{ a.area }}</td>
                 <td>{{ a.marketing_member }}</td>
                 <td>
-                  <select class="select" v-model="assign.driver" style="min-width:150px;">
+                  <select class="select" v-model="selDriver[a.id]" style="min-width:150px;">
                     <option value="">Pilih driver…</option>
                     <option v-for="dr in drivers.filter((x) => x.is_active)" :key="dr.name" :value="dr.name">{{ dr.name }}</option>
                   </select>
                 </td>
-                <td><button class="btn btn-primary btn-sm" :disabled="busy || !assign.driver" @click="assign.apptId = a.id; doAssign()">Tugaskan</button></td>
+                <td><button class="btn btn-primary btn-sm" :disabled="busy || !selDriver[a.id]" @click="doAssign(a)">Tugaskan</button></td>
               </tr>
               <tr v-if="!list.filter((x) => x.status === 'scheduled').length"><td colspan="6" class="empty">Semua sudah ditugaskan. 🎉</td></tr>
             </tbody>

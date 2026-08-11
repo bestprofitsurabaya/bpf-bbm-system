@@ -14,6 +14,44 @@ def safe_float(val, default=0.0):
     except (TypeError, ValueError):
         return default
 
+def resolve_user_pin(pin_field):
+    """Kebijakan update PIN user (ISO/IEC 27001 A.9.4 — integritas kredensial).
+
+    Mengembalikan PIN baru HANYA bila field `pin` dikirim eksplisit dan tidak kosong.
+    Jika tidak dikirim / kosong, kembalikan None — artinya "jangan ubah";
+    pemanggil (route) yang memutuskan untuk mempertahankan PIN yang sudah ada
+    atau memakai default untuk user baru.
+
+    >>> resolve_user_pin('111222')
+    '111222'
+    >>> resolve_user_pin(None) is None
+    True
+    >>> resolve_user_pin('') is None
+    True
+    >>> resolve_user_pin('   ') is None
+    True
+    """
+    if pin_field is not None and str(pin_field or '').strip():
+        return str(pin_field).strip()
+    return None
+
+def finalize_pin(pin, existing_pin=None, default='123456'):
+    """Fallback PIN di level route (ISO/IEC 27001 A.9.4).
+
+    `pin` None (artinya "jangan ubah" dari resolve_user_pin) -> pertahankan
+    existing_pin; bila user baru (tidak ada existing) -> default.
+
+    >>> finalize_pin('777333', existing_pin='555111')
+    '777333'
+    >>> finalize_pin(None, existing_pin='555111')
+    '555111'
+    >>> finalize_pin(None, existing_pin=None)
+    '123456'
+    """
+    if pin is not None:
+        return pin
+    return existing_pin if existing_pin is not None else default
+
 def resolve_driver_form_context(driver_data, driver_name, nopol, vehicle_type, bbm_type):
     """Resolve the final driver context for claim submission using master data when available."""
     resolved_nopol = nopol

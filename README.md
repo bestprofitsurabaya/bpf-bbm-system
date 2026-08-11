@@ -27,7 +27,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 | **💵 Kasbon di SPA** | Workflow kasbon lengkap di `/app/cash` (kode unik harian, approve GA/Finance, handover, LPJ, batal/edit/hapus) — menu per role `ga/finance/admin` |
 | **🔔 Notifikasi real-time SPA** | Bell + toast: GA/Finance/Admin menerima klaim & trip baru, Marketing/Chief Driver menerima pembaruan appointment (Socket.IO) |
 | **📱 PWA untuk SPA** | `/app/` installable (manifest + service worker scope `/app/`, offline fallback) |
-| **🤖 CI/CD** | GitHub Actions: build SPA + `npm test` (Vitest, 12 test) + `pytest tests/` otomatis tiap push/PR |
+| **🤖 CI/CD** | GitHub Actions: build SPA + `npm test` (Vitest, 29 test) + `pytest tests/` (55 test) otomatis tiap push/PR |
 | **🧪 Unit test frontend** | Vitest: guard router per role + auth store (login/bootstrap/logout + CSRF) |
 
 ## 🆕 Fitur v2.0 — SPA Vue 3 & Dashboard per Role
