@@ -566,46 +566,155 @@ def home_for_role(role):
 # Single-process (eventlet) sehingga aman memakai dict global.
 # ============================================================
 import time
+import json as _json
 
-_LOGIN_ATTEMPTS = {}  # ip -> {'fails': int, 'locked_until': ts}
+# ============================================================
+# Backing store rate limit (ISO/IEC 27001 A.8.5 · A.12.6)
+# Redis bila tersedia (konsisten antar replica), fallback memori proses.
+# ============================================================
+try:
+    import redis as _redis_lib
+except ImportError:
+    _redis_lib = None
+
+_redis_client = None
+_redis_retry_at = 0.0
+
+
+def _get_redis():
+    """Klien Redis lazy singleton; None bila tidak dikonfigurasi / gagal connect.
+
+    Bila Redis down saat mencoba, tidak di-set permanen: retry dilakukan
+    maksimal 1x per 30 detik (cooldown) sehingga Redis yang pulih otomatis
+    dipakai lagi — sementara itu fallback memori menjaga layanan tetap jalan.
+    """
+    global _redis_client, _redis_retry_at
+    if _redis_client is not None:
+        return _redis_client
+    now = time.time()
+    if now < _redis_retry_at:
+        return None
+    _redis_retry_at = now + 30
+    if _redis_lib is None:
+        return None
+    url = os.environ.get('REDIS_URL', '').strip()
+    if not url:
+        return None
+    try:
+        _redis_client = _redis_lib.Redis.from_url(url, socket_connect_timeout=1, socket_timeout=1)
+        _redis_client.ping()
+        return _redis_client
+    except Exception:
+        _redis_client = None
+        return None
+
+
+class _RateStore:
+    """State rate limit: Redis (atomik, TTL) dengan fallback dict memori proses.
+
+    Path Redis memakai INCR/EXPIRE atomik sehingga penghitungan gagal tidak
+    hilang saat request paralel (anti brute-force efektif); fallback memori
+    mempertahankan perilaku lama (cek window saat baca).
+    """
+
+    def __init__(self, prefix):
+        self._prefix = prefix
+        self._mem = {}
+
+    def _key(self, key, suffix=''):
+        return f'bpf_rl:{self._prefix}:{key}{suffix}'
+
+    def record_fail(self, key, window, max_fails, lockout):
+        """Catat satu kegagalan secara atomik. Return (locked, retry_after)."""
+        now = time.time()
+        r = _get_redis()
+        if r:
+            try:
+                base = self._key(key)
+                fk = base + ':f'  # first_fail
+                lk = base + ':l'  # locked_until
+                pipe = r.pipeline(transaction=True)
+                pipe.incr(base)
+                pipe.expire(base, window + 60)
+                pipe.execute()
+                if not r.exists(fk):
+                    r.setex(fk, window + 60, now)
+                first_fail = float(r.get(fk))
+                if now - first_fail > window:  # window bergulir: mulai baru
+                    r.setex(fk, window + 60, now)
+                    r.setex(base, window + 60, 1)
+                if int(r.get(base)) >= max_fails:
+                    r.setex(lk, lockout + 60, now + lockout)  # nilai = kapan lock berakhir
+                    r.delete(base, fk)
+                    return True, lockout
+                return False, 0
+            except Exception:
+                pass  # Redis bermasalah → fallback memori
+        entry = self._mem.get(key)
+        if not entry or now - entry.get('first_fail', now) > window:
+            entry = {'fails': 0, 'first_fail': now, 'locked_until': None}
+        entry['fails'] += 1
+        if entry['fails'] >= max_fails:
+            entry['locked_until'] = now + lockout
+            entry['fails'] = 0
+            self._mem[key] = entry
+            return True, lockout
+        self._mem[key] = entry
+        return False, 0
+
+    def check(self, key, window):
+        """Cek status. Return (allowed, retry_after)."""
+        now = time.time()
+        r = _get_redis()
+        if r:
+            try:
+                lock = r.get(self._key(key, ':l'))
+                if lock:
+                    lock_ts = float(lock)
+                    if now < lock_ts:
+                        return False, int(lock_ts - now)
+                return True, 0
+            except Exception:
+                pass
+        entry = self._mem.get(key)
+        if not entry:
+            return True, 0
+        if entry.get('locked_until') and now < entry['locked_until']:
+            return False, int(entry['locked_until'] - now)
+        if now - entry.get('first_fail', now) > window:
+            self._mem.pop(key, None)
+        return True, 0
+
+    def reset(self, key):
+        r = _get_redis()
+        if r:
+            try:
+                base = self._key(key)
+                r.delete(base, base + ':f', base + ':l')
+            except Exception:
+                pass
+        self._mem.pop(key, None)
+
+
 _LOGIN_MAX_FAILS = 5
 _LOGIN_WINDOW = 300
 _LOGIN_LOCKOUT = 900
+_login_store = _RateStore('login')
 
 
 def login_rate_check(ip):
     """Cek apakah IP boleh mencoba login. Return (allowed: bool, retry_after: int)."""
-    now = time.time()
-    entry = _LOGIN_ATTEMPTS.get(ip)
-    if not entry:
-        return True, 0
-    if entry['locked_until'] and now < entry['locked_until']:
-        return False, int(entry['locked_until'] - now)
-    # window bergulir: reset jika sudah lewat window
-    if now - entry.get('first_fail', now) > _LOGIN_WINDOW:
-        _LOGIN_ATTEMPTS.pop(ip, None)
-        return True, 0
-    return True, 0
+    return _login_store.check(ip, _LOGIN_WINDOW)
 
 
 def login_fail(ip):
     """Catat percobaan login gagal; kembalikan (locked, retry_after)."""
-    now = time.time()
-    entry = _LOGIN_ATTEMPTS.get(ip)
-    if not entry or now - entry.get('first_fail', now) > _LOGIN_WINDOW:
-        entry = {'fails': 0, 'first_fail': now, 'locked_until': None}
-        _LOGIN_ATTEMPTS[ip] = entry
-    entry['fails'] += 1
-    if entry['fails'] >= _LOGIN_MAX_FAILS:
-        entry['locked_until'] = now + _LOGIN_LOCKOUT
-        entry['fails'] = 0
-        return True, _LOGIN_LOCKOUT
-    return False, 0
+    return _login_store.record_fail(ip, _LOGIN_WINDOW, _LOGIN_MAX_FAILS, _LOGIN_LOCKOUT)
 
 
 def login_success(ip):
     """Reset penghitung gagal setelah login sukses."""
-    _LOGIN_ATTEMPTS.pop(ip, None)
+    _login_store.reset(ip)
 
 
 # ============================================================
@@ -613,10 +722,10 @@ def login_success(ip):
 # Terpisah dari login agar lockout satu jalur tidak mengunci jalur lain.
 # 8x gagal / 5 menit per IP → lockout 10 menit.
 # ============================================================
-_PIN_ATTEMPTS = {}
 _PIN_MAX_FAILS = 8
 _PIN_WINDOW = 300
 _PIN_LOCKOUT = 600
+_pin_store = _RateStore('pin')
 
 
 def _is_trusted_proxy(ip):
@@ -647,30 +756,14 @@ def client_ip():
 
 def pin_rate_check(ip):
     """Cek apakah IP boleh memverifikasi PIN. Return (allowed, retry_after)."""
-    now = time.time()
-    entry = _PIN_ATTEMPTS.get(ip)
-    if entry and entry.get('locked_until') and now < entry['locked_until']:
-        return False, int(entry['locked_until'] - now)
-    if entry and now - entry.get('first_fail', now) > _PIN_WINDOW:
-        _PIN_ATTEMPTS.pop(ip, None)
-    return True, 0
+    return _pin_store.check(ip, _PIN_WINDOW)
 
 
 def pin_fail(ip):
     """Catat verifikasi PIN gagal; kembalikan (locked, retry_after)."""
-    now = time.time()
-    entry = _PIN_ATTEMPTS.get(ip)
-    if not entry or now - entry.get('first_fail', now) > _PIN_WINDOW:
-        entry = {'fails': 0, 'first_fail': now, 'locked_until': None}
-        _PIN_ATTEMPTS[ip] = entry
-    entry['fails'] += 1
-    if entry['fails'] >= _PIN_MAX_FAILS:
-        entry['locked_until'] = now + _PIN_LOCKOUT
-        entry['fails'] = 0
-        return True, _PIN_LOCKOUT
-    return False, 0
+    return _pin_store.record_fail(ip, _PIN_WINDOW, _PIN_MAX_FAILS, _PIN_LOCKOUT)
 
 
 def pin_success(ip):
     """Reset penghitung setelah verifikasi PIN sukses."""
-    _PIN_ATTEMPTS.pop(ip, None)
+    _pin_store.reset(ip)

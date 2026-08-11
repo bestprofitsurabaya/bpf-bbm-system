@@ -163,6 +163,85 @@ describe('AdminDashboard', () => {
     expect(apiMock).toHaveBeenCalledWith('/api/queue/delete/1', { method: 'POST' })
   })
 
+  it('transaksi anomali: modal menampilkan 🛡 Verifikasi Anomali — tanpa konfirmasi tidak mengirim API', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const auth = useAuthStore()
+    auth.user = { role: 'ga', full_name: 'GA', user_name: 'ga' }
+    apiMock.mockImplementation((path, opts = {}) => {
+      if (path === '/api/stats') return Promise.resolve(STATS)
+      if (path === '/api/queue') return Promise.resolve([{ ...TX(7, 'pending', true) }])
+      if (path.startsWith('/api/transactions/detail/')) return Promise.resolve({ ...DETAIL(7), ml_anomaly_flag: true })
+      if (path.startsWith('/api/cross-check/')) return Promise.resolve(CROSS)
+      return Promise.resolve({ status: 'success', msg: 'ok' })
+    })
+    const fetchMock = vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({ status: 'success', msg: 'ok' }) }))
+    vi.stubGlobal('fetch', fetchMock)
+    const w = mount(AdminDashboard, {
+      global: { plugins: [pinia], stubs: { 'router-link': { template: '<a><slot /></a>' } } },
+    })
+    await flushPromises(); await flushPromises()
+    await btnByText(w, '👁 Detail').trigger('click')
+    await flushPromises(); await flushPromises()
+    // Tombol approve cepat TIDAK muncul untuk anomali; ada tombol verifikasi khusus
+    expect(btnByText(w, '✅ Approve')).toBeFalsy()
+    await btnByText(w, '🛡 Verifikasi Anomali').trigger('click')
+    await flushPromises()
+    await btnByText(w, '✅ Simpan Verifikasi').trigger('click')
+    await flushPromises()
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(w.text()).toContain('Centang konfirmasi')
+  })
+
+  it('verifikasi anomali dengan konfirmasi mengirim FormData ke /api/queue/verify/<id>', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const auth = useAuthStore()
+    auth.user = { role: 'ga', full_name: 'GA', user_name: 'ga' }
+    apiMock.mockImplementation((path, opts = {}) => {
+      if (path === '/api/stats') return Promise.resolve(STATS)
+      if (path === '/api/queue') return Promise.resolve([{ ...TX(8, 'pending', true) }])
+      if (path.startsWith('/api/transactions/detail/')) return Promise.resolve({ ...DETAIL(8), ml_anomaly_flag: true })
+      if (path.startsWith('/api/cross-check/')) return Promise.resolve(CROSS)
+      return Promise.resolve({ status: 'success', msg: 'ok' })
+    })
+    const fetchMock = vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({ status: 'success', msg: 'ok' }) }))
+    vi.stubGlobal('fetch', fetchMock)
+    const w = mount(AdminDashboard, {
+      global: { plugins: [pinia], stubs: { 'router-link': { template: '<a><slot /></a>' } } },
+    })
+    await flushPromises(); await flushPromises()
+    await btnByText(w, '👁 Detail').trigger('click')
+    await flushPromises(); await flushPromises()
+    await btnByText(w, '🛡 Verifikasi Anomali').trigger('click')
+    await flushPromises()
+    await w.find('input[type="checkbox"]').setValue(true)
+    await btnByText(w, '✅ Simpan Verifikasi').trigger('click')
+    await flushPromises(); await flushPromises()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, opts] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/queue/verify/8')
+    expect(opts.method).toBe('POST')
+    expect(opts.body).toBeInstanceOf(FormData)
+  })
+
+  it('Edit (✏️ Edit) membuka form perbaikan dan mengirim /api/queue/modify/<id>', async () => {
+    const w = await mountWith('ga')
+    await btnByText(w, '👁 Detail').trigger('click')
+    await flushPromises(); await flushPromises()
+    await btnByText(w, '✏️ Edit').trigger('click')
+    await flushPromises()
+    expect(w.text()).toContain('Perbaiki Data Transaksi')
+    await btnByText(w, '💾 Simpan Perubahan').trigger('click')
+    await flushPromises()
+    const call = apiMock.mock.calls.find(([p]) => p.startsWith('/api/queue/modify/'))
+    expect(call).toBeTruthy()
+    expect(call[0]).toBe('/api/queue/modify/1')
+    expect(call[1].method).toBe('POST')
+    expect(call[1].body.nominal).toBe(150000)
+    expect(call[1].body.odo_km).toBe(1000)
+  })
+
   it('tombol Unverify muncul untuk status verified_ga dan memanggil /api/queue/unverify', async () => {
     const w = await mountWith('ga')
     // baris ke-2 dibuat verified_ga via detail modal dengan status override

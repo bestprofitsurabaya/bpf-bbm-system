@@ -104,6 +104,7 @@ Semua env di-set di `docker-compose.yml` (tidak perlu file `.env` terpisah, tapi
 | `DB_PASSWORD` | `bpf_pass` | Password DB |
 | `DB_NAME` | `bpf_asset_system` | Nama database |
 | `DB_POOL_SIZE` | `15` | Ukuran pool koneksi |
+| `REDIS_URL` | `redis://redis:6379/0` | Backing store rate limit (login & verify-pin). Jika kosong / Redis mati, aplikasi **otomatis fallback ke memori proses** — tidak perlu ubah kode. Service `redis` (redis:7-alpine) sudah ada di docker-compose. |
 | `SECRET_KEY` | `bpf_bbm_super_secret_...` | **WAJIB GANTI di produksi** — dipakai untuk session & CSRF token. Ganti dengan nilai acak panjang. |
 | `FLASK_DEBUG` | `0` | Jangan aktifkan di produksi |
 | `TZ` | `Asia/Jakarta` | Zona waktu |

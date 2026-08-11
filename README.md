@@ -15,7 +15,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 |-------|-----------|
 | **🔐 5 celah keamanan ditutup** | Upload file (path traversal + stored XSS), SECRET_KEY publik → `.env` (gitignored), brute-force verify-pin → rate limit, IDOR cash/delete → ownership check, header nosniff |
 | **🔍 Modal Detail Transaksi** | 👁 Detail di antrean: foto bukti, cross-check (health score, flag, budget), riwayat + aksi unverify/delete |
-| **🧪 44 Vitest + 70 pytest** | Test keamanan upload (9) + anti-spoofing IP (5) + modal & aksi |
+| **🧪 47 Vitest + 77 pytest** | Test keamanan upload (9) + anti-spoofing IP (5) + rate limit Redis (7) + aksi verify/edit |
 
 ## 🆕 Fitur Terbaru v2.2.2 — Antrean Kerja di SPA
 
@@ -43,7 +43,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 | **💵 Kasbon di SPA** | Workflow kasbon lengkap di `/app/cash` (kode unik harian, approve GA/Finance, handover, LPJ, batal/edit/hapus) — menu per role `ga/finance/admin` |
 | **🔔 Notifikasi real-time SPA** | Bell + toast: GA/Finance/Admin menerima klaim & trip baru, Marketing/Chief Driver menerima pembaruan appointment (Socket.IO) |
 | **📱 PWA untuk SPA** | `/app/` installable (manifest + service worker scope `/app/`, offline fallback) |
-| **🤖 CI/CD** | GitHub Actions: build SPA + `npm test` (Vitest, 44 test) + `pytest tests/` (70 test) otomatis tiap push/PR |
+| **🤖 CI/CD** | GitHub Actions: build SPA + `npm test` (Vitest, 47 test) + `pytest tests/` (77 test) otomatis tiap push/PR |
 | **🧪 Unit test frontend** | Vitest: guard router per role + auth store (login/bootstrap/logout + CSRF) |
 
 ## 🆕 Fitur v2.0 — SPA Vue 3 & Dashboard per Role

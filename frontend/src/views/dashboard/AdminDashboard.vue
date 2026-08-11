@@ -127,6 +127,7 @@ async function openDetail(tx) {
   sel.value = tx
   selLoading.value = true
   selData.value = null; selCross.value = null
+  verifyMode.value = false; editMode.value = false
   try {
     const [d, c] = await Promise.all([
       api(`/api/transactions/detail/${tx.id}`),
@@ -136,6 +137,68 @@ async function openDetail(tx) {
     selCross.value = c
   } catch (e) { queueMsg.value = '❌ ' + e.message }
   finally { selLoading.value = false }
+}
+
+// ============================================================
+// Verifikasi mendalam (termasuk anomali ML) & perbaikan data — dari SPA
+// ============================================================
+const verifyMode = ref(false)
+const verifyForm = ref({ confirm_anomaly: false, mypertamina_error: false, file: null })
+const editMode = ref(false)
+const editForm = ref({ vehicle_type: '', bbm_type: '', nominal: 0, odo_km: 0, spbu_type: 'rekanan' })
+
+function openVerify(tx) {
+  verifyForm.value = { confirm_anomaly: false, mypertamina_error: false, file: null }
+  verifyMode.value = true; editMode.value = false
+}
+
+function openEdit(tx) {
+  editForm.value = {
+    vehicle_type: tx.vehicle_type || '',
+    bbm_type: tx.bbm_type || '',
+    nominal: tx.nominal || 0,
+    odo_km: tx.odo_km || 0,
+    spbu_type: tx.spbu_type || 'rekanan',
+  }
+  editMode.value = true; verifyMode.value = false
+}
+
+async function doVerify(tx) {
+  if (tx.ml_anomaly_flag && !verifyForm.value.confirm_anomaly) {
+    queueMsg.value = '⚠️ Centang konfirmasi setelah memeriksa foto bukti.'
+    return
+  }
+  qBusy.value = true; queueMsg.value = ''
+  try {
+    const fd = new FormData()
+    fd.append('confirm_anomaly', verifyForm.value.confirm_anomaly ? '1' : '0')
+    fd.append('mypertamina_error', verifyForm.value.mypertamina_error ? '1' : '0')
+    if (verifyForm.value.file) fd.append('foto_mypertamina', verifyForm.value.file)
+    const csrf = localStorage.getItem('bpf_csrf') || sessionStorage.getItem('bpf_csrf')
+    const r = await fetch(`/api/queue/verify/${tx.id}`, {
+      method: 'POST',
+      headers: csrf ? { 'X-CSRF-Token': csrf } : {},
+      body: fd,
+    })
+    const d = await r.json().catch(() => null)
+    if (r.status === 401) window.dispatchEvent(new CustomEvent('bpf:unauthorized'))
+    if (!r.ok) throw new Error((d && (d.msg || d.error)) || `HTTP ${r.status}`)
+    queueMsg.value = '✅ ' + (d.msg || 'Klaim diverifikasi')
+    loadQueue(); refreshStats()
+    sel.value = null; selData.value = null; selCross.value = null
+  } catch (e) { queueMsg.value = '❌ ' + e.message }
+  finally { qBusy.value = false }
+}
+
+async function doModify(tx) {
+  qBusy.value = true; queueMsg.value = ''
+  try {
+    const r = await api(`/api/queue/modify/${tx.id}`, { method: 'POST', body: { ...editForm.value } })
+    queueMsg.value = '✅ ' + (r.msg || 'Data diperbaiki')
+    loadQueue(); refreshStats()
+    sel.value = null; selData.value = null; selCross.value = null
+  } catch (e) { queueMsg.value = '❌ ' + e.message }
+  finally { qBusy.value = false }
 }
 
 watch(queueTab, loadQueue)
@@ -264,6 +327,44 @@ watch(queueTab, loadQueue)
         </div>
         <div v-else class="muted" style="font-size:12px;">Tidak ada foto bukti.</div>
 
+        <!-- Form Verifikasi Anomali ML -->
+        <div v-if="verifyMode && canApprove" class="alert alert-info" style="margin-top:12px;">
+          <b>🛡 Verifikasi Mendalam (Anomali ML)</b>
+          <p style="font-size:12px;margin:6px 0;">Transaksi ini ber-flag anomali — periksa foto bukti &amp; cross-check di atas sebelum menyetujui.</p>
+          <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:6px 0;">
+            <input type="checkbox" v-model="verifyForm.confirm_anomaly" /> Saya sudah memeriksa bukti &amp; menyetujui
+          </label>
+          <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:6px 0;">
+            <input type="checkbox" v-model="verifyForm.mypertamina_error" /> Tandai error MyPertamina
+          </label>
+          <div style="margin:8px 0;">
+            <label style="font-size:12px;">Foto MyPertamina (opsional):</label>
+            <input type="file" accept="image/*" @change="e => verifyForm.file = e.target.files[0] || null" style="display:block;margin-top:4px;font-size:12px;" />
+          </div>
+          <button class="btn btn-sm btn-primary" :disabled="qBusy" @click="doVerify(selData)">✅ Simpan Verifikasi</button>
+          <button class="btn btn-sm" :disabled="qBusy" @click="verifyMode = false">Batal</button>
+        </div>
+
+        <!-- Form Perbaikan Data -->
+        <div v-if="editMode && canApprove" class="alert alert-info" style="margin-top:12px;">
+          <b>✏️ Perbaiki Data Transaksi</b>
+          <div class="form-grid" style="margin-top:8px;">
+            <div class="field"><label>Kendaraan</label><input class="input" v-model="editForm.vehicle_type" /></div>
+            <div class="field"><label>BBM</label><input class="input" v-model="editForm.bbm_type" /></div>
+            <div class="field"><label>Nominal (Rp)</label><input class="input" type="number" v-model="editForm.nominal" /></div>
+            <div class="field"><label>ODO (km)</label><input class="input" type="number" v-model="editForm.odo_km" /></div>
+            <div class="field"><label>SPBU</label>
+              <select class="input" v-model="editForm.spbu_type">
+                <option value="rekanan">Rekanan</option>
+                <option value="non_rekanan">Non-Rekanan</option>
+              </select>
+            </div>
+          </div>
+          <p class="muted" style="font-size:11px;margin:6px 0;">Perubahan menandai status <b>modified</b> untuk review ulang GA.</p>
+          <button class="btn btn-sm btn-primary" :disabled="qBusy" @click="doModify(selData)">💾 Simpan Perubahan</button>
+          <button class="btn btn-sm" :disabled="qBusy" @click="editMode = false">Batal</button>
+        </div>
+
         <template v-if="selCross">
           <h4 style="margin:14px 0 8px;">🩺 Cross-Check</h4>
           <div class="row" style="gap:10px;flex-wrap:wrap;">
@@ -298,6 +399,8 @@ watch(queueTab, loadQueue)
           <a class="btn btn-sm" :href="'/admin?tab=ga_queue'" target="_blank">📋 Klasik</a>
           <template v-if="selData.status === 'pending' || selData.status === 'modified'">
             <button v-if="canApprove && !selData.ml_anomaly_flag" class="btn btn-sm btn-primary" :disabled="qBusy" @click="modalAction(`/api/queue/approve-ga/${selData.id}`, 'menyetujui klaim ini')">✅ Approve</button>
+            <button v-if="canApprove && selData.ml_anomaly_flag" class="btn btn-sm btn-primary" :disabled="qBusy" @click="openVerify(selData)">🛡 Verifikasi Anomali</button>
+            <button v-if="canApprove" class="btn btn-sm" :disabled="qBusy" @click="openEdit(selData)">✏️ Edit</button>
             <button v-if="canApprove" class="btn btn-sm btn-danger" :disabled="qBusy" @click="doReject(selData)">❌ Tolak</button>
           </template>
           <button v-if="selData.status === 'verified_ga' && canFinance" class="btn btn-sm btn-primary" :disabled="qBusy" @click="modalAction(`/api/queue/payout/${selData.id}`, 'mencairkan dana klaim ini')">💰 Cairkan</button>

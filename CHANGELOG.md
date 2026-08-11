@@ -6,6 +6,34 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.3.0] - 2026-08-11
+
+### ⚡ Rate Limit Redis (Konsisten Antar Replica)
+
+- Backing store rate limit (login & verify-pin) dipindah dari memori proses ke **Redis** (service `redis:7-alpine` di docker-compose, TTL otomatis, limit memori 64MB).
+- **Fallback aman**: bila Redis tidak dikonfigurasi / gagal connect, otomatis kembali ke memori proses — deployment lama tetap berfungsi tanpa perubahan.
+- Abstraksi `_RateStore(prefix)` + `_get_redis()` lazy singleton; key `bpf_rl:{prefix}:{ip}`. (ISO/IEC 27001 A.8.5 · A.12.6)
+- Terverifikasi: `redis-cli` menunjukkan key `bpf_rl:pin:*` terbentuk dari percobaan gagal nyata.
+- **Fix bug e2e**: nilai key lock Redis awalnya tersimpan sebagai `now` (bukan `now + lockout`) sehingga `check()` menganggap lock sudah lewat → lockout tidak efektif di path Redis. Diperbaiki & dibuktikan: 8x gagal → `allowed: False, retry_after: 599` di Redis nyata.
+
+### 🛡 Verifikasi Mendalam Lengkap di SPA — Anomali ML & Perbaikan Data
+
+- **🛡 Verifikasi Anomali** (pengganti rute klasik): transaksi ber-flag anomali ML kini bisa diverifikasi langsung dari modal SPA — centang konfirmasi (wajib), tandai error MyPertamina, upload foto MyPertamina opsional → `POST /api/queue/verify/<id>` (role ga/admin, pelaku dari session). Tanpa konfirmasi → 422 (ISO 9001 · kontrol proses).
+- **✏️ Edit / Perbaikan Data** (pengganti form klasik modify): kendaraan, BBM, nominal, ODO, SPBU → `POST /api/queue/modify/<id>` (role ga/admin), status menjadi `modified` untuk review ulang.
+
+### 🔍 Audit SQL Injection Menyeluruh
+
+- Di-scan **semua** `cursor.execute`/`conn.execute` di `modules/` dengan script `scripts/audit_sql.py` (berkelanjutan di CI/codebase).
+- **Hasil: 0 celah** — semua nilai input user lewat placeholder `%s`; f-string hanya menginterpolasi fragment whitelist statis (`wc`, `cash_where`, `cols`). Parameterisasi penuh (OWASP A03 · ISO/IEC 27001 A.8.26).
+
+### 🧪 Cakupan Pengujian
+
+- **Vitest 47 test** (naik dari 44) — AdminDashboard +3: verifikasi anomali tanpa konfirmasi tidak mengirim API, verifikasi anomali mengirim FormData ke `/api/queue/verify`, edit mengirim `/api/queue/modify`.
+- **pytest 77 test** (naik dari 70) — `tests/test_rate_limit.py` (7 test): store fallback memori, prefix terpisah, lockout login 5x & pin 8x, sukses mereset.
+- Smoke e2e: redis connected + ping ✅, verify-pin salah → 401 & key Redis terbentuk ✅, verify/modify tanpa auth → 401 ✅, app/ & driver 200 ✅.
+
+---
+
 ## [2.2.3] - 2026-08-11
 
 ### 🔐 Audit Keamanan Menyeluruh — 5 Celah Berbahaya Diperbaiki

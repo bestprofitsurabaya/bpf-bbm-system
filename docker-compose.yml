@@ -38,6 +38,7 @@ services:
       - DB_NAME=bpf_asset_system
       - DB_POOL_SIZE=15
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY wajib di .env}
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       db:
         condition: service_healthy
@@ -71,9 +72,18 @@ services:
   #   networks:
   #     - default
 
+  redis:
+    image: redis:7-alpine
+    container_name: bbm_redis
+    restart: unless-stopped
+    command: redis-server --appendonly no --maxmemory 64mb --maxmemory-policy allkeys-lru
+    volumes:
+      - bbm_redis_data:/data
+
 volumes:
   bbm_db_data:
-  
+  bbm_redis_data:
+
 networks:
   default:
   nextcloud_net:

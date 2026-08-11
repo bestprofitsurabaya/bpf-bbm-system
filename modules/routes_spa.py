@@ -9,7 +9,7 @@ import secrets
 
 from flask import jsonify, request, session, send_from_directory
 
-from modules.helpers import role_required, log_activity_async, home_for_role, login_rate_check, login_fail, login_success, client_ip
+from modules.helpers import role_required, log_activity_async, home_for_role, login_rate_check, login_fail, login_success, client_ip, save_file, safe_float
 from modules.config import get_db_connection
 
 SPA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'app')
@@ -326,6 +326,84 @@ def register_spa_routes(app):
                 return jsonify({'status': 'error', 'msg': f'Transaksi #{tx_id} tidak ditemukan atau sudah ditolak.'}), 409
             log_activity_async(tx_id, 'reject', 'ga', actor, new_data={'reason': reason}, ip=_client_ip())
             return jsonify({'status': 'success', 'msg': f'Klaim #{tx_id} ditolak'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    @app.route('/api/queue/verify/<int:tx_id>', methods=['POST'])
+    @role_required(['ga', 'admin'])
+    def api_queue_verify(tx_id):
+        """Verifikasi mendalam dari SPA (pengganti form klasik /admin action=verify).
+        Termasuk jalur verifikasi transaksi ber-flag anomali ML: GA/Admin memeriksa
+        foto bukti & mengonfirmasi eksplisit (confirm_anomaly) — kontrol ISO 9001.
+        """
+        actor = _queue_actor()
+        data = request.form or (request.get_json(silent=True) or {})
+        try:
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'status': 'error', 'msg': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT ml_anomaly_flag, status, nopol FROM transactions WHERE id=%s", (tx_id,))
+            tx = cursor.fetchone()
+            if not tx:
+                cursor.close(); conn.close()
+                return jsonify({'status': 'error', 'msg': f'Transaksi #{tx_id} tidak ditemukan.'}), 404
+            if tx['status'] not in ('pending', 'modified'):
+                cursor.close(); conn.close()
+                return jsonify({'status': 'error', 'msg': f'Status saat ini ({tx["status"]}) tidak bisa diverifikasi.'}), 409
+            if tx.get('ml_anomaly_flag') and str(data.get('confirm_anomaly', '')).strip().lower() not in ('1', 'true', 'yes', 'on'):
+                cursor.close(); conn.close()
+                return jsonify({'status': 'error', 'msg': 'Transaksi ber-flag anomali ML — centang konfirmasi setelah memeriksa foto bukti.'}), 422
+
+            is_error = 1 if str(data.get('mypertamina_error', '')).strip().lower() in ('1', 'true', 'on') else 0
+            foto_mypertamina = None
+            uploaded = request.files.get('foto_mypertamina')
+            if uploaded and uploaded.filename:
+                foto_mypertamina = save_file(uploaded, 'ADMIN_MYPTM', tx.get('nopol') or '', app.config['UPLOAD_FOLDER'])
+                if not foto_mypertamina:
+                    cursor.close(); conn.close()
+                    return jsonify({'status': 'error', 'msg': 'Foto MyPertamina gagal disimpan (format tidak didukung).'}), 400
+            cursor.execute("UPDATE transactions SET is_mypertamina_error=%s, foto_mypertamina_admin=%s, status='verified_ga', ga_approved_by=%s, ga_approved_at=NOW(), approved_by_user=%s, updated_at=CURRENT_TIMESTAMP WHERE id=%s",
+                           (is_error, foto_mypertamina, actor, actor, tx_id))
+            conn.commit()
+            cursor.close(); conn.close()
+            log_activity_async(tx_id, 'verify', 'ga', actor, new_data={'is_mypertamina_error': is_error}, ip=_client_ip())
+            return jsonify({'status': 'success', 'msg': f'Klaim #{tx_id} diverifikasi & disetujui GA!'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    @app.route('/api/queue/modify/<int:tx_id>', methods=['POST'])
+    @role_required(['ga', 'admin'])
+    def api_queue_modify(tx_id):
+        """Perbaiki data transaksi dari SPA (pengganti form klasik /admin action=modify).
+        Perubahan menandai status 'modified' untuk review ulang."""
+        actor = _queue_actor()
+        data = request.get_json(silent=True) or {}
+        try:
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'status': 'error', 'msg': 'DB error'}), 500
+            cursor = conn.cursor()
+            cursor.execute("SELECT status FROM transactions WHERE id=%s", (tx_id,))
+            row = cursor.fetchone()
+            if not row:
+                cursor.close(); conn.close()
+                return jsonify({'status': 'error', 'msg': f'Transaksi #{tx_id} tidak ditemukan.'}), 404
+            if row[0] not in ('pending', 'modified'):
+                cursor.close(); conn.close()
+                return jsonify({'status': 'error', 'msg': f'Status saat ini ({row[0]}) tidak bisa dimodifikasi.'}), 409
+            nominal = safe_float(data.get('nominal'), -1)
+            odo_km = int(safe_float(data.get('odo_km'), -1))
+            if nominal < 0 or odo_km < 0:
+                cursor.close(); conn.close()
+                return jsonify({'status': 'error', 'msg': 'Nominal dan ODO harus angka valid.'}), 422
+            cursor.execute("UPDATE transactions SET vehicle_type=%s, bbm_type=%s, nominal=%s, odo_km=%s, spbu_type=%s, status='modified', updated_at=CURRENT_TIMESTAMP WHERE id=%s",
+                           (str(data.get('vehicle_type', ''))[:50], str(data.get('bbm_type', ''))[:30],
+                            nominal, odo_km, str(data.get('spbu_type', ''))[:20], tx_id))
+            conn.commit()
+            cursor.close(); conn.close()
+            log_activity_async(tx_id, 'modify', 'ga', actor, new_data={'nominal': nominal, 'odo_km': odo_km}, ip=_client_ip())
+            return jsonify({'status': 'success', 'msg': f'Data klaim #{tx_id} diperbaiki (status modified — review ulang)'})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
 
