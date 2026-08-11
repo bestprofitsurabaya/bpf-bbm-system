@@ -1,0 +1,17 @@
+{
+  "name": "BPF Fleet & BBM System",
+  "short_name": "BPF Fleet",
+  "description": "Dashboard manajemen armada & BBM — PT Bestprofit Futures Surabaya",
+  "start_url": "/app/",
+  "scope": "/app/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1a237e",
+  "lang": "id-ID",
+  "orientation": "any",
+  "icons": [
+    { "src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/static/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

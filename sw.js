@@ -21,35 +21,22 @@ self.addEventListener('install', event => {
     );
 });
 
-// Activate: hapus SEMUA cache lama, langsung claim clients
+// Activate: hapus cache lama milik driver saja (prefix bpf-bbm-),
+// JANGAN sentuh cache SPA (bpf-spa-*) / cache lain.
 self.addEventListener('activate', event => {
-    // KILL SWITCH: Hapus semua cache lama
-    event.waitUntil(
-        caches.keys().then(function(cacheNames) {
-            return Promise.all(
-                cacheNames.map(function(cacheName) {
-                    console.log('[SW] Deleting old cache:', cacheName);
-                    return caches.delete(cacheName);
-                })
-            );
-        }).then(function() {
-            console.log('[SW] All caches cleared, claiming clients...');
-            return // self.clients.claim(); // done in activate
-        })
-    );
     console.log('[SW 20260717_v1412] Activating...');
     event.waitUntil(
         caches.keys().then(keys => {
             return Promise.all(
-                keys.filter(key => key !== CACHE_NAME)
+                keys.filter(key => key !== CACHE_NAME && key.startsWith('bpf-bbm-'))
                     .map(key => {
-                        console.log('[SW] Deleting old cache:', key);
+                        console.log('[SW] Deleting old driver cache:', key);
                         return caches.delete(key);
                     })
             );
         }).then(() => {
             console.log('[SW] Claiming all clients...');
-            return // self.clients.claim(); // done in activate
+            return self.clients.claim();
         })
     );
 });
@@ -60,8 +47,9 @@ self.addEventListener('fetch', event => {
 
     const url = new URL(event.request.url);
 
-    // Skip API calls & uploads (network-first)
-    if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/uploads/') || url.pathname.startsWith('/admin')) {
+    // Skip API calls, uploads, admin & SPA (SPA punya SW sendiri di /app/)
+    if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/uploads/')
+        || url.pathname.startsWith('/admin') || url.pathname.startsWith('/app/')) {
         return;
     }
 

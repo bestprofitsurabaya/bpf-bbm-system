@@ -1,10 +1,13 @@
 <script setup>
-import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { io } from 'socket.io-client'
 import { useAuthStore, ROLE_META } from '../stores/auth'
+import { useRealtimeStore } from '../stores/realtime'
+import NotificationBell from '../components/NotificationBell.vue'
+import ToastStack from '../components/ToastStack.vue'
 
 const auth = useAuthStore()
+const rt = useRealtimeStore()
 const route = useRoute()
 const router = useRouter()
 
@@ -12,13 +15,13 @@ const open = ref(false)
 const rtOn = ref(false)
 const dark = ref(localStorage.getItem('bpf_dark') === '1')
 const brandIcon = '/static/icon-192.png'
-let socket = null
 
 const MENU = [
   { label: 'Dashboard', path: '/dashboard', icon: '📊', roles: ['admin', 'ga', 'finance'] },
   { label: 'Log Perjalanan', path: '/trips', icon: '🗺️', roles: ['ga', 'finance', 'admin'] },
   { label: 'Assignments', path: '/assignments', icon: '🚗', roles: ['ga', 'admin'] },
   { label: 'Rekap', path: '/rekap', icon: '📋', roles: ['finance', 'admin'] },
+  { label: 'Kasbon / BBM', path: '/cash', icon: '💵', roles: ['ga', 'finance', 'admin'] },
   { label: 'Analytics', path: '/analytics', icon: '📈', roles: ['ga', 'finance', 'admin'] },
   { label: 'Marketing Hub', path: '/marketing', icon: '📣', roles: ['marketing'] },
   { label: 'Chief Driver', path: '/chief-driver', icon: '🚛', roles: ['chief_driver', 'ga', 'admin'] },
@@ -43,19 +46,24 @@ async function doLogout() {
 }
 
 function connectRealtime() {
-  try {
-    socket = io({ reconnection: true, reconnectionAttempts: Infinity, reconnectionDelay: 1000, timeout: 10000 })
-    socket.on('connect', () => { rtOn.value = true })
-    socket.on('disconnect', () => { rtOn.value = false })
-    socket.on('connect_error', () => { rtOn.value = false })
-  } catch { rtOn.value = false }
+  rt.connect(auth.role)
+  watchRealtime()
+}
+
+let unwatchRt = null
+function watchRealtime() {
+  unwatchRt?.()
+  unwatchRt = watch(
+    () => rt.connected,
+    (v) => { rtOn.value = v }
+  )
 }
 
 onMounted(() => {
   document.documentElement.classList.toggle('dark', dark.value)
   connectRealtime()
 })
-onBeforeUnmount(() => { if (socket) socket.disconnect() })
+onBeforeUnmount(() => { unwatchRt?.(); rt.disconnect() })
 </script>
 
 <template>
@@ -99,6 +107,7 @@ onBeforeUnmount(() => { if (socket) socket.disconnect() })
         <span class="rt-dot" :class="rtOn ? 'on' : 'off'" :title="rtOn ? 'Realtime terhubung' : 'Realtime terputus'">
           {{ rtOn ? '⚡ Realtime' : '🔴 Offline' }}
         </span>
+        <NotificationBell />
         <button class="btn-icon" :title="dark ? 'Mode terang' : 'Mode gelap'" @click="toggleDark">{{ dark ? '☀️' : '🌙' }}</button>
       </header>
 
@@ -106,5 +115,6 @@ onBeforeUnmount(() => { if (socket) socket.disconnect() })
         <router-view />
       </main>
     </div>
+    <ToastStack />
   </div>
 </template>

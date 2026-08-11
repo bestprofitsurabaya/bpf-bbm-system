@@ -1,4 +1,4 @@
-# 📖 Panduan Pengguna BPF Fleet & BBM System v1.2.3
+# 📖 Panduan Pengguna BPF Fleet & BBM System v2.1.0
 
 **PT. Bestprofit Futures — Surabaya**
 
@@ -37,6 +37,7 @@ Selamat datang di sistem manajemen armada dan BBM kita. Panduan ini akan meneman
 |----------|-----|---------------------------|
 | Driver | `https://nasbpfsby.duckdns.org:5000/driver` | HP Android / iPhone |
 | **Login (semua role)** | **`https://nasbpfsby.duckdns.org:5000/login`** | Komputer / Laptop |
+| **SPA Back-office (v2.x)** | **`https://nasbpfsby.duckdns.org:5000/app/`** | Komputer / Laptop |
 | **📣 Marketing (Input Appointment)** | `https://nasbpfsby.duckdns.org:5000/marketing` | Komputer / Laptop |
 | **🚛 Chief Driver (Pembagian Driver)** | `https://nasbpfsby.duckdns.org:5000/chief-driver` | Komputer / Laptop |
 | GA, Finance, Admin | `https://nasbpfsby.duckdns.org:5000/admin` | Komputer / Laptop |
@@ -48,6 +49,8 @@ Selamat datang di sistem manajemen armada dan BBM kita. Panduan ini akan meneman
 
 > ✅ **URL online (DuckDNS):** domain permanen `nasbpfsby.duckdns.org` — tidak berubah saat server di-restart.
 > 🔐 **Baru di v1.1:** Semua halaman admin kini **wajib login**. Jika belum login, kamu akan diarahkan ke halaman Login. Driver PWA **tidak perlu login**.
+> 🖥️ **Baru di v2.0:** Setelah login, Admin/GA/Finance diarahkan ke **SPA dashboard** (`/app/dashboard`), Marketing ke `/app/marketing`, Chief Driver ke `/app/chief-driver`. Menu disesuaikan otomatis dengan peran masing-masing (ISO/IEC 27001 — akses minimum).
+> 📱 **Baru di v2.1:** SPA bisa **diinstal sebagai aplikasi** (PWA) — buka `/app/` lalu pilih "Tambahkan ke Layar Utama". Notifikasi 🔔 real-time & halaman Kasbon kini ada di SPA.
 > 🌐 **Akses lokal (dev):** ganti `https://nasbpfsby.duckdns.org:5000` dengan `http://localhost:5001`.
 
 ### 1.2 Login & Logout

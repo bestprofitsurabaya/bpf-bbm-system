@@ -233,6 +233,9 @@ def register_cash_routes(app):
         """Get cash requests that need LPJ submission"""
         try:
             driver = request.args.get('driver', '').strip().upper()
+            # ISO/IEC 27001 A.8.2: tanpa sesi (PWA driver) wajib filter per driver
+            if not session.get('user_role') and not driver:
+                return jsonify({'error': 'Parameter driver wajib'}), 400
             conn = get_db_connection()
             if not conn: return jsonify({'error': 'DB error'}), 500
             cursor = conn.cursor(dictionary=True)
@@ -367,6 +370,9 @@ def register_cash_routes(app):
     def api_cash_history():
         try:
             driver = request.args.get('driver', '').strip().upper()
+            # ISO/IEC 27001 A.8.2: tanpa sesi (PWA driver) wajib filter per driver
+            if not session.get('user_role') and not driver:
+                return jsonify({'error': 'Parameter driver wajib'}), 400
             conn = get_db_connection()
             if not conn: return jsonify({'error': 'DB error'}), 500
             cursor = conn.cursor(dictionary=True)
@@ -381,6 +387,7 @@ def register_cash_routes(app):
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/cash/detail/<int:cash_id>')
+    @role_required(['ga', 'finance', 'admin'])
     def api_cash_detail(cash_id):
         """Get cash request detail with tracking"""
         try:

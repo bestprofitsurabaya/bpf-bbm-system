@@ -15,6 +15,7 @@ const routes = [
       { path: 'trips', name: 'trips', component: () => import('../views/TripsView.vue'), meta: { roles: ['ga', 'finance', 'admin'] } },
       { path: 'assignments', name: 'assignments', component: () => import('../views/AssignmentsView.vue'), meta: { roles: ['ga', 'admin'] } },
       { path: 'rekap', name: 'rekap', component: () => import('../views/RekapView.vue'), meta: { roles: ['finance', 'admin'] } },
+      { path: 'cash', name: 'cash', component: () => import('../views/CashView.vue'), meta: { roles: ['ga', 'finance', 'admin'] } },
       { path: 'analytics', name: 'analytics', component: () => import('../views/AnalyticsView.vue'), meta: { roles: ['ga', 'finance', 'admin'] } },
       { path: 'users', name: 'users', component: () => import('../views/UsersView.vue'), meta: { roles: ['admin'] } },
       { path: 'settings', name: 'settings', component: () => import('../views/SettingsView.vue'), meta: { roles: ['admin'] } },

@@ -406,7 +406,14 @@ npm run dev        # dev server :5173, proxy /api → localhost:5001
 npm run build      # hasil di frontend/dist
 ```
 
-### 12.2 Endpoint Auth & Trips (baru)
+### 12.2 PWA, Notifikasi & CI/CD (v2.1)
+
+- **PWA SPA**: `/app/manifest.webmanifest` + `/app/sw.js` (scope `/app/`) ikut ter-build dari `frontend/public/`. SW SPA: app-shell di-cache saat install, navigasi network-first dengan fallback offline ke `index.html`, asset ber-hash cache-first.
+- **Service worker driver** (`sw.js`) kini **hanya** membersihkan cache miliknya sendiri (prefix `bpf-bbm-*`) — tidak lagi menghapus cache SPA (`bpf-spa-*`) saat versi baru rilis.
+- **Notifikasi real-time SPA**: GA/Finance/Admin menerima event `new_claim` & `new_trip_report` (broadcast); Marketing & Chief Driver join room `appointments_board` untuk `appointment_update`. Tidak ada konfigurasi tambahan — WebSocket yang sama (lihat §8).
+- **CI/CD**: `.github/workflows/ci.yml` menjalankan build + `npm test` (Vitest) untuk frontend dan `pytest tests/` untuk backend di setiap push ke `main`/PR. Test backend murni unit (tanpa DB).
+
+### 12.3 Endpoint Auth & Trips (baru)
 
 | Method | Path | Fungsi |
 |--------|------|--------|
@@ -434,8 +441,10 @@ ulang di sisi klien (guard router + menu terfilter). Lihat `SECURITY.md` untuk p
 - [ ] Reverse proxy meneruskan header WebSocket (`Upgrade`/`Connection`)
 - [ ] Backup otomatis terkonfigurasi (DB + uploads)
 - [ ] HTTPS aktif (PWA wajib secure origin)
-- [ ] Smoke test: `/login` 200, `/driver` 200, login admin sukses
+- [ ] Smoke test: `/login` 200, `/driver` 200, `/app/` 200 (SPA), login admin sukses
+- [ ] SPA: `bash scripts/build-spa.sh` sudah dijalankan setelah pull (bind-mount `./static`)
 - [ ] Test suite: `docker exec bbm_web python3 -m pytest tests/ -q` → semua PASS
+- [ ] Frontend: `cd frontend && npm test` → 12 PASS (CI otomatis di GitHub Actions)
 
 ---
 

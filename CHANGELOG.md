@@ -6,6 +6,27 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.1.0] - 2026-08-11
+
+### ✨ Fitur Baru
+
+- **Halaman Kasbon/BBM di SPA (`/app/cash`)** — workflow kasbon lengkap (sebelumnya hanya ada di antarmuka klasik): kode unik harian (Finance set saat mode manual), daftar pengajuan dengan progress bar status, **GA Approve → Finance Approve → Serahkan ke Driver**, tolak (wajib alasan), edit nominal, hapus (DRAFT), batal (reset ke DRAFT), verifikasi/tolak LPJ, reset LPJ. Menu & route dibatasi role `ga/finance/admin` (guard router + `role_required` di server).
+- **Notifikasi real-time di SPA** — bell 🔔 dengan badge unread + toast popup: GA/Finance/Admin menerima `new_claim` & `new_trip_report` saat driver mengirim laporan; Marketing & Chief Driver join room `appointments_board` dan menerima `appointment_update` real-time. Indikator ⚡/🔴 status koneksi tetap ada di topbar.
+- **PWA untuk SPA** — `/app/` kini installable (manifest `manifest.webmanifest`, ikon, `theme-color`) + service worker khusus `sw.js` (scope `/app/`): app-shell di-cache saat install, navigasi network-first dengan fallback offline ke `index.html`, asset ber-hash cache-first. `sw.js` driver klasik diperbaiki agar **tidak lagi menghapus cache SPA** (kini hanya membersihkan cache `bpf-bbm-*`).
+- **CI/CD (GitHub Actions)** — workflow `.github/workflows/ci.yml`: job Frontend (npm ci → `npm test` → `npm run build`) dan job Backend (`pip install -r requirements.txt` → `pytest tests/`) — otomatis di setiap push ke `main` dan pull request.
+- **Unit test frontend (Vitest)** — 12 test: guard router per role (login redirect, forbidden, akses role, halaman publik) + auth store (login simpan user & CSRF, bootstrap sesi, logout bersih). Jalan via `npm test` dan di CI.
+
+### 🔐 Hardening Akses (ISO/IEC 27001 A.8.2)
+
+- `/api/cash/history`, `/api/cash/pending-lpj`, dan `/api/cash/detail/<id>` sebelumnya **bisa dibaca tanpa login** (data kasbon semua driver terekspos). Kini: tanpa sesi (PWA driver) **wajib filter `driver`** (400 jika kosong — hanya data miliknya), sedangkan admin/GA/Finance dengan sesi tetap akses penuh; `/api/cash/detail` kini `role_required(['ga','finance','admin'])`.
+
+### 🧪 Verifikasi
+
+- `npm test` → **12 passed** ✅ · `npm run build` → sukses (CashView + manifest + sw.js tersalin ke `dist/`) ✅
+- `pytest tests/` → 49 PASS ✅ · smoke: `/api/cash/history` tanpa sesi → 400, dengan `?driver=` → 200, tanpa sesi `/detail` → 401, dengan sesi admin → 200 ✅
+
+---
+
 ## [2.0.0] - 2026-08-11
 
 ### 🎉 SPA Vue 3 + Dashboard per Role
