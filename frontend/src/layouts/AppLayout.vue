@@ -1,0 +1,110 @@
+<script setup>
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { io } from 'socket.io-client'
+import { useAuthStore, ROLE_META } from '../stores/auth'
+
+const auth = useAuthStore()
+const route = useRoute()
+const router = useRouter()
+
+const open = ref(false)
+const rtOn = ref(false)
+const dark = ref(localStorage.getItem('bpf_dark') === '1')
+const brandIcon = '/static/icon-192.png'
+let socket = null
+
+const MENU = [
+  { label: 'Dashboard', path: '/dashboard', icon: '📊', roles: ['admin', 'ga', 'finance'] },
+  { label: 'Log Perjalanan', path: '/trips', icon: '🗺️', roles: ['ga', 'finance', 'admin'] },
+  { label: 'Assignments', path: '/assignments', icon: '🚗', roles: ['ga', 'admin'] },
+  { label: 'Rekap', path: '/rekap', icon: '📋', roles: ['finance', 'admin'] },
+  { label: 'Analytics', path: '/analytics', icon: '📈', roles: ['ga', 'finance', 'admin'] },
+  { label: 'Marketing Hub', path: '/marketing', icon: '📣', roles: ['marketing'] },
+  { label: 'Chief Driver', path: '/chief-driver', icon: '🚛', roles: ['chief_driver', 'ga', 'admin'] },
+  { label: 'Manajemen User', path: '/users', icon: '👥', roles: ['admin'] },
+  { label: 'Pengaturan', path: '/settings', icon: '⚙️', roles: ['admin'] },
+  { label: 'Audit Log', path: '/logs', icon: '📝', roles: ['admin'] },
+]
+
+const items = computed(() => MENU.filter((m) => m.roles.includes(auth.role)))
+const pageTitle = computed(() => route.meta?.title || (items.value.find((i) => route.path.startsWith(i.path))?.label || 'Dashboard'))
+const initials = computed(() => (auth.user?.full_name || auth.user?.user_name || '?').slice(0, 2).toUpperCase())
+
+function toggleDark() {
+  dark.value = !dark.value
+  document.documentElement.classList.toggle('dark', dark.value)
+  localStorage.setItem('bpf_dark', dark.value ? '1' : '0')
+}
+
+async function doLogout() {
+  await auth.logout()
+  router.push({ name: 'login' })
+}
+
+function connectRealtime() {
+  try {
+    socket = io({ reconnection: true, reconnectionAttempts: Infinity, reconnectionDelay: 1000, timeout: 10000 })
+    socket.on('connect', () => { rtOn.value = true })
+    socket.on('disconnect', () => { rtOn.value = false })
+    socket.on('connect_error', () => { rtOn.value = false })
+  } catch { rtOn.value = false }
+}
+
+onMounted(() => {
+  document.documentElement.classList.toggle('dark', dark.value)
+  connectRealtime()
+})
+onBeforeUnmount(() => { if (socket) socket.disconnect() })
+</script>
+
+<template>
+  <div class="app-shell">
+    <div class="backdrop" :class="{ show: open }" @click="open = false"></div>
+
+    <aside class="sidebar" :class="{ open }">
+      <div class="brand">
+        <img :src="brandIcon" alt="BPF" />
+        <div>
+          <b>BPF Fleet System</b>
+          <span>PT Bestprofit Futures</span>
+        </div>
+      </div>
+
+      <nav class="side-nav">
+        <div class="nav-sec">Menu · {{ auth.meta?.label }}</div>
+        <router-link v-for="m in items" :key="m.path" :to="m.path" @click="open = false">
+          <span class="ico">{{ m.icon }}</span>{{ m.label }}
+        </router-link>
+      </nav>
+
+      <div class="user-card">
+        <div class="avatar" :style="{ background: auth.meta?.color || '#2563eb' }">{{ initials }}</div>
+        <div class="grow" style="min-width:0;">
+          <div class="u-name">{{ auth.user?.full_name || auth.user?.user_name }}</div>
+          <div class="u-role">
+            <span class="role-chip" :style="{ background: auth.meta?.color }">{{ auth.meta?.icon }} {{ auth.meta?.label }}</span>
+          </div>
+        </div>
+        <button class="btn-icon" title="Keluar" @click="doLogout">🚪</button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <button class="btn-icon burger" title="Menu" @click="open = !open">☰</button>
+        <h1>{{ pageTitle }}</h1>
+        <span class="muted" style="font-size:11px;">{{ new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) }}</span>
+        <div class="spacer"></div>
+        <span class="rt-dot" :class="rtOn ? 'on' : 'off'" :title="rtOn ? 'Realtime terhubung' : 'Realtime terputus'">
+          {{ rtOn ? '⚡ Realtime' : '🔴 Offline' }}
+        </span>
+        <button class="btn-icon" :title="dark ? 'Mode terang' : 'Mode gelap'" @click="toggleDark">{{ dark ? '☀️' : '🌙' }}</button>
+      </header>
+
+      <main class="content">
+        <router-view />
+      </main>
+    </div>
+  </div>
+</template>

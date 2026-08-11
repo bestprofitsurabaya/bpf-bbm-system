@@ -25,3 +25,10 @@ backup/
 # IDE
 .vscode/
 .idea/
+
+# Frontend SPA (node_modules & hasil build tidak di-commit)
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+# Hasil build SPA yang disalin ke static (bind-mount host → container)
+static/app/

@@ -1,4 +1,4 @@
-# ⛽ BPF Fleet & BBM System v1.2
+# ⛽ BPF Fleet & BBM System v2.0
 
 **Sistem Manajemen Armada, Klaim BBM, Kasbon, Log Perjalanan & Appointment**  
 **PT. Bestprofit Futures - Surabaya**
@@ -6,6 +6,21 @@
 ---
 
 Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pengarsipan klaim BBM, **pengajuan kasbon dengan kode unik**, dan log perjalanan harian (logsheet) dengan workflow GA → Finance → Archive. Dilengkapi **sistem appointment canggih** (Marketing → Chief Driver → Log Perjalanan), deteksi anomali Machine Learning, GPS tracking, **watermark foto otomatis**, PIN security, **session-based login & role-based access**, **CSRF protection**, **notifikasi real-time**, import Excel, audit trail, Chart.js visualization, **PWA offline-first**, dan **WebSocket real-time**.
+
+---
+
+## 🆕 Fitur Terbaru v2.0 — SPA Vue 3 & Dashboard per Role
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **SPA Vue 3 (Vite)** | Antarmuka admin/back-office ditulis ulang sebagai Single Page App responsif di `/app/*` (vue-router + pinia, lazy-loading) |
+| **Dashboard per Role** | Setelah login, tiap peran mendapat dashboard sendiri: Admin/GA/Finance (statistik relevan), Marketing (input & ringkasan appointment), Chief Driver (board penugasan) |
+| **Kontrol Akses Berlapis** | Server `role_required` + guard router SPA + menu tersembunyi per role; user tak berhak mendapat 403 (ISO/IEC 27001 · least privilege) |
+| **Auth JSON baru** | `/api/auth/me`, `/api/auth/login`, `/api/auth/logout` (session + CSRF) |
+| **Kepatuhan ISO** | Pemetaan ISO/IEC 27001:2022, ISO 9241-11, dan ISO 9001 di `SECURITY.md` |
+
+> Login klasik tetap berfungsi dan kini mengarah ke SPA (`/app/dashboard` atau dashboard role masing-masing).
+> Halaman klasik (driver PWA `/driver`, antrean kerja `/admin`) tetap berjalan sebagai transisi.
 
 ---
 

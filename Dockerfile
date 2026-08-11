@@ -1,10 +1,23 @@
+# ============================================================
+# Stage 1 — Build SPA Vue 3 (Vite)
+# ============================================================
+FROM node:20-alpine AS frontend-build
+WORKDIR /build
+COPY frontend/package*.json ./
+RUN npm install --no-audit --no-fund
+COPY frontend/ ./
+RUN npm run build
+
+# ============================================================
+# Stage 2 — Python runtime (Flask + SocketIO)
+# ============================================================
 FROM python:3.11-slim
 ENV TZ=Asia/Jakarta
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 WORKDIR /app
 
-# Install MySQL client (for mysqldump)
+# Install MySQL client (untuk mysqldump)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     default-mysql-client \
     && rm -rf /var/lib/apt/lists/*
@@ -12,7 +25,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
+COPY static/ /app/static/
+
+# SPA bundle hasil build Vue (harus paling akhir agar tidak tertimpa COPY static/)
+COPY --from=frontend-build /build/dist/ /app/static/app/
+
 EXPOSE 5000
 
 CMD ["python3", "-u", "app.py"]
-COPY static/ /app/static/

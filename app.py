@@ -16,6 +16,7 @@ except Exception:
 
 from flask_socketio import SocketIO
 from flask import Flask, request, session, jsonify, redirect, url_for, flash
+from datetime import timedelta
 import os
 import warnings
 import secrets
@@ -27,6 +28,13 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.secret_key = os.environ.get('SECRET_KEY', 'bpf_bbm_secret_key_default_2026')
 app.config['UPLOAD_FOLDER'] = 'uploads'
 os.makedirs('uploads', exist_ok=True)
+
+# Session cookie hardening (ISO/IEC 27001 A.8.5 manajemen sesi)
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = os.environ.get('SESSION_COOKIE_SAMESITE', 'Lax')
+# Secure cookie: aktif saat HTTPS (produksi duckdns). Matikan hanya untuk dev http lokal.
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('SESSION_COOKIE_SECURE', 'true').lower() in ('1', 'true', 'yes')
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=int(os.environ.get('SESSION_HOURS', '12')))
 
 # Init SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode=socketio_async_mode, logger=False, engineio_logger=False)
@@ -59,6 +67,7 @@ from modules.routes_settings import register_settings_routes
 from modules.routes_notifications import register_notification_routes
 from modules.routes_auth import register_auth_routes
 from modules.routes_appointments import register_appointment_routes
+from modules.routes_spa import register_spa_routes
 
 register_driver_routes(app, socketio)
 register_auth_routes(app)
@@ -71,6 +80,7 @@ register_report_routes(app)
 register_settings_routes(app)
 register_notification_routes(app)
 register_appointment_routes(app)
+register_spa_routes(app)
 
 # ================================================================
 # CSRF PROTECTION (berlaku untuk sesi admin yang login)

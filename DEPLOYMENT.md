@@ -1,4 +1,4 @@
-# 🚀 Panduan Deployment — BPF Fleet & BBM System v1.1
+# 🚀 Panduan Deployment — BPF Fleet & BBM System v2.0
 
 **PT. Bestprofit Futures — Surabaya** · Dokumen untuk Tim IT
 
@@ -16,6 +16,8 @@
 8. [Reverse Proxy & HTTPS](#8-reverse-proxy--https)
 9. [Troubleshooting Deployment](#9-troubleshooting-deployment)
 10. [Daftar Endpoint Utama](#10-daftar-endpoint-utama)
+11. [Cloudflare Tunnel (Akses Cadangan Opsional)](#11-cloudflare-tunnel-akses-cadangan-opsional)
+12. [SPA Vue 3 (v2.0) — Build & Deploy](#12-spa-vue-3-v20--build--deploy)
 
 ---
 
@@ -105,6 +107,9 @@ Semua env di-set di `docker-compose.yml` (tidak perlu file `.env` terpisah, tapi
 | `SECRET_KEY` | `bpf_bbm_super_secret_...` | **WAJIB GANTI di produksi** — dipakai untuk session & CSRF token. Ganti dengan nilai acak panjang. |
 | `FLASK_DEBUG` | `0` | Jangan aktifkan di produksi |
 | `TZ` | `Asia/Jakarta` | Zona waktu |
+| `SESSION_HOURS` | `12` | Masa berlaku sesi login (jam) — kebijakan sesi ISO/IEC 27001 A.8.5 |
+| `SESSION_COOKIE_SECURE` | `true` | Cookie sesi hanya lewat HTTPS. Set `false` hanya untuk dev http lokal |
+| `SESSION_COOKIE_SAMESITE` | `Lax` | Proteksi CSRF tingkat cookie (jangan ubah tanpa alasan) |
 
 **Cara generate SECRET_KEY aman:**
 ```bash
@@ -375,6 +380,53 @@ Untuk URL yang stabil, buat named tunnel:
 
 ---
 
+## 12. SPA Vue 3 (v2.0) — Build & Deploy 🎨
+
+Mulai v2.0, antarmuka admin/back-office adalah **Single Page App Vue 3** yang di-build dengan **Vite** dan disajikan Flask dari `/app/*`.
+
+### 12.1 Alur Build (otomatis di Dockerfile multi-stage)
+
+```
+Stage 1 (node:20-alpine): cd frontend && npm install && npm run build → dist/
+Stage 2 (python:3.11-slim): Flask + dependensi; dist disalin ke /app/static/app/
+```
+
+> 🔴 **PENTING (bind-mount `./static`):** `docker-compose.yml` me-mount `./static:/app/static`, sehingga hasil `COPY --from=frontend-build` **tertimpa** oleh folder host. Artinya **setelah pull kode baru**, jalankan sekali:
+> ```bash
+> bash scripts/build-spa.sh     # build SPA + salin ke static/app/
+> docker compose up -d --build
+> ```
+> `static/app/` tidak ikut di-commit (ada di `.gitignore`) — selalu dihasilkan oleh script ini. Jika `GET /app/` mengembalikan `SPA belum di-build`, itu tanda `static/app/` belum dibuat di host.
+
+Build lokal (untuk develop/validasi):
+```bash
+cd frontend
+npm install
+npm run dev        # dev server :5173, proxy /api → localhost:5001
+npm run build      # hasil di frontend/dist
+```
+
+### 12.2 Endpoint Auth & Trips (baru)
+
+| Method | Path | Fungsi |
+|--------|------|--------|
+| GET | `/api/auth/me` | Status sesi + role + CSRF token (untuk SPA) |
+| POST | `/api/auth/login` | Login JSON (username + PIN) → role + home |
+| POST | `/api/auth/logout` | Logout |
+| GET | `/api/trips` | List log perjalanan (filter driver/date/status) |
+| POST | `/api/trips/verify/<id>` | Verify trip (ga/admin) |
+| POST | `/api/trips/reject/<id>` | Reject trip + alasan (ga/admin) |
+| GET | `/app/*` | SPA (fallback index.html utk client routing) |
+
+### 12.3 Akses per Role (ISO/IEC 27001)
+
+Setelah login, redirect mengikuti role: marketing → `/app/marketing`, chief_driver → `/app/chief-driver`,
+selainnya → `/app/dashboard`. Server tetap menegakkan `role_required` di semua route; SPA menegakkan
+ulang di sisi klien (guard router + menu terfilter). Lihat `SECURITY.md` untuk pemetaan kontrol lengkap
+(ISO/IEC 27001:2022, ISO 9241-11, ISO 9001).
+
+---
+
 ## 🧾 Checklist Sebelum Go-Live
 
 - [ ] `SECRET_KEY` diganti dengan nilai acak (jangan default)
@@ -388,4 +440,4 @@ Untuk URL yang stabil, buat named tunnel:
 ---
 
 **PT. Bestprofit Futures — Surabaya**  
-BPF Fleet & BBM System v1.1 · Dikembangkan oleh **Tim IT BPF Surabaya**
+BPF Fleet & BBM System v2.0 · Dikembangkan oleh **Tim IT BPF Surabaya**

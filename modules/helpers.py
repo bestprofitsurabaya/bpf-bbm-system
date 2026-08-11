@@ -475,3 +475,65 @@ def validate_appointment_input(item):
         'marketing_member': member,
     }
     return (not errors, errors, normalized)
+
+
+# ============================================================
+# SPA V2.0 — Home per role (sumber tunggal, dipakai routes_auth & routes_spa)
+# ============================================================
+ROLE_HOME = {
+    'marketing': '/app/marketing',
+    'chief_driver': '/app/chief-driver',
+}
+
+
+def home_for_role(role):
+    """Halaman awal sesuai role user setelah login (SPA /app/*)."""
+    return ROLE_HOME.get(role, '/app/dashboard')
+
+
+# ============================================================
+# Rate limiting login sederhana (ISO/IEC 27001 A.8.5 · anti brute-force)
+# In-memory per-IP: 5x gagal dalam 5 menit → lockout 15 menit.
+# Single-process (eventlet) sehingga aman memakai dict global.
+# ============================================================
+import time
+
+_LOGIN_ATTEMPTS = {}  # ip -> {'fails': int, 'locked_until': ts}
+_LOGIN_MAX_FAILS = 5
+_LOGIN_WINDOW = 300
+_LOGIN_LOCKOUT = 900
+
+
+def login_rate_check(ip):
+    """Cek apakah IP boleh mencoba login. Return (allowed: bool, retry_after: int)."""
+    now = time.time()
+    entry = _LOGIN_ATTEMPTS.get(ip)
+    if not entry:
+        return True, 0
+    if entry['locked_until'] and now < entry['locked_until']:
+        return False, int(entry['locked_until'] - now)
+    # window bergulir: reset jika sudah lewat window
+    if now - entry.get('first_fail', now) > _LOGIN_WINDOW:
+        _LOGIN_ATTEMPTS.pop(ip, None)
+        return True, 0
+    return True, 0
+
+
+def login_fail(ip):
+    """Catat percobaan login gagal; kembalikan (locked, retry_after)."""
+    now = time.time()
+    entry = _LOGIN_ATTEMPTS.get(ip)
+    if not entry or now - entry.get('first_fail', now) > _LOGIN_WINDOW:
+        entry = {'fails': 0, 'first_fail': now, 'locked_until': None}
+        _LOGIN_ATTEMPTS[ip] = entry
+    entry['fails'] += 1
+    if entry['fails'] >= _LOGIN_MAX_FAILS:
+        entry['locked_until'] = now + _LOGIN_LOCKOUT
+        entry['fails'] = 0
+        return True, _LOGIN_LOCKOUT
+    return False, 0
+
+
+def login_success(ip):
+    """Reset penghitung gagal setelah login sukses."""
+    _LOGIN_ATTEMPTS.pop(ip, None)

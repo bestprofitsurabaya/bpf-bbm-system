@@ -1,18 +1,8 @@
 """Auth Routes - Login & Logout (session-based, PIN user)"""
 from flask import render_template, request, redirect, url_for, session, flash
 from modules.config import get_db_connection
+from modules.helpers import home_for_role, login_rate_check, login_fail, login_success
 from urllib.parse import urlparse
-
-# Halaman awal per role setelah login
-ROLE_HOME = {
-    'marketing': '/marketing',
-    'chief_driver': '/chief-driver',
-}
-
-
-def _role_home(role):
-    """Halaman awal sesuai role user setelah login."""
-    return ROLE_HOME.get(role, url_for('admin_dashboard'))
 
 
 def register_auth_routes(app):
@@ -21,7 +11,7 @@ def register_auth_routes(app):
     def login_page():
         # Sudah login? langsung ke halaman sesuai role
         if session.get('user_role'):
-            return redirect(_role_home(session.get('user_role')))
+            return redirect(home_for_role(session.get('user_role')))
 
         if request.method == 'POST':
             username = request.form.get('username', '').strip()
@@ -32,6 +22,13 @@ def register_auth_routes(app):
 
             if not username or not pin:
                 flash('Username dan PIN wajib diisi.', 'error')
+                return redirect(login_retry)
+
+            # Rate limit anti brute-force (ISO/IEC 27001 A.8.5)
+            client_ip = request.headers.get('X-Forwarded-For', '').split(',')[0].strip() or request.remote_addr or '?'
+            allowed, retry_after = login_rate_check(client_ip)
+            if not allowed:
+                flash(f'Terlalu banyak percobaan. Coba lagi dalam {retry_after // 60} menit.', 'error')
                 return redirect(login_retry)
 
             try:
@@ -48,6 +45,7 @@ def register_auth_routes(app):
                 return redirect(login_retry)
 
             if user:
+                login_success(client_ip)
                 session.clear()
                 session['user_role'] = user['role']
                 session['user_name'] = user['username']
@@ -58,8 +56,9 @@ def register_auth_routes(app):
                 parsed = urlparse(nxt)
                 if nxt and nxt.startswith('/') and not nxt.startswith('//') and not parsed.netloc:
                     return redirect(nxt)
-                return redirect(_role_home(user['role']))
+                return redirect(home_for_role(user['role']))
 
+            login_fail(client_ip)
             flash('Username atau PIN salah.', 'error')
             return redirect(login_retry)
 

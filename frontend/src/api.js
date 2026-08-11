@@ -1,0 +1,44 @@
+/**
+ * Fetch wrapper — JSON + CSRF + error normalization.
+ * CSRF token disimpan dari /api/auth/me atau /api/auth/login (session-based).
+ */
+export async function api(path, { method = 'GET', body, params } = {}) {
+  const opts = { method, headers: { Accept: 'application/json' } }
+  if (body !== undefined) {
+    opts.headers['Content-Type'] = 'application/json'
+    opts.body = JSON.stringify(body)
+  }
+  const csrf = localStorage.getItem('bpf_csrf') || sessionStorage.getItem('bpf_csrf')
+  if (csrf && !['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    opts.headers['X-CSRF-Token'] = csrf
+  }
+  if (params) {
+    const q = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+    ).toString()
+    if (q) path += (path.includes('?') ? '&' : '?') + q
+  }
+
+  let r
+  try {
+    r = await fetch(path, opts)
+  } catch (e) {
+    throw new Error('Koneksi ke server gagal. Periksa jaringan Anda.')
+  }
+
+  if (r.status === 401) {
+    window.dispatchEvent(new CustomEvent('bpf:unauthorized'))
+  }
+
+  let data = null
+  try { data = await r.json() } catch { data = null }
+
+  if (!r.ok) {
+    const msg = (data && (data.msg || data.error)) || `HTTP ${r.status}`
+    const err = new Error(msg)
+    err.status = r.status
+    err.data = data
+    throw err
+  }
+  return data
+}
