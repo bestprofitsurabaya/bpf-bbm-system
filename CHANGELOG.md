@@ -6,6 +6,32 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.2.3] - 2026-08-11
+
+### 🔐 Audit Keamanan Menyeluruh — 5 Celah Berbahaya Diperbaiki
+
+1. **Upload file (CRITICAL) — path traversal & stored XSS** — `save_file` sebelumnya menyimpan nama file asli user tanpa sanitasi (celah `../`) dan tanpa whitelist ekstensi; file `.html`/`.svg`/`.py` yang diunggah driver bisa dieksekusi saat diakses via `/uploads/`. Kini: `secure_filename` + ekstensi whitelist (gambar & PDF saja) + nama file dibangkitkan server-side (acak) + header `X-Content-Type-Options: nosniff` & `Content-Disposition: inline` pada `/uploads/`. (ISO/IEC 27001 A.8.2 · A.8.9)
+2. **SECRET_KEY hardcoded di repo publik** — siapa pun bisa memalsukan cookie sesi admin. Kini diambil dari `.env` (gitignored) via `SECRET_KEY=${SECRET_KEY:?}` di `docker-compose.yml`; nilai acak baru sudah di-generate di server (semua sesi lama di-invalidasi — wajib login ulang sekali).
+3. **`/api/verify-pin` tanpa proteksi brute-force** — PIN 6 digit bisa ditebak bebas. Kini rate limit per-IP: 8 gagal / 5 menit → lockout 10 menit (jalur terpisah dari login).
+4. **IDOR pada `/api/cash/delete`** — driver bisa menghapus pengajuan DRAFT driver lain. Kini tanpa sesi wajib `?driver=` yang cocok dengan pemilik (403 jika bukan miliknya), konsisten dengan `history`/`pending-lpj`.
+5. **Rate limit bisa dibypass via `X-Forwarded-For` palsu** — login & verify-pin memakai nilai pertama header yang dikontrol penuh klien. Kini helper `client_ip()`: `CF-Connecting-IP` **hanya dipercaya bila `remote_addr` loopback/private** (jalur cloudflared tunnel) → jika origin diakses langsung dari IP publik, CF palsu diabaikan & dipakai `remote_addr` (peer TCP nyata); XFF diabaikan total. Dipakai seragam di login, verify-pin, & audit SPA.
+6. **Klaim/LPJ tanpa bukti saat foto ditolak** — sebelumnya jika `save_file` menolak file berbahaya, transaksi tetap tersimpan tanpa foto. Kini server menolak transaksi (flash error di PWA driver / 400 di LPJ) jika foto wajib gagal disimpan — termasuk **foto dispenser (wajib utk SPBU non-rekanan)** + pembersihan file yatim yang sudah tersimpan. (ISO 9001:8.6)
+7. **Hardening tambahan** — header `nosniff` pada seluruh respon upload; template bebas `render_template_string` (terverifikasi); `deleteCash` PWA driver kini mengirim `?driver=` konsisten dengan guard IDOR. Catatan desain: kasus "foto tidak dikirim sama sekali" sengaja tidak ditolak server karena alur offline PWA (sync.js) mengirim tanpa foto.
+
+### 🔍 Verifikasi Mendalam di SPA — Modal Detail Transaksi
+
+- **Tombol 👁 Detail** di setiap baris antrean membuka modal: info transaksi lengkap (driver, nopol, BBM, nominal, liter, ODO, km/L, status, alasan tolak), **foto bukti** (thumbnail → buka di tab baru), **hasil cross-check** (health score, budget %, selisih ODO, flag, rekomendasi), plus riwayat pelaku (GA/finance/arsip).
+- Aksi dari modal: **Approve / Tolak / Cairkan / Arsipkan / ↩️ Unverify / 🗑 Hapus** (admin) sesuai status & role.
+- Backend baru: `GET /api/transactions/detail/<id>` (role ga/finance/admin), `POST /api/queue/unverify/<id>` (ga/admin), `POST /api/queue/delete/<id>` (admin — hapus transaksi + file bukti, dengan audit).
+
+### 🧪 Cakupan Pengujian (ISO 9001)
+
+- **Vitest naik ke 44 test** — `AdminDashboard.test.js` kini 10 test (tambah: modal detail dengan foto+cross-check, approve dari modal, hapus admin, unverify).
+- **pytest naik ke 70 test** — `tests/test_upload_security.py` (9 test: traversal dinetralkan, ekstensi berbahaya ditolak, gambar/PDF diterima, nama aman) + `tests/test_client_ip.py` (5 test: CF-Connecting-IP menang atas XFF palsu via proxy lokal, CF palsu diabaikan saat origin publik, XFF diabaikan, fallback remote_addr).
+- Smoke e2e: login dengan secret baru ✅, `/api/transactions/detail` 200/401 ✅, unverify/delete 401 tanpa auth ✅, `cash/delete` tanpa driver 400 ✅, verify-pin sukses via tunnel ✅.
+
+---
+
 ## [2.2.2] - 2026-08-11
 
 ### 🚀 Antrean Kerja di SPA Dashboard (`/app/dashboard`)

@@ -1,6 +1,7 @@
 """Helper functions for BPF BBM System"""
 import os
 import json
+import ipaddress
 import threading
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
@@ -117,15 +118,45 @@ def generate_trip_display_id(conn=None):
     """Generate trip display ID: TRIP-YYYYMMDD-XXXX"""
     return generate_display_id('TRIP', conn)
 
+# Ekstensi bukti yang diizinkan (ISO/IEC 27001 A.8.2 — hanya file aman).
+ALLOWED_UPLOAD_EXT = {'png', 'jpg', 'jpeg', 'webp', 'gif', 'pdf'}
+
+
 def save_file(file_obj, prefix, nopol, upload_folder):
-    """Save uploaded file with timestamp prefix"""
+    """Save uploaded file with timestamp prefix — HARDENED.
+
+    Keamanan (sebelumnya celah path traversal & stored XSS):
+    - `secure_filename` menghilangkan path (../, /, \\) & karakter berbahaya.
+    - Ekstensi di-whitelist (hanya gambar & PDF) — file .html/.svg/.py dsb DITOLAK.
+    - Nama file dibangkitkan server-side (tidak memakai nama asli user).
+    Return nama file bila berhasil, None bila tidak ada/berbahaya.
+    """
     if file_obj and file_obj.filename:
+        from werkzeug.utils import secure_filename
+        raw = secure_filename(file_obj.filename)
+        if not raw or '.' not in raw:
+            return None
+        ext = raw.rsplit('.', 1)[1].lower()
+        if ext not in ALLOWED_UPLOAD_EXT:
+            print(f"[save_file] DITOLAK ekstensi tidak aman: {raw!r}")
+            return None
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{prefix}_{nopol}_{ts}_{file_obj.filename}"
+        safe_nopol = secure_filename(str(nopol)) or 'x'
+        filename = f"{prefix}_{safe_nopol}_{ts}_{secrets_rand(6)}.{ext}"
         filepath = os.path.join(upload_folder, filename)
-        file_obj.save(filepath)
+        try:
+            file_obj.save(filepath)
+        except Exception as e:
+            print(f"[save_file] gagal simpan: {e}")
+            return None
         return filename
     return None
+
+
+def secrets_rand(n=6):
+    """Acak aman (hex) untuk nama file — menghindari tabrakan & tebakan."""
+    import secrets as _s
+    return _s.token_hex(n // 2 + 1)[:n]
 
 def log_activity_async(tx_id, action, user_type, user_name, old_data=None, new_data=None, ip=None, ua=None):
     """Log activity asynchronously"""
@@ -575,3 +606,71 @@ def login_fail(ip):
 def login_success(ip):
     """Reset penghitung gagal setelah login sukses."""
     _LOGIN_ATTEMPTS.pop(ip, None)
+
+
+# ============================================================
+# Rate limiting /api/verify-pin (ISO/IEC 27001 A.8.5 · anti brute-force PIN)
+# Terpisah dari login agar lockout satu jalur tidak mengunci jalur lain.
+# 8x gagal / 5 menit per IP → lockout 10 menit.
+# ============================================================
+_PIN_ATTEMPTS = {}
+_PIN_MAX_FAILS = 8
+_PIN_WINDOW = 300
+_PIN_LOCKOUT = 600
+
+
+def _is_trusted_proxy(ip):
+    """True bila peer TCP adalah loopback atau IP privat (proxy lokal tepercaya)."""
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    return addr.is_loopback or addr.is_private
+
+
+def client_ip():
+    """IP klien anti-spoofing (ISO/IEC 27001 A.12.6 — kontrol teknis).
+
+    - Via Cloudflare Tunnel (cloudflared di host): `CF-Connecting-IP` di-set oleh
+      Cloudflare dan request masuk lewat loopback/private → dipercaya.
+    - Akses langsung origin (remote_addr publik): header CF bisa dipalsukan klien
+      → `CF-Connecting-IP` DIABAIKAN, dipakai `remote_addr` (peer TCP nyata).
+    - `X-Forwarded-For` DIABAIKAN total: nilainya dikontrol penuh oleh klien bila
+      request sampai ke origin tanpa proxy tepercaya (celah bypass rate limit).
+    """
+    cf = (request.headers.get('CF-Connecting-IP') or '').strip()
+    raddr = (request.remote_addr or '').strip()
+    if cf and _is_trusted_proxy(raddr):
+        return cf
+    return raddr or '?'
+
+
+def pin_rate_check(ip):
+    """Cek apakah IP boleh memverifikasi PIN. Return (allowed, retry_after)."""
+    now = time.time()
+    entry = _PIN_ATTEMPTS.get(ip)
+    if entry and entry.get('locked_until') and now < entry['locked_until']:
+        return False, int(entry['locked_until'] - now)
+    if entry and now - entry.get('first_fail', now) > _PIN_WINDOW:
+        _PIN_ATTEMPTS.pop(ip, None)
+    return True, 0
+
+
+def pin_fail(ip):
+    """Catat verifikasi PIN gagal; kembalikan (locked, retry_after)."""
+    now = time.time()
+    entry = _PIN_ATTEMPTS.get(ip)
+    if not entry or now - entry.get('first_fail', now) > _PIN_WINDOW:
+        entry = {'fails': 0, 'first_fail': now, 'locked_until': None}
+        _PIN_ATTEMPTS[ip] = entry
+    entry['fails'] += 1
+    if entry['fails'] >= _PIN_MAX_FAILS:
+        entry['locked_until'] = now + _PIN_LOCKOUT
+        entry['fails'] = 0
+        return True, _PIN_LOCKOUT
+    return False, 0
+
+
+def pin_success(ip):
+    """Reset penghitung setelah verifikasi PIN sukses."""
+    _PIN_ATTEMPTS.pop(ip, None)

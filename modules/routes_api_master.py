@@ -1,7 +1,8 @@
 """API Routes - Master Data (Vehicles, BBM, Drivers, Users)"""
 from flask import request, jsonify
 from modules.config import get_db_connection
-from modules.helpers import finalize_pin, log_activity_async, resolve_user_pin, role_required
+from modules.helpers import (finalize_pin, log_activity_async, resolve_user_pin, role_required,
+                             pin_rate_check, pin_fail, pin_success, client_ip)
 
 def register_master_api(app):
 
@@ -170,6 +171,10 @@ def register_master_api(app):
     @app.route('/api/verify-pin', methods=['POST'])
     def verify_pin():
         try:
+            ip = client_ip()
+            allowed, retry_after = pin_rate_check(ip)
+            if not allowed:
+                return jsonify({'status': 'error', 'msg': f'Terlalu banyak percobaan. Coba lagi dalam {retry_after // 60} menit.'}), 429
             data = request.get_json()
             username = data.get('username', '').strip(); pin = data.get('pin', '').strip()
             if not username or not pin: return jsonify({'status': 'error', 'msg': 'Username dan PIN wajib'}), 400
@@ -177,10 +182,12 @@ def register_master_api(app):
             cursor.execute("SELECT * FROM users WHERE username=%s AND pin=%s AND is_active=TRUE", (username, pin))
             user = cursor.fetchone()
             if user:
+                pin_success(ip)
                 cursor.execute("UPDATE users SET last_login=NOW() WHERE id=%s", (user['id'],))
                 conn.commit(); cursor.close(); conn.close()
                 return jsonify({'status': 'success', 'user': {'username': user['username'], 'full_name': user['full_name'], 'role': user['role']}})
             cursor.close(); conn.close()
+            pin_fail(ip)
             return jsonify({'status': 'error', 'msg': 'PIN salah'}), 401
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500

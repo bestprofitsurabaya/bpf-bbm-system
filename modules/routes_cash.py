@@ -2,6 +2,7 @@
 import random
 from datetime import date
 from flask import request, jsonify, session
+import os
 from modules.config import get_db_connection
 from modules.helpers import log_activity_async, generate_display_id, safe_float, role_required
 from modules.notifications import push_driver_notification
@@ -464,6 +465,27 @@ def register_cash_routes(app):
             foto_nota = save_file(request.files.get('foto_nota_odo_sesudah'), 'ODO2', nopol, upload_dir)
             foto_struk = save_file(request.files.get('foto_struk'), 'STRUK', nopol, upload_dir)
             foto_dispenser = save_file(request.files.get('foto_struk_dispenser'), 'DISP', nopol, upload_dir) if spbu_type == 'non_rekanan' else None
+
+            # Validasi server: foto wajib yang gagal disimpan (format tidak aman) harus menolak LPJ
+            # — jangan pernah menyimpan LPJ tanpa bukti (ISO 9001:8.6). Termasuk foto dispenser
+            # (wajib utk SPBU non-rekanan).
+            rejected_photos = [field for field, saved in (
+                ('foto_odo_sebelum', foto_odo),
+                ('foto_nota_odo_sesudah', foto_nota),
+                ('foto_struk', foto_struk),
+                ('foto_struk_dispenser', foto_dispenser),
+            ) if request.files.get(field) and not saved]
+            if rejected_photos:
+                for saved in (foto_odo, foto_nota, foto_struk, foto_dispenser):
+                    if saved:
+                        try:
+                            _p = os.path.join(upload_dir, saved)
+                            if os.path.exists(_p):
+                                os.remove(_p)
+                        except OSError:
+                            pass
+                cursor.close(); conn.close()
+                return jsonify({'status': 'error', 'msg': 'Foto wajib gagal disimpan (format tidak didukung): ' + ', '.join(rejected_photos)}), 400
             gps_lat = request.form.get('gps_lat') or None
             gps_lon = request.form.get('gps_lon') or None
             gps_address = request.form.get('gps_address', '')
@@ -491,6 +513,12 @@ def register_cash_routes(app):
     @app.route('/api/cash/delete/<int:cash_id>', methods=['POST', 'DELETE'])
     def api_cash_delete(cash_id):
         try:
+            # Proteksi kepemilikan (ISO/IEC 27001 A.8.2): tanpa sesi (PWA driver)
+            # wajib menyertakan driver & harus cocok — mencegah IDOR antar driver.
+            if not session.get('user_role'):
+                driver = (request.args.get('driver') or '').strip().upper()
+                if not driver:
+                    return jsonify({'status': 'error', 'msg': 'Parameter driver wajib untuk pengajuan dari driver'}), 400
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM fuel_cash_requests WHERE id = %s AND status = 'DRAFT'", (cash_id,))
@@ -498,6 +526,9 @@ def register_cash_routes(app):
             if not req:
                 cursor.close(); conn.close()
                 return jsonify({'status': 'error', 'msg': 'Hanya pengajuan DRAFT yang bisa dihapus'}), 400
+            if not session.get('user_role') and req['driver_name'].upper() != driver:
+                cursor.close(); conn.close()
+                return jsonify({'status': 'error', 'msg': 'Pengajuan ini bukan milik Anda'}), 403
             cursor.execute("DELETE FROM fuel_cash_requests WHERE id = %s", (cash_id,))
             conn.commit()
             cursor.close(); conn.close()

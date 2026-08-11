@@ -443,9 +443,18 @@ ulang di sisi klien (guard router + menu terfilter). Lihat `SECURITY.md` untuk p
 
 ---
 
+### 12.5 Hardening Keamanan (v2.2.3)
+
+- **`SECRET_KEY` wajib dari `.env`** (gitignored): `docker compose` membaca `.env` di direktori project untuk `SECRET_KEY=${SECRET_KEY:?}`. Tanpa file `.env`, container **menolak start** — buat dengan: `printf 'SECRET_KEY=%s\n' "$(python3 -c 'import secrets; print("bpf_bbm_" + secrets.token_hex(24))')" > .env && chmod 600 .env`.
+- Mengganti SECRET_KEY akan **meng-invalidasi semua sesi** (semua user login ulang) — lakukan saat jendela maintenance.
+- **Upload bukti** kini dibatasi ekstensi aman (png/jpg/jpeg/webp/gif/pdf) + `secure_filename` + header `nosniff` — file berbahaya otomatis ditolak.
+- **`/api/verify-pin`** rate limit per-IP (8 gagal/5 menit → lockout 10 menit) — anti brute-force PIN.
+
+---
+
 ## 🧾 Checklist Sebelum Go-Live
 
-- [ ] `SECRET_KEY` diganti dengan nilai acak (jangan default)
+- [ ] `SECRET_KEY` ada di `.env` lokal (gitignored) — bukan hardcoded di repo
 - [ ] PIN bawaan semua akun sudah diganti
 - [ ] Reverse proxy meneruskan header WebSocket (`Upgrade`/`Connection`)
 - [ ] Backup otomatis terkonfigurasi (DB + uploads)

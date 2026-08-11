@@ -9,7 +9,7 @@ import secrets
 
 from flask import jsonify, request, session, send_from_directory
 
-from modules.helpers import role_required, log_activity_async, home_for_role, login_rate_check, login_fail, login_success
+from modules.helpers import role_required, log_activity_async, home_for_role, login_rate_check, login_fail, login_success, client_ip
 from modules.config import get_db_connection
 
 SPA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'app')
@@ -26,7 +26,7 @@ def _ensure_csrf():
 
 
 def _client_ip():
-    return request.headers.get('X-Forwarded-For', '').split(',')[0].strip() or request.remote_addr or '?'
+    return client_ip()
 
 
 def register_spa_routes(app):
@@ -326,6 +326,104 @@ def register_spa_routes(app):
                 return jsonify({'status': 'error', 'msg': f'Transaksi #{tx_id} tidak ditemukan atau sudah ditolak.'}), 409
             log_activity_async(tx_id, 'reject', 'ga', actor, new_data={'reason': reason}, ip=_client_ip())
             return jsonify({'status': 'success', 'msg': f'Klaim #{tx_id} ditolak'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    # ================================================================
+    # DETAIL TRANSAKSI (JSON) — untuk modal verifikasi mendalam di SPA
+    # ================================================================
+    @app.route('/api/transactions/detail/<int:tx_id>')
+    @role_required(['ga', 'finance', 'admin'])
+    def api_tx_detail(tx_id):
+        try:
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'error': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM transactions WHERE id=%s", (tx_id,))
+            tx = cursor.fetchone()
+            if not tx:
+                cursor.close(); conn.close()
+                return jsonify({'error': 'Transaksi tidak ditemukan'}), 404
+            photos = []
+            for field, label in [('foto_odo_sebelum', 'ODO Sebelum'), ('foto_nota_odo_sesudah', 'Nota + ODO Sesudah'),
+                                 ('foto_struk', 'Struk'), ('foto_struk_dispenser', 'Dispenser'),
+                                 ('foto_mypertamina_admin', 'MyPertamina (Admin)')]:
+                if tx.get(field):
+                    photos.append({'label': label, 'url': '/uploads/' + str(tx[field])})
+            cursor.close(); conn.close()
+            return jsonify({
+                'id': tx['id'], 'display_id': tx['display_id'], 'driver_name': tx['driver_name'],
+                'nopol': tx['nopol'], 'vehicle_type': tx.get('vehicle_type'), 'bbm_type': tx.get('bbm_type'),
+                'nominal': float(tx['nominal'] or 0), 'liter': float(tx['liter'] or 0),
+                'price_per_liter': float(tx.get('price_per_liter') or 0),
+                'odo_km': float(tx['odo_km'] or 0), 'km_per_liter': float(tx.get('km_per_liter') or 0),
+                'spbu_type': tx.get('spbu_type'), 'status': tx['status'],
+                'ml_anomaly_flag': bool(tx.get('ml_anomaly_flag')),
+                'is_mypertamina_error': bool(tx.get('is_mypertamina_error')),
+                'rejection_reason': tx.get('rejection_reason'),
+                'gps_address': tx.get('gps_address'), 'jumlah_appointment': tx.get('jumlah_appointment') or 0,
+                'created_at': str(tx['created_at']),
+                'ga_approved_by': tx.get('ga_approved_by'), 'finance_payout_by': tx.get('finance_payout_by'),
+                'archived_by': tx.get('archived_by'),
+                'photos': photos,
+            })
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    # ================================================================
+    # UNVERIFY & DELETE transaksi (JSON) — dari modal detail SPA
+    # ================================================================
+    @app.route('/api/queue/unverify/<int:tx_id>', methods=['POST'])
+    @role_required(['ga', 'admin'])
+    def api_queue_unverify(tx_id):
+        actor = _queue_actor()
+        try:
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'status': 'error', 'msg': 'DB error'}), 500
+            cursor = conn.cursor()
+            cursor.execute("UPDATE transactions SET status='pending' WHERE id=%s AND status='verified_ga'", (tx_id,))
+            affected = cursor.rowcount
+            conn.commit()
+            cursor.close(); conn.close()
+            if affected == 0:
+                return jsonify({'status': 'error', 'msg': f'Transaksi #{tx_id} tidak ditemukan atau status bukan verified_ga.'}), 409
+            log_activity_async(tx_id, 'unverify', 'ga', actor, ip=_client_ip())
+            return jsonify({'status': 'success', 'msg': f'Transaksi #{tx_id} dikembalikan ke antrean GA'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    @app.route('/api/queue/delete/<int:tx_id>', methods=['POST'])
+    @role_required(['admin'])
+    def api_queue_delete(tx_id):
+        actor = _queue_actor()
+        try:
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'status': 'error', 'msg': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM transactions WHERE id=%s", (tx_id,))
+            tx = cursor.fetchone()
+            if not tx:
+                cursor.close(); conn.close()
+                return jsonify({'status': 'error', 'msg': f'Transaksi #{tx_id} tidak ditemukan.'}), 404
+            # Hapus file bukti terkait (aman: tidak menggagalkan jika file tak ada)
+            import os as _os
+            upload_dir = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), 'uploads')
+            for field in ('foto_odo_sebelum', 'foto_nota_odo_sesudah', 'foto_struk', 'foto_struk_dispenser', 'foto_mypertamina_admin'):
+                if tx.get(field):
+                    try:
+                        p = _os.path.join(upload_dir, str(tx[field]))
+                        if _os.path.isfile(p):
+                            _os.remove(p)
+                    except Exception:
+                        pass
+            cursor.execute("DELETE FROM transactions WHERE id=%s", (tx_id,))
+            conn.commit()
+            cursor.close(); conn.close()
+            log_activity_async(tx_id, 'delete_tx', 'admin', actor, new_data={'display_id': tx['display_id']}, ip=_client_ip())
+            return jsonify({'status': 'success', 'msg': f'Transaksi {tx["display_id"]} dihapus permanen'})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
 

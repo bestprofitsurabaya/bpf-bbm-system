@@ -63,6 +63,29 @@ def register_driver_routes(app, socketio):
                 foto_struk = save_file(request.files.get('foto_struk'), 'STRUK', nopol, upload_dir)
                 foto_struk_dispenser = save_file(request.files.get('foto_struk_dispenser'), 'DISP', nopol, upload_dir) if spbu_type=='non_rekanan' else None
 
+                # Validasi server: foto wajib yang gagal disimpan (format tidak aman) HARUS menolak
+                # transaksi — jangan pernah menyimpan klaim tanpa bukti (ISO 9001:8.6).
+                # Termasuk foto dispenser (wajib utk SPBU non-rekanan); kasus foto tidak dikirim
+                # sama sekali tidak ditolak karena alur offline PWA (sync.js) kirim tanpa foto.
+                rejected_photos = [field for field, saved in (
+                    ('foto_odo_sebelum', foto_odo_sebelum),
+                    ('foto_nota_odo_sesudah', foto_nota_odo_sesudah),
+                    ('foto_struk', foto_struk),
+                    ('foto_struk_dispenser', foto_struk_dispenser),
+                ) if request.files.get(field) and not saved]
+                if rejected_photos:
+                    for saved in (foto_odo_sebelum, foto_nota_odo_sesudah, foto_struk, foto_struk_dispenser):
+                        if saved:
+                            try:
+                                _p = os.path.join(upload_dir, saved)
+                                if os.path.exists(_p):
+                                    os.remove(_p)
+                            except OSError:
+                                pass
+                    flash('Foto wajib gagal disimpan (format file tidak didukung): ' + ', '.join(rejected_photos), 'error')
+                    cursor.close(); conn.close()
+                    return render_template('driver.html')
+
                 cursor.execute("SELECT odo_km FROM transactions WHERE nopol=%s ORDER BY created_at DESC LIMIT 1", (nopol,))
                 previous = cursor.fetchone()
                 km_per_liter = 0
@@ -116,7 +139,13 @@ def register_driver_routes(app, socketio):
 
     @app.route('/uploads/<filename>')
     def uploaded_file(filename):
-        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+        # Hardening (ISO/IEC 27001): file bukti dibuka inline, tapi cegah
+        # MIME sniffing & eksekusi sebagai HTML (stored XSS).
+        resp = make_response(send_from_directory(app.config['UPLOAD_FOLDER'], filename))
+        resp.headers['X-Content-Type-Options'] = 'nosniff'
+        resp.headers['Content-Disposition'] = 'inline'
+        resp.headers['Cache-Control'] = 'private, max-age=3600'
+        return resp
 
     @app.route('/submit-trip', methods=['POST'])
     def submit_trip():
