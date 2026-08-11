@@ -1,0 +1,58 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mount, flushPromises } from '@vue/test-utils'
+import MarketingDashboard from './MarketingDashboard.vue'
+
+const { apiMock } = vi.hoisted(() => ({ apiMock: vi.fn() }))
+vi.mock('../../api', () => ({ api: apiMock }))
+
+const APPS = {
+  data: [
+    { id: 1, display_id: 'APP-1', nasabah_name: 'Nasabah A', marketing_member: 'M1', nasabah_phone: '0811', sesi: '1', area: 'Surabaya Barat', status: 'scheduled' },
+  ],
+  stats: { total: 1, sesi1: 1, sesi2: 0, completed: 0 },
+}
+
+async function mountView() {
+  apiMock.mockImplementation((path) => {
+    if (path === '/api/appointments') return Promise.resolve(APPS)
+    return Promise.resolve({ status: 'success', msg: 'Tersimpan' })
+  })
+  const w = mount(MarketingDashboard)
+  await flushPromises()
+  return w
+}
+
+describe('MarketingDashboard', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+
+  it('menampilkan form input + statistik + daftar appointment hari ini', async () => {
+    const w = await mountView()
+    expect(w.text()).toContain('Input Appointment Baru')
+    expect(w.text()).toContain('Total Hari Ini')
+    expect(w.text()).toContain('Sesi 1')
+    expect(w.text()).toContain('Nasabah A')
+    expect(w.text()).toContain('APP-1')
+  })
+
+  it('submit valid memanggil POST /api/appointments dengan array form', async () => {
+    const w = await mountView()
+    await w.find('input[placeholder="Nama nasabah"]').setValue('Nasabah Baru')
+    await w.find('input[placeholder="Anggota tim yang memprospek"]').setValue('Yusie')
+    await w.find('input[placeholder="Alamat calon nasabah"]').setValue('Jl. Darmo 10')
+    await w.find('form').trigger('submit.prevent')
+    await flushPromises()
+    expect(apiMock).toHaveBeenCalledWith('/api/appointments', {
+      method: 'POST',
+      body: expect.arrayContaining([expect.objectContaining({ nasabah_name: 'Nasabah Baru', marketing_member: 'Yusie' })]),
+    })
+  })
+
+  it('submit tanpa nama nasabah menampilkan peringatan dan tidak memanggil API', async () => {
+    const w = await mountView()
+    await w.find('form').trigger('submit.prevent')
+    await flushPromises()
+    expect(w.text()).toContain('wajib diisi')
+    const posts = apiMock.mock.calls.filter((c) => c[0] === '/api/appointments' && c[1]?.method === 'POST')
+    expect(posts.length).toBe(0)
+  })
+})

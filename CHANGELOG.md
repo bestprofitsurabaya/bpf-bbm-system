@@ -6,6 +6,27 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.2.2] - 2026-08-11
+
+### 🚀 Antrean Kerja di SPA Dashboard (`/app/dashboard`)
+
+- **Tab antrean real-time** — GA/Admin melihat **Antrean GA** (pending/modified), Finance/Admin melihat **Finance** (verified_ga) & **Konfirmasi Driver** (os_finance). Setiap tab menampilkan ID, driver, nopol, BBM, nominal, liter, ODO, flag anomali ML & waktu.
+- **Aksi langsung dari SPA**:
+  - GA/Admin → **✅ Approve** (pending → verified_ga) & **❌ Tolak** (wajib alasan, → rejected)
+  - Finance/Admin → **💰 Cairkan** (verified_ga → os_finance) & **📦 Arsipkan** (os_finance → archived)
+  - Notifikasi driver tetap dikirim (approved / paid / archived / rejected) + audit trail.
+  - **Guard anomali ML**: transaksi ber-flag `ml_anomaly_flag` **tidak bisa di-approve cepat dari SPA** (tombol diganti "⚠️ Wajib verifikasi klasik" + backend menolak 409) — wajib verifikasi penuh dengan foto bukti di dashboard klasik (ISO 9001 · kontrol proses).
+- **Backend JSON baru** di `routes_spa.py`: `GET /api/queue?tab=`, `POST /api/queue/approve-ga/<id>`, `POST /api/queue/payout/<id>`, `POST /api/queue/archive/<id>`, `POST /api/queue/reject/<id>` — semua `role_required` + CSRF, dan **nama pelaku diambil dari session** (anti audit-trail forgery, tidak seperti endpoint klasik yang menerima `?admin=` dari query).
+- Verifikasi mendalam (foto bukti, cross-check, finance review, edit ODO) tetap di antarmuka klasik — tautan "Verifikasi Penuh (Klasik)" disediakan.
+
+### 🧪 Cakupan Pengujian (ISO 9001)
+
+- **Vitest naik ke 41 test** — `AdminDashboard.test.js` (7: kartu statistik per role, tab antrean, approve, reject dengan prompt, payout, **archive**, **guard anomali ML**) & `MarketingDashboard.test.js` (3: form+stat+list, submit valid → POST array, validasi tanpa nama).
+- `pytest tests/` → **56 PASS** ✅
+- Smoke: `/api/queue` (admin) → JSON ✅, tanpa login → 401 ✅, POST tanpa CSRF → 400 ✅, approve tx tak ada → 409 ✅.
+
+---
+
 ## [2.2.1] - 2026-08-11
 
 ### 🧪 Cakupan Pengujian Diperluas (ISO 9001 · proses mutu)

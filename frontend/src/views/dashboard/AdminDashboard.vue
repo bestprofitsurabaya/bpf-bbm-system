@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '../../api'
 import { useAuthStore } from '../../stores/auth'
 import StatCard from '../../components/StatCard.vue'
@@ -15,7 +15,13 @@ onMounted(async () => {
   try { s.value = await api('/api/stats') }
   catch (e) { err.value = e.message }
   finally { loading.value = false }
+  loadQueue()
 })
+
+async function refreshStats() {
+  // Refresh diam-diam (tanpa mengubah state loading) agar dashboard tidak berkedip.
+  try { s.value = await api('/api/stats') } catch { /* abaikan */ }
+}
 
 const cards = computed(() => {
   if (!s.value) return []
@@ -42,6 +48,66 @@ const quick = computed(() => {
   ]
   return m.filter((x) => x.roles.includes(auth.role))
 })
+
+// ============================================================
+// Antrean Kerja (v2.2.2) — approve GA / payout / archive / reject
+// ============================================================
+const QUEUE_TABS = [
+  { key: 'ga', label: '🕐 Antrean GA', roles: ['ga', 'admin'] },
+  { key: 'finance', label: '💰 Finance', roles: ['finance', 'admin'] },
+  { key: 'driver_confirm', label: '🤝 Konfirmasi Driver', roles: ['finance', 'admin'] },
+]
+const queueTab = ref('ga')
+const queue = ref([])
+const queueLoading = ref(false)
+const queueMsg = ref('')
+const qBusy = ref(false)
+
+const queueTabs = computed(() => QUEUE_TABS.filter((t) => t.roles.includes(auth.role)))
+const canApprove = computed(() => ['ga', 'admin'].includes(auth.role))
+const canFinance = computed(() => ['finance', 'admin'].includes(auth.role))
+
+async function loadQueue() {
+  queueLoading.value = true; queueMsg.value = ''
+  try { queue.value = (await api('/api/queue', { params: { tab: queueTab.value } })) || [] }
+  catch (e) { queueMsg.value = '❌ ' + e.message }
+  finally { queueLoading.value = false }
+}
+
+async function queueAction(path, label) {
+  if (!confirm(`Yakin ${label}?`)) return
+  qBusy.value = true; queueMsg.value = ''
+  try {
+    const r = await api(path, { method: 'POST' })
+    queueMsg.value = '✅ ' + (r.msg || r.message || label)
+    loadQueue(); refreshStats()
+  } catch (e) { queueMsg.value = '❌ ' + e.message }
+  finally { qBusy.value = false }
+}
+
+function doApprove(tx) {
+  if (tx.ml_anomaly_flag) {
+    queueMsg.value = '⚠️ Transaksi ber-flag anomali ML — wajib verifikasi penuh (foto bukti) di Dashboard Klasik.'
+    return
+  }
+  return queueAction(`/api/queue/approve-ga/${tx.id}`, 'menyetujui klaim ini')
+}
+const doPayout = (tx) => queueAction(`/api/queue/payout/${tx.id}`, 'mencairkan dana klaim ini')
+const doArchive = (tx) => queueAction(`/api/queue/archive/${tx.id}`, 'mengarsipkan klaim ini')
+
+async function doReject(tx) {
+  const reason = prompt(`Alasan menolak ${tx.display_id} (${tx.driver_name}):`, '')
+  if (reason === null) return
+  qBusy.value = true; queueMsg.value = ''
+  try {
+    const r = await api(`/api/queue/reject/${tx.id}`, { method: 'POST', body: { reason } })
+    queueMsg.value = '✅ ' + (r.msg || 'Klaim ditolak')
+    loadQueue(); refreshStats()
+  } catch (e) { queueMsg.value = '❌ ' + e.message }
+  finally { qBusy.value = false }
+}
+
+watch(queueTab, loadQueue)
 </script>
 
 <template>
@@ -64,6 +130,55 @@ const quick = computed(() => {
         <StatCard v-for="c in cards" :key="c.label" :icon="c.icon" :label="c.label" :value="c.value" :color="c.color" />
       </div>
 
+      <!-- Antrean Kerja -->
+      <div class="card card-pad" style="margin-top:18px;">
+        <div class="row" style="flex-wrap:wrap;gap:8px;">
+          <h3 style="margin:0;">🕐 Antrean Kerja</h3>
+          <button v-for="t in queueTabs" :key="t.key" class="btn btn-sm" :class="queueTab === t.key ? 'btn-primary' : ''" @click="queueTab = t.key">{{ t.label }}</button>
+          <span v-if="queueMsg" class="alert" :class="queueMsg.startsWith('✅') ? 'alert-success' : 'alert-error'" style="margin:0;">{{ queueMsg }}</span>
+          <div class="spacer"></div>
+          <a class="btn btn-sm" href="/admin" target="_blank">📋 Verifikasi Penuh (Klasik)</a>
+        </div>
+        <div v-if="queueLoading" class="empty" style="padding:20px;">⏳ Memuat antrean…</div>
+        <div class="table-wrap" v-else>
+          <table class="tbl">
+            <thead><tr><th>ID</th><th>Driver</th><th>Nopol</th><th>BBM</th><th>Nominal</th><th>Liter</th><th>ODO</th><th>Anomali</th><th>Waktu</th><th></th></tr></thead>
+            <tbody>
+              <tr v-for="t in queue" :key="t.id">
+                <td><b>{{ t.display_id }}</b></td>
+                <td>{{ t.driver_name }}</td>
+                <td>{{ t.nopol }}</td>
+                <td>{{ t.bbm_type }}</td>
+                <td>{{ fmt(t.nominal) }}</td>
+                <td>{{ Number(t.liter || 0).toFixed(2) }}</td>
+                <td>{{ t.odo_km ?? '—' }}</td>
+                <td><span v-if="t.ml_anomaly_flag" class="badge badge-red">⚠️ Anomali</span><span v-else class="muted">—</span></td>
+                <td class="muted">{{ t.created_at }}</td>
+                <td>
+                  <template v-if="queueTab === 'ga' && canApprove">
+                    <template v-if="t.ml_anomaly_flag">
+                      <span class="muted" style="font-size:11px;">⚠️ Wajib verifikasi klasik</span>
+                    </template>
+                    <template v-else>
+                      <button class="btn btn-sm btn-primary" :disabled="qBusy" @click="doApprove(t)">✅ Approve</button>
+                      <button class="btn btn-sm btn-danger" :disabled="qBusy" style="margin-left:6px;" @click="doReject(t)">❌ Tolak</button>
+                    </template>
+                  </template>
+                  <template v-else-if="queueTab === 'finance' && canFinance">
+                    <button class="btn btn-sm btn-primary" :disabled="qBusy" @click="doPayout(t)">💰 Cairkan</button>
+                  </template>
+                  <template v-else-if="queueTab === 'driver_confirm' && canFinance">
+                    <button class="btn btn-sm btn-primary" :disabled="qBusy" @click="doArchive(t)">📦 Arsipkan</button>
+                  </template>
+                  <span v-else class="muted">—</span>
+                </td>
+              </tr>
+              <tr v-if="!queue.length"><td colspan="10" class="empty">Antrean kosong. 🎉</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="card card-pad" style="margin-top:18px;">
         <h3>⚡ Aksi Cepat</h3>
         <div class="stat-grid">
@@ -77,9 +192,9 @@ const quick = computed(() => {
       </div>
 
       <div class="card card-pad" style="margin-top:18px;">
-        <h3>🔧 Panel Lanjutan (transisi)</h3>
+        <h3>🔎 Verifikasi Mendalam (transisi)</h3>
         <p class="muted" style="font-size:12px;margin-bottom:10px;">
-          Alur kerja persetujuan klaim (antrean GA / Finance / TTD) masih berjalan di antarmuka klasik — dibuka di tab baru.
+          Untuk verifikasi lengkap (foto bukti, cross-check, finance review, edit ODO) antrean tetap tersedia di antarmuka klasik — dibuka di tab baru.
         </p>
         <div class="row">
           <a class="btn" href="/admin" target="_blank">📋 Dashboard Klasik</a>

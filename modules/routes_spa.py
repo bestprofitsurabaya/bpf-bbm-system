@@ -174,6 +174,162 @@ def register_spa_routes(app):
             return jsonify({'error': str(e)}), 500
 
     # ================================================================
+    # QUEUE KERJA (JSON) — antrean approve GA / payout / archive / reject
+    # Nama pelaku diambil dari session (anti audit-trail forgery),
+    # bukan dari body/query seperti endpoint klasik.
+    # ================================================================
+    def _queue_actor():
+        return (session.get('full_name') or session.get('user_name') or 'Admin').strip()
+
+    @app.route('/api/queue')
+    @role_required(['ga', 'finance', 'admin'])
+    def api_queue():
+        try:
+            tab = request.args.get('tab', 'ga')
+            if tab not in ('ga', 'finance', 'driver_confirm'):
+                tab = 'ga'
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'error': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cols = "id, display_id, driver_name, nopol, vehicle_type, bbm_type, nominal, liter, odo_km, ml_anomaly_flag, created_at"
+            if tab == 'finance':
+                cursor.execute(f"SELECT {cols} FROM transactions WHERE status='verified_ga' AND (is_dummy=0 OR is_dummy IS NULL) ORDER BY created_at ASC")
+            elif tab == 'driver_confirm':
+                cursor.execute(f"SELECT {cols} FROM transactions WHERE status='os_finance' AND (is_dummy=0 OR is_dummy IS NULL) ORDER BY created_at ASC")
+            else:
+                cursor.execute(f"SELECT {cols} FROM transactions WHERE status IN ('pending','modified') AND (is_dummy=0 OR is_dummy IS NULL) ORDER BY created_at ASC")
+            rows = cursor.fetchall()
+            cursor.close(); conn.close()
+            return jsonify(rows)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/queue/approve-ga/<int:tx_id>', methods=['POST'])
+    @role_required(['ga', 'admin'])
+    def api_queue_approve_ga(tx_id):
+        actor = _queue_actor()
+        try:
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'status': 'error', 'msg': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            # Transaksi ber-flag anomali ML wajib verifikasi penuh (foto bukti)
+            # di antarmuka klasik — tidak boleh di-approve cepat dari SPA.
+            cursor.execute("SELECT ml_anomaly_flag FROM transactions WHERE id=%s", (tx_id,))
+            prow = cursor.fetchone()
+            if prow and prow.get('ml_anomaly_flag'):
+                cursor.close(); conn.close()
+                return jsonify({'status': 'error', 'msg': f'Transaksi #{tx_id} ber-flag anomali ML — wajib verifikasi penuh (foto bukti) di Dashboard Klasik.'}), 409
+            cursor.execute("UPDATE transactions SET status='verified_ga', ga_approved_by=%s, ga_approved_at=NOW(), approved_by_user=%s WHERE id=%s AND status IN ('pending','modified')", (actor, actor, tx_id))
+            affected = cursor.rowcount
+            conn.commit()
+            if affected > 0:
+                try:
+                    cursor.execute("SELECT driver_name, display_id FROM transactions WHERE id=%s", (tx_id,))
+                    row = cursor.fetchone()
+                    if row:
+                        from modules.notifications import push_driver_notification
+                        push_driver_notification(row[0], 'claim', 'approved', f'Klaim {row[1]} Anda disetujui GA', row[1])
+                except Exception as ne:
+                    print(f"[notify] approve error: {ne}")
+            cursor.close(); conn.close()
+            if affected == 0:
+                return jsonify({'status': 'error', 'msg': f'Transaksi #{tx_id} tidak ditemukan atau sudah diproses.'}), 409
+            log_activity_async(tx_id, 'ga_approve', 'ga', actor, ip=_client_ip())
+            return jsonify({'status': 'success', 'msg': f'Klaim #{tx_id} disetujui GA!'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    @app.route('/api/queue/payout/<int:tx_id>', methods=['POST'])
+    @role_required(['finance', 'admin'])
+    def api_queue_payout(tx_id):
+        actor = _queue_actor()
+        try:
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'status': 'error', 'msg': 'DB error'}), 500
+            cursor = conn.cursor()
+            cursor.execute("UPDATE transactions SET status='os_finance', finance_payout_by=%s, finance_payout_at=NOW(), payout_by_user=%s WHERE id=%s AND status='verified_ga'", (actor, actor, tx_id))
+            affected = cursor.rowcount
+            conn.commit()
+            if affected > 0:
+                try:
+                    cursor.execute("SELECT driver_name, display_id FROM transactions WHERE id=%s", (tx_id,))
+                    row = cursor.fetchone()
+                    if row:
+                        from modules.notifications import push_driver_notification
+                        push_driver_notification(row[0], 'claim', 'paid', f'Dana klaim {row[1]} sudah dicairkan Finance', row[1])
+                except Exception as ne:
+                    print(f"[notify] payout error: {ne}")
+            cursor.close(); conn.close()
+            if affected == 0:
+                return jsonify({'status': 'error', 'msg': f'Transaksi #{tx_id} tidak ditemukan atau sudah diproses.'}), 409
+            log_activity_async(tx_id, 'finance_payout', 'finance', actor, ip=_client_ip())
+            return jsonify({'status': 'success', 'msg': f'Dana #{tx_id} dicairkan!'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    @app.route('/api/queue/archive/<int:tx_id>', methods=['POST'])
+    @role_required(['finance', 'admin'])
+    def api_queue_archive(tx_id):
+        actor = _queue_actor()
+        try:
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'status': 'error', 'msg': 'DB error'}), 500
+            cursor = conn.cursor()
+            cursor.execute("UPDATE transactions SET status='archived', archived_by=%s, archived_at=NOW(), archived_by_user=%s WHERE id=%s AND status='os_finance'", (actor, actor, tx_id))
+            affected = cursor.rowcount
+            conn.commit()
+            if affected > 0:
+                try:
+                    cursor.execute("SELECT driver_name, display_id FROM transactions WHERE id=%s", (tx_id,))
+                    row = cursor.fetchone()
+                    if row:
+                        from modules.notifications import push_driver_notification
+                        push_driver_notification(row[0], 'claim', 'archived', f'Klaim {row[1]} selesai & diarsipkan', row[1])
+                except Exception as ne:
+                    print(f"[notify] archive error: {ne}")
+            cursor.close(); conn.close()
+            if affected == 0:
+                return jsonify({'status': 'error', 'msg': f'Transaksi #{tx_id} tidak ditemukan atau sudah diproses.'}), 409
+            log_activity_async(tx_id, 'archive', 'finance', actor, ip=_client_ip())
+            return jsonify({'status': 'success', 'msg': f'Transaksi #{tx_id} diarsipkan!'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    @app.route('/api/queue/reject/<int:tx_id>', methods=['POST'])
+    @role_required(['ga', 'admin'])
+    def api_queue_reject(tx_id):
+        actor = _queue_actor()
+        data = request.get_json(silent=True) or {}
+        reason = str(data.get('reason') or 'Tanpa alasan').strip()[:500]
+        try:
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'status': 'error', 'msg': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT driver_name, display_id FROM transactions WHERE id=%s", (tx_id,))
+            tx = cursor.fetchone()
+            cursor.execute("UPDATE transactions SET status='rejected', rejection_reason=%s WHERE id=%s AND status <> 'rejected'", (reason, tx_id))
+            affected = cursor.rowcount
+            conn.commit()
+            if affected > 0 and tx:
+                try:
+                    from modules.notifications import push_driver_notification
+                    push_driver_notification(tx['driver_name'], 'claim', 'rejected', f'Klaim {tx["display_id"]} ditolak: {reason}', tx['display_id'])
+                except Exception as ne:
+                    print(f"[notify] reject error: {ne}")
+            cursor.close(); conn.close()
+            if affected == 0:
+                return jsonify({'status': 'error', 'msg': f'Transaksi #{tx_id} tidak ditemukan atau sudah ditolak.'}), 409
+            log_activity_async(tx_id, 'reject', 'ga', actor, new_data={'reason': reason}, ip=_client_ip())
+            return jsonify({'status': 'success', 'msg': f'Klaim #{tx_id} ditolak'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    # ================================================================
     # SPA — serve bundle + fallback client routing
     # ================================================================
     @app.route('/app/')

@@ -1,4 +1,4 @@
-# ⛽ BPF Fleet & BBM System v2.2
+# ⛽ BPF Fleet & BBM System v2.2.2
 
 **Sistem Manajemen Armada, Klaim BBM, Kasbon, Log Perjalanan & Appointment**  
 **PT. Bestprofit Futures - Surabaya**
@@ -8,6 +8,14 @@
 Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pengarsipan klaim BBM, **pengajuan kasbon dengan kode unik**, dan log perjalanan harian (logsheet) dengan workflow GA → Finance → Archive. Dilengkapi **sistem appointment canggih** (Marketing → Chief Driver → Log Perjalanan), deteksi anomali Machine Learning, GPS tracking, **watermark foto otomatis**, PIN security, **session-based login & role-based access**, **CSRF protection**, **notifikasi real-time**, import Excel, audit trail, Chart.js visualization, **PWA offline-first**, dan **WebSocket real-time**.
 
 ---
+
+## 🆕 Fitur Terbaru v2.2.2 — Antrean Kerja di SPA
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **🕐 Antrean Kerja** | Tab GA/Finance/Konfirmasi Driver di `/app/dashboard` — approve GA, tolak dengan alasan, cairkan dana, arsipkan klaim langsung dari SPA (JSON API + CSRF + pelaku dari session) |
+| **🧪 39 test Vitest** | +8 test dashboard (AdminDashboard antrean & peran, MarketingDashboard form) → total 39 |
+| **✅ CI hijau** | GitHub Actions lulus otomatis di setiap push |
 
 ## 🆕 Fitur Terbaru v2.2 — SPA Back-Office Lengkap
 
@@ -27,7 +35,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 | **💵 Kasbon di SPA** | Workflow kasbon lengkap di `/app/cash` (kode unik harian, approve GA/Finance, handover, LPJ, batal/edit/hapus) — menu per role `ga/finance/admin` |
 | **🔔 Notifikasi real-time SPA** | Bell + toast: GA/Finance/Admin menerima klaim & trip baru, Marketing/Chief Driver menerima pembaruan appointment (Socket.IO) |
 | **📱 PWA untuk SPA** | `/app/` installable (manifest + service worker scope `/app/`, offline fallback) |
-| **🤖 CI/CD** | GitHub Actions: build SPA + `npm test` (Vitest, 29 test) + `pytest tests/` (55 test) otomatis tiap push/PR |
+| **🤖 CI/CD** | GitHub Actions: build SPA + `npm test` (Vitest, 39 test) + `pytest tests/` (56 test) otomatis tiap push/PR |
 | **🧪 Unit test frontend** | Vitest: guard router per role + auth store (login/bootstrap/logout + CSRF) |
 
 ## 🆕 Fitur v2.0 — SPA Vue 3 & Dashboard per Role
