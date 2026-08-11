@@ -24,10 +24,13 @@ def init_socketio(sio):
                 sid = request.sid
                 room = 'driver_' + name
                 prev = _sid_room.get(sid)
+                # Catatan: room management ada di python-socketio Server (sio.server),
+                # bukan di wrapper flask-socketio (sio.enter_room TIDAK ADA).
                 if prev and prev != room:
-                    sio.leave_room(sid, prev)
-                sio.enter_room(sid, room)
+                    sio.server.leave_room(sid, prev)
+                sio.server.enter_room(sid, room)
                 _sid_room[sid] = room
+                print(f"[realtime] join_driver room={room} sid={sid}")
             except Exception as e:
                 print(f"[realtime] join_driver error: {e}")
 
@@ -41,8 +44,8 @@ def init_socketio(sio):
                 sid = request.sid
                 prev = _sid_room.get(sid)
                 if prev and prev != room:
-                    sio.leave_room(sid, prev)
-                sio.enter_room(sid, room)
+                    sio.server.leave_room(sid, prev)
+                sio.server.enter_room(sid, room)
                 _sid_room[sid] = room
             except Exception as e:
                 print(f"[realtime] join_room error: {e}")
@@ -57,14 +60,15 @@ def init_socketio(sio):
 def emit_event(event, data, room=None):
     """Best-effort socket emit; never raises."""
     if socketio is None:
+        print(f"[realtime] emit skipped (socketio not initialized): {event}")
         return
     try:
         if room:
             socketio.emit(event, data, to=room)
         else:
             socketio.emit(event, data)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[realtime] emit error ({event}): {e}")
 
 
 def emit_driver(driver_name, data):

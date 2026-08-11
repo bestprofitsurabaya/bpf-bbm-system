@@ -194,25 +194,23 @@ docker compose up -d
 
 Access
 
-### 🌐 Akses Online (Cloudflare Tunnel)
+### 🌐 Akses Online (Domain DuckDNS)
 
-Aplikasi dapat diakses publik tanpa port forwarding via Cloudflare Tunnel:
+Aplikasi diakses publik melalui **domain permanen** `nasbpfsby.duckdns.org` (HTTPS via nginx reverse proxy):
 
 | Halaman | URL Online |
 |---------|------------|
-| **Login (semua role)** | `https://census-biological-ran-stories.trycloudflare.com/login` |
-| **📣 Marketing Hub** | `https://census-biological-ran-stories.trycloudflare.com/marketing` |
-| **🚛 Chief Driver** | `https://census-biological-ran-stories.trycloudflare.com/chief-driver` |
-| **📱 Driver PWA** | `https://census-biological-ran-stories.trycloudflare.com/driver` |
-| Dashboard Admin | `https://census-biological-ran-stories.trycloudflare.com/admin` |
-| GA Assignments | `https://census-biological-ran-stories.trycloudflare.com/ga/assignments` |
-| Trips | `https://census-biological-ran-stories.trycloudflare.com/admin/trips` |
-| Users | `https://census-biological-ran-stories.trycloudflare.com/admin/users` |
+| **Login (semua role)** | `https://nasbpfsby.duckdns.org:5000/login` |
+| **📣 Marketing Hub** | `https://nasbpfsby.duckdns.org:5000/marketing` |
+| **🚛 Chief Driver** | `https://nasbpfsby.duckdns.org:5000/chief-driver` |
+| **📱 Driver PWA** | `https://nasbpfsby.duckdns.org:5000/driver` |
+| Dashboard Admin | `https://nasbpfsby.duckdns.org:5000/admin` |
+| GA Assignments | `https://nasbpfsby.duckdns.org:5000/ga/assignments` |
+| Trips | `https://nasbpfsby.duckdns.org:5000/admin/trips` |
+| Users | `https://nasbpfsby.duckdns.org:5000/admin/users` |
 
-> ⚠️ **Catatan:** Ini *quick tunnel* — URL acak dan dapat **berubah saat container `cloudflared` di-restart**.
-> Gunakan `bash scripts/tunnel-check.sh` untuk melihat & memeriksa URL yang sedang aktif,
-> atau `bash scripts/tunnel-url.sh` untuk menampilkan URL saja.
-> Untuk URL permanen: named tunnel + domain sendiri (lihat `DEPLOYMENT.md` §11).
+> ✅ **URL permanen (DuckDNS)** — tidak berubah saat server di-restart. WebSocket/notifikasi real-time aktif (nginx meneruskan header Upgrade).
+> ⚠️ **Akses cadangan opsional:** Cloudflare Tunnel *quick tunnel* (URL acak `*.trycloudflare.com`) bisa diaktifkan kembali di `docker-compose.yml` — lihat `DEPLOYMENT.md` §11.
 
 ### 🖥️ Akses Lokal (Development)
 
@@ -291,7 +289,7 @@ bpf-bbm-system/
 │   ├── tunnel-url.sh               # Tampilkan URL public aktif
 │   └── release.sh                  # Buat GitHub Release dari CHANGELOG
 ├── fonts/                          # DejaVu Sans (Unicode PDF)
-├── docker-compose.yml              # Termasuk service cloudflared (tunnel)
+├── docker-compose.yml              # Service cloudflared (opsional — nonaktif, URL via DuckDNS)
 ├── Dockerfile
 ├── README.md
 ├── DEPLOYMENT.md

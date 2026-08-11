@@ -545,10 +545,18 @@ def register_cash_routes(app):
                 cursor.close(); conn.close()
                 return jsonify({'status': 'error', 'msg': 'Pengajuan tidak ditemukan atau sudah selesai'}), 404
             old_status = req['status']
-            # Jika FUNDS_WITH_DRIVER: reset juga lpj_transaction_id
-            if old_status == 'FUNDS_WITH_DRIVER':
-                cursor.execute("UPDATE fuel_cash_requests SET status = 'DRAFT', lpj_transaction_id = NULL, lpj_submitted_at = NULL, ga_approved_by = NULL, ga_approved_at = NULL, finance_approved_by = NULL, finance_approved_at = NULL, handover_by = NULL, handover_at = NULL, notes = CONCAT(COALESCE(notes,''), '\n[CANCEL] ', %s) WHERE id = %s", (reason, cash_id))
-                cursor.execute("UPDATE fuel_cash_requests SET status = 'DRAFT', ga_approved_by = NULL, ga_approved_at = NULL, finance_approved_by = NULL, finance_approved_at = NULL, notes = CONCAT(COALESCE(notes,''), '\n[CANCEL] ', %s) WHERE id = %s", (reason, cash_id))
+            # Reset status ke DRAFT untuk SEMUA status yang bisa dibatalkan
+            # (sebelumnya hanya FUNDS_WITH_DRIVER yang di-update — bug pra-ada:
+            #  status GA_APPROVED/FINANCE_APPROVED/LPJ_SUBMITTED tidak pernah berubah).
+            cursor.execute(
+                "UPDATE fuel_cash_requests SET status = 'DRAFT', "
+                "lpj_transaction_id = NULL, lpj_submitted_at = NULL, "
+                "ga_approved_by = NULL, ga_approved_at = NULL, "
+                "finance_approved_by = NULL, finance_approved_at = NULL, "
+                "handover_by = NULL, handover_at = NULL, "
+                "notes = CONCAT(COALESCE(notes,''), '\n[CANCEL] ', %s) WHERE id = %s",
+                (reason, cash_id)
+            )
             conn.commit()
             cursor.close(); conn.close()
             log_activity_async(0, 'cash_cancel', 'admin', 'Admin', new_data={'cash_id': cash_id, 'old_status': old_status, 'reason': reason})

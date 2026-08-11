@@ -22,6 +22,7 @@
 <div id="statusBar" class="status-bar online">
     <span><span class="dot"></span><span id="statusText">🟢 Online</span></span>
     <span style="display:flex;align-items:center;gap:12px;">
+        <span class="rt-status" id="rtStatus" title="Notifikasi real-time: menghubungkan…">🔴</span>
         <span class="notif-bell" id="notifBell" onclick="toggleNotifPanel()" title="Notifikasi">🔔<span id="notifBadge" class="notif-badge" style="display:none;">0</span></span>
         <span id="queueBadge" class="queue-count">0</span>
     </span>
@@ -276,8 +277,8 @@
 
 
 <script src="/static/js/db.js?v=20260724"></script>
-<script src="/static/js/sync.js?v=20260724"></script>
+<script src="/static/js/sync.js?v=20260811a"></script>
 <script src="/static/js/drivers.js?v=20260724"></script>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-<script src="/static/js/notifications.js?v=20260806"></script>
+<script src="/static/js/notifications.js?v=20260811a"></script>
 <script src="/static/js/driver.js?v=20260806b"></script>

@@ -1,4 +1,4 @@
-# 📖 Panduan Pengguna BPF Fleet & BBM System v1.2.1
+# 📖 Panduan Pengguna BPF Fleet & BBM System v1.2.3
 
 **PT. Bestprofit Futures — Surabaya**
 
@@ -35,20 +35,20 @@ Selamat datang di sistem manajemen armada dan BBM kita. Panduan ini akan meneman
 
 | Pengguna | URL | Perangkat yang Disarankan |
 |----------|-----|---------------------------|
-| Driver | `https://census-biological-ran-stories.trycloudflare.com/driver` | HP Android / iPhone |
-| **Login (semua role)** | **`https://census-biological-ran-stories.trycloudflare.com/login`** | Komputer / Laptop |
-| **📣 Marketing (Input Appointment)** | `https://census-biological-ran-stories.trycloudflare.com/marketing` | Komputer / Laptop |
-| **🚛 Chief Driver (Pembagian Driver)** | `https://census-biological-ran-stories.trycloudflare.com/chief-driver` | Komputer / Laptop |
-| GA, Finance, Admin | `https://census-biological-ran-stories.trycloudflare.com/admin` | Komputer / Laptop |
-| GA (Penugasan Kendaraan) | `https://census-biological-ran-stories.trycloudflare.com/ga/assignments` | Komputer / Laptop |
-| GA (Review Trip) | `https://census-biological-ran-stories.trycloudflare.com/admin/trips` | Komputer / Laptop |
-| Analytics | `https://census-biological-ran-stories.trycloudflare.com/admin/analytics` | Komputer / Laptop |
-| Users (Admin saja) | `https://census-biological-ran-stories.trycloudflare.com/admin/users` | Komputer / Laptop |
-| Settings | `https://census-biological-ran-stories.trycloudflare.com/admin/settings` | Komputer / Laptop |
+| Driver | `https://nasbpfsby.duckdns.org:5000/driver` | HP Android / iPhone |
+| **Login (semua role)** | **`https://nasbpfsby.duckdns.org:5000/login`** | Komputer / Laptop |
+| **📣 Marketing (Input Appointment)** | `https://nasbpfsby.duckdns.org:5000/marketing` | Komputer / Laptop |
+| **🚛 Chief Driver (Pembagian Driver)** | `https://nasbpfsby.duckdns.org:5000/chief-driver` | Komputer / Laptop |
+| GA, Finance, Admin | `https://nasbpfsby.duckdns.org:5000/admin` | Komputer / Laptop |
+| GA (Penugasan Kendaraan) | `https://nasbpfsby.duckdns.org:5000/ga/assignments` | Komputer / Laptop |
+| GA (Review Trip) | `https://nasbpfsby.duckdns.org:5000/admin/trips` | Komputer / Laptop |
+| Analytics | `https://nasbpfsby.duckdns.org:5000/admin/analytics` | Komputer / Laptop |
+| Users (Admin saja) | `https://nasbpfsby.duckdns.org:5000/admin/users` | Komputer / Laptop |
+| Settings | `https://nasbpfsby.duckdns.org:5000/admin/settings` | Komputer / Laptop |
 
-> ⚠️ **URL online (Cloudflare Tunnel):** URL di atas adalah *quick tunnel* dan dapat **berubah setiap kali server di-restart**. Untuk melihat URL yang sedang aktif, jalankan `bash scripts/tunnel-url.sh` di server.
+> ✅ **URL online (DuckDNS):** domain permanen `nasbpfsby.duckdns.org` — tidak berubah saat server di-restart.
 > 🔐 **Baru di v1.1:** Semua halaman admin kini **wajib login**. Jika belum login, kamu akan diarahkan ke halaman Login. Driver PWA **tidak perlu login**.
-> 🌐 **Akses lokal (dev):** ganti `https://census-biological-ran-stories.trycloudflare.com` dengan `http://localhost:5001`.
+> 🌐 **Akses lokal (dev):** ganti `https://nasbpfsby.duckdns.org:5000` dengan `http://localhost:5001`.
 
 ### 1.2 Login & Logout
 

@@ -43,7 +43,10 @@
             'body.dark .notif-item-msg{color:#e2e8f0;}' +
             'body.dark .notif-item.unread{background:#1e3a5f;border-color:#2563eb;}' +
             'body.dark .notif-toast{background:#334155;}' +
-            'body.dark .notif-close{color:#94a3b8;}';
+            'body.dark .notif-close{color:#94a3b8;}' +
+            '.rt-status{font-size:11px;line-height:1;cursor:default;margin-right:2px;}' +
+            '.rt-status.off{animation:rtblink 1.3s infinite;}' +
+            '@keyframes rtblink{0%,100%{opacity:1}50%{opacity:.3}}';
         var style = document.createElement('style');
         style.id = 'notifStyles';
         style.textContent = css;
@@ -82,18 +85,44 @@
     /* -------------------------------------------------------- */
     /* SOCKETIO                                                 */
     /* -------------------------------------------------------- */
+    function setRtStatus(state) {
+        var el = document.getElementById('rtStatus');
+        if (!el) return;
+        if (state === 'on') {
+            el.textContent = '⚡';
+            el.className = 'rt-status on';
+            el.title = 'Notifikasi real-time: terhubung';
+        } else {
+            el.textContent = '🔴';
+            el.className = 'rt-status off';
+            el.title = 'Notifikasi real-time: terputus — mencoba menyambung otomatis…';
+        }
+    }
+
     function connectSocket() {
-        if (typeof io === 'undefined') return;
+        if (typeof io === 'undefined') { setRtStatus('off'); return; }
         try {
-            socket = io();
-            socket.on('connect', function() { joinRoom(); });
+            socket = io({
+                reconnection: true,
+                reconnectionAttempts: Infinity,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 8000,
+                randomizationFactor: 0.3,
+                timeout: 10000
+            });
+            socket.on('connect', function() {
+                setRtStatus('on');
+                joinRoom();
+            });
+            socket.on('disconnect', function() { setRtStatus('off'); });
+            socket.on('connect_error', function() { setRtStatus('off'); });
             socket.on('driver_notification', function(d) {
                 if (!d || !d.driver_name) return;
                 if (activeDriver && d.driver_name !== activeDriver) return;
                 onNewNotification(d);
                 if (window.__onDriverNotif) window.__onDriverNotif(d);
             });
-        } catch (e) { socket = null; }
+        } catch (e) { socket = null; setRtStatus('off'); }
     }
 
     function joinRoom() {

@@ -47,27 +47,29 @@ services:
       - nextcloud_net      # Terhubung ke nextcloud_nginx
 
   # ------------------------------------------------------------
-  # CLOUDFLARE TUNNEL (online tanpa port forwarding)
+  # CLOUDFLARE TUNNEL (AKSES CADANGAN — NONAKTIF SEJAK v1.2.3)
   # ------------------------------------------------------------
-  # MODE SAAT INI: Quick Tunnel (trycloudflare.com) — tanpa token,
-  # URL acak https://xxx.trycloudflare.com, berubah tiap restart.
-  # Cocok untuk uji coba.
+  # Produksi memakai DuckDNS + nginx (https://nasbpfsby.duckdns.org:5000),
+  # jadi service ini sengaja di-comment agar tidak boros resource.
+  # Untuk mengaktifkan kembali: hapus tanda # di bawah, lalu jalankan
+  #   docker compose up -d cloudflared
   #
-  # UPGRADE KE URL PERMANEN (named tunnel + domain sendiri):
+  # MODE 1 — Quick Tunnel (trycloudflare.com): tanpa token, URL acak
+  #   https://xxx.trycloudflare.com, berubah tiap restart (cocok uji coba).
+  # MODE 2 — Named tunnel + domain sendiri (URL permanen):
   #   1. Dashboard Cloudflare → Zero Trust → Networks → Tunnels → Create
-  #   2. Salin token eyJ... , lalu ubah command di bawah menjadi:
+  #   2. Salin token eyJ... , lalu ubah command menjadi:
   #      command: tunnel --no-autoupdate run --token PASTE_TOKEN_DI_SINI
   #   3. Tambahkan route public (hostname → http://web:5000)
-  #   4. docker compose up -d cloudflared
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    container_name: bbm_cloudflared
-    command: tunnel --no-autoupdate --url http://web:5000
-    depends_on:
-      - web
-    restart: unless-stopped
-    networks:
-      - default
+  # cloudflared:
+  #   image: cloudflare/cloudflared:latest
+  #   container_name: bbm_cloudflared
+  #   command: tunnel --no-autoupdate --url http://web:5000
+  #   depends_on:
+  #     - web
+  #   restart: unless-stopped
+  #   networks:
+  #     - default
 
 volumes:
   bbm_db_data:

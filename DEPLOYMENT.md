@@ -231,35 +231,41 @@ curl -s -o /dev/null -w 'driver PWA: %{http_code}\n' http://localhost:5001/drive
 
 ## 8. Reverse Proxy & HTTPS
 
-Saat ini produksi diakses via `https://nasbpfsby.duckdns.org:5000` (port langsung). Untuk setup yang lebih rapi (port 443 standar), pasang nginx sebagai reverse proxy:
+Produksi saat ini diakses via **`https://nasbpfsby.duckdns.org:5000`** — **nginx reverse proxy** (container `nextcloud_nginx`, config bind-mount di `/home/it-ef/hybrid_nextcloud/nginx/conf.d/bbm_system.conf`) meneruskan ke `bbm_web:5000` di jaringan `nextcloud_net`.
 
 ```nginx
 server {
-    listen 443 ssl;
+    listen 5000 ssl;
     server_name nasbpfsby.duckdns.org;
 
-    # SSL cert (Let's Encrypt / internal CA)
-    ssl_certificate     /etc/ssl/certs/server.crt;
-    ssl_certificate_key /etc/ssl/private/server.key;
+    ssl_certificate /etc/letsencrypt/live/nasbpfsby.duckdns.org/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/nasbpfsby.duckdns.org/privkey.pem;
+
+    resolver 127.0.0.11 valid=30s;
 
     location / {
-        proxy_pass http://127.0.0.1:5001;      # bbm_web di host
-        proxy_http_version 1.1;
+        set $upstream_bbm http://bbm_web:5000;
+        proxy_pass $upstream_bbm;
 
-        # ★ PENTING untuk WebSocket / SocketIO (notifikasi real-time)
+        # ★ PENTING untuk WebSocket / Socket.IO (notifikasi real-time driver).
+        # Tanpa ini upgrade wss:// ditolak server (HTTP 400) & log bbm_web
+        # menampilkan "Invalid transport for session <sid>".
+        proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
+        proxy_buffering off;
+        proxy_read_timeout 86400;
+        proxy_send_timeout 86400;
+
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-
-        proxy_read_timeout 86400;               # koneksi WebSocket panjang
     }
 }
 ```
 
-> ⚠️ **Setelah memakai reverse proxy + HTTPS**, update URL di `USER_GUIDE.md` dan pastikan `manifest.json` menggunakan URL HTTPS (PWA menuntut origin secure).
+> ✅ **Verifikasi WebSocket:** `curl -sk -i --http1.1 -H 'Connection: Upgrade' -H 'Upgrade: websocket' -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: x' 'https://nasbpfsby.duckdns.org:5000/socket.io/?EIO=4&transport=websocket&sid=<sid>'` → harus `101 Switching Protocols`.
 
 ---
 
@@ -269,7 +275,7 @@ server {
 |---------|---------------------|--------|
 | `bbm_web` restart loop | `db` belum healthy / kredensial salah | Cek `docker compose ps`; tunggu healthcheck; pastikan `DB_PASSWORD` sesuai |
 | **500** pada semua halaman admin | `SECRET_KEY` berubah / session korup | Hapus cookie session di browser, login ulang |
-| Notifikasi driver tidak real-time | Proxy tidak forward header Upgrade | Aktifkan `proxy_set_header Upgrade/Connection` (lihat §8) |
+| Notifikasi driver tidak real-time / console `wss://... failed` / log `Invalid transport for session <sid>` | Proxy (nginx) tidak meneruskan header Upgrade WebSocket | Tambahkan `proxy_http_version 1.1; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection "upgrade";` + `proxy_buffering off` di `location /` (lihat §8) |
 | Login selalu gagal | User nonaktif / PIN salah | Cek via `docker exec bbm_mariadb mysql ... -e "SELECT username,is_active FROM users;"` |
 | Halaman lambat setelah deploy | Service worker versi lama | Hard refresh; versi asset baru otomatis terambil |
 | Port 5001 bentrok | Aplikasi lain memakai port | Ubah `ports: "XXXX:5000"` di docker-compose.yml |
@@ -316,11 +322,13 @@ server {
 
 ---
 
-## 11. Cloudflare Tunnel (Aplikasi Online Tanpa Port Forwarding) 🌐
+## 11. Cloudflare Tunnel (Akses Cadangan Opsional) 🌐
+
+> ⚠️ **Nonaktif sejak v1.2.3** — produksi memakai **DuckDNS + nginx** (`https://nasbpfsby.duckdns.org:5000`). Service `cloudflared` di `docker-compose.yml` sengaja di-comment agar tidak boros resource; aktifkan kembali hanya jika butuh akses cadangan tanpa port forwarding.
 
 Aplikasi bisa diakses publik tanpa membuka port di router/gateway, memakai **Cloudflare Tunnel** (`cloudflared`) yang berjalan sebagai container Docker.
 
-### 11.1 Quick Tunnel (Uji Coba — Sudah Terpasang)
+### 11.1 Quick Tunnel (Uji Coba — Nonaktif, Aktifkan Kembali Bila Perlu)
 
 Service `cloudflared` sudah ada di `docker-compose.yml`:
 
