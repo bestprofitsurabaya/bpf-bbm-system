@@ -1,4 +1,4 @@
-# 📖 Panduan Pengguna BPF Fleet & BBM System v2.1.0
+# 📖 Panduan Pengguna BPF Fleet & BBM System v2.2.0
 
 **PT. Bestprofit Futures — Surabaya**
 
@@ -51,6 +51,7 @@ Selamat datang di sistem manajemen armada dan BBM kita. Panduan ini akan meneman
 > 🔐 **Baru di v1.1:** Semua halaman admin kini **wajib login**. Jika belum login, kamu akan diarahkan ke halaman Login. Driver PWA **tidak perlu login**.
 > 🖥️ **Baru di v2.0:** Setelah login, Admin/GA/Finance diarahkan ke **SPA dashboard** (`/app/dashboard`), Marketing ke `/app/marketing`, Chief Driver ke `/app/chief-driver`. Menu disesuaikan otomatis dengan peran masing-masing (ISO/IEC 27001 — akses minimum).
 > 📱 **Baru di v2.1:** SPA bisa **diinstal sebagai aplikasi** (PWA) — buka `/app/` lalu pilih "Tambahkan ke Layar Utama". Notifikasi 🔔 real-time & halaman Kasbon kini ada di SPA.
+> ✨ **Baru di v2.2:** Halaman **Analytics** SPA diperbaiki (8+ kartu statistik + 3 grafik + Top 5 driver), **Rekap** kini bisa **Preview/Download PDF** langsung, **Audit Log** punya filter aksi & peran, **Settings** bisa tambah/hapus driver & tambah kendaraan, dan **Manajemen User** punya tombol nonaktifkan/aktifkan & hapus.
 > 🌐 **Akses lokal (dev):** ganti `https://nasbpfsby.duckdns.org:5000` dengan `http://localhost:5001`.
 
 ### 1.2 Login & Logout

@@ -464,7 +464,7 @@
             await fetch('/api/users/sync', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({username: username, full_name: username, role: 'ga', pin: '000000', is_active: !isActive})
+                body: JSON.stringify({username: username, full_name: username, role: 'ga', is_active: !isActive})
             });
             loadUsers();
         } catch(e) { alert('Gagal: ' + e.message); }
@@ -538,7 +538,7 @@
             await fetch('/api/users/sync', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({username: username, full_name: username, role: 'ga', pin: '000000', is_active: false})
+                body: JSON.stringify({username: username, full_name: username, role: 'ga', is_active: false})
             });
             loadUsers();
         } catch(e) { alert('Error: ' + e.message); }

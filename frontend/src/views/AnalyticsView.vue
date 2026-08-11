@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onBeforeUnmount, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import { api } from '../api'
 
@@ -8,64 +8,67 @@ Chart.register(...registerables)
 const today = new Date().toISOString().slice(0, 10)
 const start = ref(new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10))
 const end = ref(today)
-const rows = ref([])
-const summary = ref(null)
+const d = ref(null)
 const loading = ref(true)
 const err = ref('')
-const canvas = ref(null)
-let chart = null
+const cMonthly = ref(null)
+const cFreq = ref(null)
+const cEff = ref(null)
+let ch1 = null
+let ch2 = null
+let ch3 = null
 
 const fmt = (n) => 'Rp ' + Number(n || 0).toLocaleString('id-ID')
+const num = (n) => Number(n || 0).toLocaleString('id-ID')
+const axis = () => (document.documentElement.classList.contains('dark') ? '#94a3b8' : '#64748b')
 
-async function load() {
-  loading.value = true; err.value = ''
-  try {
-    const d = await api('/api/analytics/data', { params: { start_date: start.value, end_date: end.value } })
-    rows.value = d.data || d || []
-    summary.value = d.summary || null
-    drawChart(rows.value)
-  } catch (e) { err.value = e.message }
-  finally { loading.value = false }
-}
-
-function drawChart(data) {
-  if (!canvas.value) return
-  const byDay = {}
-  for (const r of data || []) {
-    const day = String(r.created_at || '').slice(0, 10) || 'tanpa-tanggal'
-    byDay[day] = (byDay[day] || 0) + Number(r.nominal || 0)
-  }
-  const labels = Object.keys(byDay).sort()
-  const values = labels.map((k) => byDay[k])
-  if (chart) chart.destroy()
-  const dark = document.documentElement.classList.contains('dark')
-  chart = new Chart(canvas.value, {
-    type: 'line',
+function drawChart(canvas, type, labels, values, color, label) {
+  if (!canvas) return null
+  return new Chart(canvas, {
+    type,
     data: {
-      labels,
+      labels: labels || [],
       datasets: [{
-        label: 'Nominal (Rp)',
-        data: values,
-        borderColor: '#2563eb',
-        backgroundColor: 'rgba(37,99,235,.12)',
-        fill: true,
-        tension: .35,
-        pointRadius: 3,
+        label, data: values || [],
+        borderColor: color,
+        backgroundColor: type === 'line' ? color + '26' : color + '59',
+        fill: type === 'line', tension: .35, borderRadius: 6, pointRadius: 3,
       }],
     },
     options: {
-      responsive: true,
-      plugins: { legend: { labels: { color: dark ? '#94a3b8' : '#475569' } } },
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: axis(), boxWidth: 12 } } },
       scales: {
-        x: { ticks: { color: dark ? '#94a3b8' : '#94a3b8', maxTicksLimit: 10 } },
-        y: { ticks: { color: dark ? '#94a3b8' : '#94a3b8', callback: (v) => (v >= 1e6 ? (v / 1e6).toFixed(1) + 'jt' : v) } },
+        x: { ticks: { color: axis(), maxTicksLimit: 10 }, grid: { color: axis() + '22' } },
+        y: { ticks: { color: axis(), callback: (v) => (v >= 1e6 ? (v / 1e6).toFixed(1) + 'jt' : v >= 1e3 ? (v / 1e3).toFixed(0) + 'rb' : v) }, grid: { color: axis() + '22' } },
       },
     },
   })
 }
 
+function draw() {
+  ;[ch1, ch2, ch3].forEach((c) => c && c.destroy())
+  const fin = d.value?.finance || {}
+  const ga = d.value?.ga || {}
+  const fl = d.value?.fleet || {}
+  ch1 = drawChart(cMonthly.value, 'line', fin.monthly_labels, fin.monthly_amounts, '#2563eb', 'Nominal (Rp)')
+  ch2 = drawChart(cFreq.value, 'bar', ga.freq_labels, ga.freq_values, '#8b5cf6', 'Jumlah transaksi')
+  ch3 = drawChart(cEff.value, 'bar', fl.eff_labels, fl.eff_values, '#059669', 'Efisiensi (km/liter)')
+}
+
+async function load() {
+  loading.value = true; err.value = ''
+  try {
+    d.value = await api('/api/analytics/data', { params: { start_date: start.value, end_date: end.value } })
+  } catch (e) { err.value = e.message }
+  finally {
+    loading.value = false
+    nextTick(draw)
+  }
+}
+
 onMounted(load)
-onBeforeUnmount(() => { if (chart) chart.destroy() })
+onBeforeUnmount(() => { [ch1, ch2, ch3].forEach((c) => c && c.destroy()) })
 </script>
 
 <template>
@@ -81,20 +84,55 @@ onBeforeUnmount(() => { if (chart) chart.destroy() })
     <div v-if="loading" class="empty">⏳ Memuat…</div>
     <div v-else-if="err" class="alert alert-error">{{ err }}</div>
     <template v-else>
-      <div class="card card-pad" style="margin-bottom:16px;">
-        <h3>📈 Tren Nominal</h3>
-        <div style="height:260px;"><canvas ref="canvas"></canvas></div>
+      <!-- Finance -->
+      <div class="stat-grid" style="margin-bottom:16px;">
+        <div class="stat-card"><div class="s-icon" style="background:#2563eb1a;">💵</div><div class="s-value" style="color:#2563eb;">{{ fmt(d?.finance?.total_month) }}</div><div class="s-label">Total Nominal (Periode)</div><div class="s-bar" style="background:#2563eb;"></div></div>
+        <div class="stat-card"><div class="s-icon" style="background:#0596691a;">🧾</div><div class="s-value" style="color:#059669;">{{ num(d?.finance?.total_tx) }}</div><div class="s-label">Jumlah Transaksi</div><div class="s-bar" style="background:#059669;"></div></div>
+        <div class="stat-card"><div class="s-icon" style="background:#d977061a;">📅</div><div class="s-value" style="color:#d97706;">{{ fmt(d?.finance?.avg_per_day) }}</div><div class="s-label">Rata-rata / Hari</div><div class="s-bar" style="background:#d97706;"></div></div>
+        <div class="stat-card"><div class="s-icon" style="background:#8b5cf61a;">🎯</div><div class="s-value" style="color:#8b5cf6;">{{ fmt(d?.finance?.avg_per_tx) }}</div><div class="s-label">Rata-rata / Transaksi</div><div class="s-bar" style="background:#8b5cf6;"></div></div>
       </div>
+
+      <!-- GA + Cash + Fleet -->
+      <div class="stat-grid" style="margin-bottom:16px;">
+        <div class="stat-card"><div class="s-icon" style="background:#0ea5e91a;">👥</div><div class="s-value" style="color:#0ea5e9;">{{ num(d?.ga?.total_drivers) }}</div><div class="s-label">Driver Aktif</div><div class="s-bar" style="background:#0ea5e9;"></div></div>
+        <div class="stat-card"><div class="s-icon" style="background:#ef44441a;">📬</div><div class="s-value" style="color:#ef4444;">{{ num(d?.ga?.total_claims) }}</div><div class="s-label">Total Klaim</div><div class="s-bar" style="background:#ef4444;"></div></div>
+        <div class="stat-card"><div class="s-icon" style="background:#84cc161a;">📅</div><div class="s-value" style="color:#65a30d;">{{ num(d?.ga?.total_appt) }}</div><div class="s-label">Total Appointment</div><div class="s-bar" style="background:#65a30d;"></div></div>
+        <div class="stat-card"><div class="s-icon" style="background:#f973161a;">🏆</div><div class="s-value" style="color:#f97316;font-size:14px;">{{ d?.ga?.top_driver || '—' }}</div><div class="s-label">Driver Teratas</div><div class="s-bar" style="background:#f97316;"></div></div>
+        <div class="stat-card"><div class="s-icon" style="background:#10b9811a;">💳</div><div class="s-value" style="color:#10b981;">{{ num(d?.cash?.total) }}</div><div class="s-label">Kasbon Selesai (LPJ)</div><div class="s-bar" style="background:#10b981;"></div></div>
+        <div class="stat-card"><div class="s-icon" style="background:#ec48991a;">🚀</div><div class="s-value" style="color:#ec4899;font-size:14px;">{{ d?.fleet?.best_vehicle || '—' }}</div><div class="s-label">Kendaraan Paling Efisien</div><div class="s-bar" style="background:#ec4899;"></div></div>
+        <div class="stat-card"><div class="s-icon" style="background:#64748b1a;">⛽</div><div class="s-value" style="color:#64748b;">{{ d?.fleet?.avg_kml || 0 }}</div><div class="s-label">Rata-rata Efisiensi (km/L)</div><div class="s-bar" style="background:#64748b;"></div></div>
+      </div>
+
+      <div class="card card-pad" style="margin-bottom:16px;">
+        <h3 style="margin:0 0 12px;">📈 Tren Nominal Bulanan</h3>
+        <div style="height:240px;"><canvas ref="cMonthly"></canvas></div>
+      </div>
+
+      <div class="stat-grid" style="margin-bottom:16px;">
+        <div class="card card-pad">
+          <h3 style="margin:0 0 12px;">📊 Frekuensi Transaksi per Driver</h3>
+          <div style="height:220px;"><canvas ref="cFreq"></canvas></div>
+        </div>
+        <div class="card card-pad">
+          <h3 style="margin:0 0 12px;">⛽ Efisiensi per Kendaraan</h3>
+          <div style="height:220px;"><canvas ref="cEff"></canvas></div>
+        </div>
+      </div>
+
       <div class="card">
+        <h3 style="padding:14px 18px 0;">🏅 Top 5 Driver (Nominal)</h3>
         <div class="table-wrap">
           <table class="tbl">
-            <thead><tr><th>ID</th><th>Driver</th><th>Nopol</th><th>BBM</th><th>Nominal</th><th>Tanggal</th></tr></thead>
+            <thead><tr><th>#</th><th>Driver</th><th>Nopol</th><th>Nominal</th><th>Transaksi</th></tr></thead>
             <tbody>
-              <tr v-for="t in rows" :key="t.id">
-                <td><b>{{ t.display_id }}</b></td><td>{{ t.driver_name }}</td><td>{{ t.nopol }}</td>
-                <td>{{ t.bbm_type }}</td><td>{{ fmt(t.nominal) }}</td><td class="muted">{{ t.created_at }}</td>
+              <tr v-for="(t, i) in (d?.finance?.top_drivers || [])" :key="i">
+                <td><b>{{ i + 1 }}</b></td>
+                <td>{{ t.driver_name }}</td>
+                <td>{{ t.nopol }}</td>
+                <td>{{ fmt(t.total) }}</td>
+                <td>{{ num(t.tx_count) }}</td>
               </tr>
-              <tr v-if="!rows.length"><td colspan="6" class="empty">Tidak ada data pada rentang tanggal ini.</td></tr>
+              <tr v-if="!(d?.finance?.top_drivers || []).length"><td colspan="5" class="empty">Tidak ada data pada rentang tanggal ini.</td></tr>
             </tbody>
           </table>
         </div>

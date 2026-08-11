@@ -49,6 +49,27 @@ async function resetPin() {
   finally { busy.value = false }
 }
 
+async function toggleUser(u) {
+  const action = u.is_active ? 'nonaktifkan' : 'aktifkan'
+  if (!confirm(`Yakin ${action} user ${u.username}?`)) return
+  busy.value = true
+  try {
+    await api('/api/users/sync', { method: 'POST', body: { username: u.username, full_name: u.full_name, role: u.role, is_active: !u.is_active, team_name: u.team_name || '' } })
+    load()
+  } catch (e) { alert('❌ ' + e.message) }
+  finally { busy.value = false }
+}
+
+async function deleteUser(u) {
+  if (!confirm(`HAPUS user ${u.username}?`)) return
+  busy.value = true
+  try {
+    await api('/api/users/sync', { method: 'POST', body: { username: u.username, full_name: u.full_name, role: u.role, is_active: false, team_name: u.team_name || '' } })
+    load()
+  } catch (e) { alert('❌ ' + e.message) }
+  finally { busy.value = false }
+}
+
 onMounted(load)
 </script>
 
@@ -74,8 +95,10 @@ onMounted(load)
               <td><span class="badge" :class="u.is_active ? 'badge-green' : 'badge-red'">{{ u.is_active ? 'Aktif' : 'Nonaktif' }}</span></td>
               <td class="muted">{{ u.last_login || '—' }}</td>
               <td>
-                <button class="btn btn-sm" @click="openForm(u)">✏️</button>
-                <button class="btn btn-sm" @click="reset = { username: u.username, pin: '' }">🔑</button>
+                <button class="btn btn-sm" :disabled="busy" @click="openForm(u)" title="Edit">✏️</button>
+                <button class="btn btn-sm" :disabled="busy" @click="toggleUser(u)" :title="u.is_active ? 'Nonaktifkan' : 'Aktifkan'">{{ u.is_active ? '🚫' : '🟢' }}</button>
+                <button class="btn btn-sm btn-danger" :disabled="busy" @click="deleteUser(u)" title="Hapus">🗑</button>
+                <button class="btn btn-sm" :disabled="busy" @click="reset = { username: u.username, pin: '' }" title="Reset PIN">🔑</button>
               </td>
             </tr>
           </tbody>

@@ -114,10 +114,16 @@ def register_master_api(app):
         try:
             data = request.get_json()
             u = data.get('username', '').strip(); f = data.get('full_name', '').strip()
-            r = data.get('role', 'ga'); p = data.get('pin', '123456'); a = data.get('is_active', True)
+            r = data.get('role', 'ga'); a = data.get('is_active', True)
             if r not in ('admin', 'ga', 'finance', 'marketing', 'chief_driver'):
                 return jsonify({'status': 'error', 'msg': 'Role tidak valid'}), 400
             if not u or not f: return jsonify({'status': 'error', 'msg': 'Username dan nama wajib'}), 400
+
+            # PIN hanya diubah bila dikirim eksplisit & tidak kosong (agar
+            # toggle is_active / update role / delete tidak menimpa PIN user).
+            pin = None
+            if 'pin' in data and str(data.get('pin') or '').strip():
+                pin = str(data.get('pin') or '').strip()
 
             # Team hanya diubah bila dikirim eksplisit (agar toggle is_active
             # atau update role tidak menghapus tim marketing yang sudah ada).
@@ -131,12 +137,14 @@ def register_master_api(app):
                     team = get_or_create_team(team)
 
             conn = get_db_connection(); cursor = conn.cursor()
-            if team is None:
-                # Pertahankan team_name existing (jangan di-reset)
-                cursor.execute("SELECT team_name FROM users WHERE username=%s", (u,))
+            if team is None or pin is None:
+                cursor.execute("SELECT team_name, pin FROM users WHERE username=%s", (u,))
                 row = cursor.fetchone()
-                team = row[0] if row else ''
-            cursor.execute("INSERT INTO users (username, full_name, role, pin, team_name, is_active) VALUES (%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE full_name=VALUES(full_name), role=VALUES(role), pin=VALUES(pin), team_name=VALUES(team_name), is_active=VALUES(is_active)", (u, f, r, p, team, a))
+                if team is None:
+                    team = row[0] if row else ''
+                if pin is None:
+                    pin = row[1] if row else '123456'
+            cursor.execute("INSERT INTO users (username, full_name, role, pin, team_name, is_active) VALUES (%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE full_name=VALUES(full_name), role=VALUES(role), pin=VALUES(pin), team_name=VALUES(team_name), is_active=VALUES(is_active)", (u, f, r, pin, team, a))
             conn.commit(); cursor.close(); conn.close()
             log_activity_async(0, 'user_sync', 'admin', 'Admin', new_data={'username': u, 'role': r, 'team': team}, ip=request.remote_addr)
             return jsonify({'status': 'success', 'msg': f'User {u} saved'})

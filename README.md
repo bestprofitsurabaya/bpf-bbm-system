@@ -1,4 +1,4 @@
-# ⛽ BPF Fleet & BBM System v2.1
+# ⛽ BPF Fleet & BBM System v2.2
 
 **Sistem Manajemen Armada, Klaim BBM, Kasbon, Log Perjalanan & Appointment**  
 **PT. Bestprofit Futures - Surabaya**
@@ -8,6 +8,17 @@
 Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pengarsipan klaim BBM, **pengajuan kasbon dengan kode unik**, dan log perjalanan harian (logsheet) dengan workflow GA → Finance → Archive. Dilengkapi **sistem appointment canggih** (Marketing → Chief Driver → Log Perjalanan), deteksi anomali Machine Learning, GPS tracking, **watermark foto otomatis**, PIN security, **session-based login & role-based access**, **CSRF protection**, **notifikasi real-time**, import Excel, audit trail, Chart.js visualization, **PWA offline-first**, dan **WebSocket real-time**.
 
 ---
+
+## 🆕 Fitur Terbaru v2.2 — SPA Back-Office Lengkap
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **📈 Analytics diperbaiki** | Halaman `/app/analytics` kini benar menampilkan 8+ kartu statistik (finance, GA, kasbon, fleet) + 3 grafik Chart.js + tabel Top 5 driver (memperbaiki kesalahan baca response API) |
+| **📄 Rekap + PDF** | Preview & **Download PDF** langsung dari `/app/rekap` dengan rentang tanggal aktif (backend `dl=1` → attachment) |
+| **📝 Audit Log + filter** | Filter aksi & peran, badge "Hari ini" & total tampil di `/app/logs` |
+| **🚗 Settings lengkap** | Tambah driver, hapus driver permanen, tambah kendaraan — selain toggle aktif/nonaktif di `/app/settings` |
+| **👥 Users lengkap** | Nonaktifkan/aktifkan & hapus user di `/app/users` — selain edit & reset PIN |
+| **✅ CI hijau** | GitHub Actions lulus otomatis (build SPA + Vitest + pytest) |
 
 ## 🆕 Fitur Terbaru v2.1 — Kasbon di SPA, Notifikasi, PWA & CI/CD
 

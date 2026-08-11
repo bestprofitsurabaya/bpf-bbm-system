@@ -432,6 +432,15 @@ selainnya → `/app/dashboard`. Server tetap menegakkan `role_required` di semua
 ulang di sisi klien (guard router + menu terfilter). Lihat `SECURITY.md` untuk pemetaan kontrol lengkap
 (ISO/IEC 27001:2022, ISO 9241-11, ISO 9001).
 
+### 12.4 Halaman Back-Office Lengkap (v2.2)
+
+- `/app/analytics` — konsumsi `/api/analytics/data` (`{finance, ga, cash, fleet}`) dengan 8+ kartu statistik + 3 grafik Chart.js + tabel Top 5 driver. Grafik digambar via `nextTick` setelah render.
+- `/app/rekap` — tombol **Preview PDF** (`/admin/rekap/pdf?start_date&end_date`, tab baru) & **Download PDF** (`&dl=1` → `Content-Disposition: attachment`).
+- `/app/logs` — filter aksi & peran dilakukan klien-side pada `/api/audit-logs`.
+- `/app/settings` — tambah driver (`POST /api/drivers/sync`), hapus driver (`POST /api/drivers/<nama>/delete`, admin), tambah kendaraan (`POST /api/vehicles/add`).
+- `/app/users` — nonaktifkan/aktifkan & hapus user via `POST /api/users/sync` (`is_active`), seperti perilaku klasik.
+- Semua halaman sudah ada route+guard role di SPA; tidak ada migrasi DB tambahan.
+
 ---
 
 ## 🧾 Checklist Sebelum Go-Live

@@ -6,6 +6,31 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.2.0] - 2026-08-11
+
+### 🐛 Perbaikan Halaman Analytics SPA
+
+- **Analytics (`/app/analytics`) diperbaiki total** — sebelumnya halaman ini salah membaca response API (`/api/analytics/data` mengembalikan `{finance, ga, cash, fleet}`, bukan array transaksi) sehingga statistik & grafik tidak tampil benar. Kini: **8 kartu statistik** (total nominal, jumlah transaksi, rata-rata/hari, rata-rata/transaksi, driver aktif, total klaim, total appointment, driver teratas, kasbon selesai, kendaraan paling efisien, rata-rata km/L), **3 grafik Chart.js** (tren nominal bulanan, frekuensi per driver, efisiensi per kendaraan), dan **tabel Top 5 driver**. Grafik digambar setelah render (fix race condition `nextTick`).
+
+### ✨ Penyempurnaan Halaman Lainnya
+
+- **Rekap (`/app/rekap`)** — tombol **Preview PDF** (tab baru) & **Download PDF** langsung dari SPA dengan rentang tanggal aktif (tidak perlu lagi pindah ke halaman klasik). Backend `/admin/rekap/pdf` kini mendukung `dl=1` → header `Content-Disposition: attachment` (unduhan nyata).
+- **Audit Log (`/app/logs`)** — filter **aksi** & **peran** (klien-side), badge **“Hari ini”** dan **“Total tampil / total log”**, label aksi dibersihkan (underscore → judul).
+- **Settings (`/app/settings`)** — **tambah driver** (modal: nama, nopol, tipe kendaraan, tipe BBM), **hapus driver permanen** (dengan konfirmasi), dan **tambah kendaraan** (modal: nopol, tipe, merk, BBM default) — menyusul toggle aktif/nonaktif yang sudah ada.
+- **Manajemen User (`/app/users`)** — tombol **nonaktifkan/aktifkan** (🚫/🟢) dan **hapus user** (🗑, set nonaktif sesuai perilaku klasik), di samping edit & reset PIN.
+
+### 🔐 Perbaikan Keamanan PIN (hasil review kode)
+
+- **Toggle aktif/nonaktif & hapus user tidak lagi menimpa PIN** — sebelumnya `/api/users/sync` selalu mengeksekusi `pin=VALUES(pin)`, sehingga toggle status atau "hapus" user (yang mengirim `pin:'000000'`) diam-diam **mereset PIN user menjadi 000000**. Kini backend hanya mengubah PIN bila field `pin` dikirim **eksplisit dan tidak kosong** (pola sama seperti `team_name`); SPA & halaman klasik (`users.html`, `settings.html`) tidak lagi mengirim `pin` pada operasi toggle/hapus. (ISO/IEC 27001 A.8.2 · A.9.4)
+
+### 🧪 Verifikasi
+
+- `npm test` → 12 passed ✅ · `npm run build` → sukses ✅
+- `pytest tests/` → 49 PASS ✅ · CI GitHub Actions hijau pada v2.1 ✅
+- Smoke: `/api/analytics/data` (sesi admin) → JSON `{finance, ga, cash, fleet}` ✅ · `/admin/rekap/pdf` → PDF inline, dengan `dl=1` → attachment ✅
+
+---
+
 ## [2.1.0] - 2026-08-11
 
 ### ✨ Fitur Baru

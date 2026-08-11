@@ -205,7 +205,7 @@
         try {
             await fetch('/api/users/sync', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: username, full_name: u.full_name || username, role: u.role || 'ga', pin: '000000', is_active: !isActive, team_name: u.team_name || '' })
+                body: JSON.stringify({ username: username, full_name: u.full_name || username, role: u.role || 'ga', is_active: !isActive, team_name: u.team_name || '' })
             });
             loadUsers();
         } catch (e) { alert('Gagal: ' + e.message); }
@@ -217,7 +217,7 @@
         try {
             await fetch('/api/users/sync', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: username, full_name: u.full_name || username, role: u.role || 'ga', pin: '000000', is_active: false, team_name: u.team_name || '' })
+                body: JSON.stringify({ username: username, full_name: u.full_name || username, role: u.role || 'ga', is_active: false, team_name: u.team_name || '' })
             });
             loadUsers();
         } catch (e) { alert('Error: ' + e.message); }

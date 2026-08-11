@@ -27,6 +27,11 @@ async function load() {
 const statusBadge = (s) =>
   ({ pending: ['⏳', 'badge-amber'], verified_ga: ['✅', 'badge-blue'], os_finance: ['💰', 'badge-purple'], archived: ['📦', 'badge-green'], rejected: ['❌', 'badge-red'], modified: ['✏️', 'badge-gray'] })[s] || ['—', 'badge-gray']
 
+function openPdf(dl) {
+  const p = new URLSearchParams({ start_date: start.value, end_date: end.value })
+  window.open('/admin/rekap/pdf?' + p.toString() + (dl ? '&dl=1' : ''), dl ? '_self' : '_blank')
+}
+
 onMounted(load)
 </script>
 
@@ -38,7 +43,8 @@ onMounted(load)
         <div class="field" style="margin:0;"><label>Sampai</label><input class="input" type="date" v-model="end" /></div>
         <button class="btn btn-primary" @click="load" style="margin-top:18px;">🔍 Tampilkan</button>
         <div class="spacer"></div>
-        <a class="btn" href="/admin/rekap" target="_blank">📄 Versi Klasik (PDF/Excel)</a>
+        <button class="btn" @click="openPdf(false)">📄 Preview PDF</button>
+        <button class="btn btn-primary" @click="openPdf(true)">⬇️ Download PDF</button>
       </div>
     </div>
 

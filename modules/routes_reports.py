@@ -96,7 +96,8 @@ def register_report_routes(app):
             pdf_bytes = pdf_raw.encode('latin-1') if isinstance(pdf_raw, str) else bytes(pdf_raw)
             response = make_response(pdf_bytes)
             response.headers['Content-Type'] = 'application/pdf'
-            response.headers['Content-Disposition'] = f'inline; filename=BPF_Rekap_BBM_{datetime.now().strftime("%Y%m%d")}.pdf'
+            disposition = 'attachment' if request.args.get('dl') else 'inline'
+            response.headers['Content-Disposition'] = f'{disposition}; filename=BPF_Rekap_BBM_{datetime.now().strftime("%Y%m%d")}.pdf'
             return response
         except Exception as e:
             return f"Error: {str(e)}", 500
