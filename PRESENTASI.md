@@ -6,8 +6,11 @@
 > 🖥️ **Slide deck interaktif**: buka `presentasi/index.html` di browser (navigasi → ←, tekan **N** untuk catatan pembicara, **Ctrl+P** untuk cetak/PDF).
 > 📄 **Versi PDF siap bagikan**: `presentasi/BPF_Fleet_BBM_System_Presentasi.pdf` (12 halaman landscape A4, tanpa catatan pembicara).
 > 🖊️ **Versi PPTX editabel**: `presentasi/BPF_Fleet_BBM_System_Presentasi.pptx` (generator: `scripts/make_pptx.py`).
+> 📋 **Ringkasan satu halaman utk peserta**: `ONEPAGER.md` — bisa dibagikan sebelum meeting.
+> 🎬 **Video walkthrough per peran**: `presentasi/videos/` — 7 video singkat + `walkthrough-all.mp4` (±80 dtk) utk diputar jika demo live tidak memungkinkan.
 > 🎯 **Lembar latihan per peran**: `PELATIHAN.md` — gladi resik sebelum meeting.
-> 🧪 **Data demo**: sudah diisi di database (label `DEMO` — air minum, klaim BBM, kasbon, trip, appointment). Bersihkan dengan `scripts/demo_cleanup.sql`.
+> ✅ **Gladi resik otomatis**: `node frontend/scripts/rehearsal.mjs` — jalankan semua alur demo di browser nyata, laporan kesiapan 20/20.
+> 🧪 **Data demo**: sudah diisi di database (label `DEMO` — air minum, klaim BBM, kasbon, trip, appointment). Bersihkan dengan `scripts/demo_cleanup.sql` (atau biarkan **auto-cleanup** `scripts/auto_cleanup_demo.sh` menghapus H+1 setelah tanggal meeting).
 
 ---
 
@@ -221,6 +224,8 @@
 | **Akun** | `admin`, `ga_officer`, `finance_officer`, `ob1` (PIN semua `123456`) |
 | **Mode gelap/kontras** | Tunjukkan tombol 🌙 dan 🔆 di pojok kanan atas sebagai penutup bagian UI/UX |
 | **Koneksi** | Pastikan internet stabil (demo realtime butuh koneksi) |
+| **Gladi resik otomatis** | Jalankan `node frontend/scripts/rehearsal.mjs` — 20/20 cek per peran + konsol bersih, selesai dalam ±2 menit |
+| **Video cadangan** | Jika demo live gagal, putar `presentasi/videos/walkthrough-all.mp4` (80 dtk) |
 
 ## ❓ Kemungkinan Pertanyaan Audiens
 

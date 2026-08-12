@@ -6,6 +6,16 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.14.0] - 2026-08-12
+
+### 🎬 Gladi Resik Otomatis & Paket Video Walkthrough
+
+- **Gladi resik otomatis** (`frontend/scripts/rehearsal.mjs`): login nyata di Chrome utk 7 peran + verifikasi alur PRESENTASI (antrean GA, kasbon, air minum OB→Finance, appointment marketing, board chief driver, aplikasi driver, realtime bell). **20/20 cek lulus, konsol bersih** — laporan kesiapan langsung tampil di terminal.
+  - Perbaikan penting: tiap peran kini pakai **browser context incognito terpisah** sehingga cookie & localStorage tidak bocor antar login (sebelumnya halaman login ter-redirect ke dashboard sesi lama).
+- **Video walkthrough per peran** (`scripts/make_videos.sh` + `frontend/scripts/record.mjs`): 8 video mp4 1440×900 di `presentasi/videos/` (admin, ob, finance, ga, marketing, chief, driver, + `walkthrough-all.mp4` 80 dtk) — dihasilkan dari screenshot nyata dengan efek zoom lembut, siap diputar di meeting.
+- **One-pager peserta meeting** (`ONEPAGER.md`): ringkasan satu halaman — mengapa sistem ini ada, siapa memakai, fitur utama, keamanan, dan apa yang dilihat di demo.
+- **Auto-cleanup data demo** (`scripts/auto_cleanup_demo.sh` + cron): data label DEMO otomatis dihapus **H+1 setelah tanggal meeting** (set default `MEETING_DATE`, mudah diubah). Cron terpasang: tiap hari 02:15.
+
 ## [2.13.0] - 2026-08-12
 
 ### 🎤 Paket Lengkap Presentasi & Demo

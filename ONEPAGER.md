@@ -1,0 +1,59 @@
+# BPF Fleet & BBM System — Ringkasan Satu Halaman
+
+**PT Bestprofit Futures · Surabaya** · Sistem digital untuk pengelolaan BBM armada, kasbon driver, pembelian air minum, dan jadwal kunjungan tim — satu aplikasi, semua pihak terhubung.
+
+---
+
+## 🎯 Mengapa sistem ini ada?
+
+Sebelumnya, pencatatan BBM, kasbon, dan pembelian air minum dilakukan manual — rawan tercecer, sulit ditelusuri, dan lama diverifikasi. Sistem ini **menggantikan catatan manual dengan alur digital yang jelas, terekam, dan bisa diverifikasi siapa pun kapan pun**.
+
+---
+
+## 👥 Siapa memakai dan untuk apa?
+
+| Peran | Aktivitas utama |
+|---|---|
+| **Driver** | Isi klaim BBM dari HP (foto struk wajib), lihat jadwal kunjungan, terima notifikasi |
+| **Chief Driver** | Atur penugasan kunjungan ke driver, pantau status |
+| **GA** | Verifikasi klaim BBM & kasbon driver, kelola data pengguna |
+| **Finance** | Verifikasi & cairkan klaim, verifikasi pembelian air minum, rekap per OB |
+| **OB** | Ajukan pembelian air minum (galon/botol/gelas) lengkap dengan foto sebelum & sesudah |
+| **Marketing** | Catat jadwal kunjungan nasabah, pantau realisasi tim |
+| **Admin** | Kelola akun & nama penanda tangan (GA/Finance), lihat analytics |
+
+**Setiap peran hanya melihat halaman sesuai wewenangnya** (prinsip *least privilege*).
+
+---
+
+## ✨ Fitur utama
+
+- **Klaim BBM dari HP** — isi nominal, liter, odometer, foto struk; GA & Finance verifikasi di layar.
+- **Kasbon driver** — pengajuan → persetujuan GA → pencairan Finance, semua tercatat.
+- **Pembelian air minum** — OB mengisi tanggal, jumlah, foto *before/after*; Finance verifikasi → dokumen PDF tanda tangan GA & Finance.
+- **Jadwal kunjungan marketing** — input jadwal, penugasan ke driver, hasil kunjungan terekam.
+- **Notifikasi realtime** — driver langsung tahu klaimnya sudah diverifikasi atau ada jadwal baru.
+- **Bisa dipakai offline** — koneksi tersambung kembali, data otomatis tersinkron.
+- **Laporan PDF & Excel** — logsheet, rekap, dan dokumen tanda terima siap diunduh.
+
+---
+
+## 🔒 Keamanan & kualitas
+
+- Login dengan PIN 6 digit per pengguna · sesi aman · proteksi laju permintaan (rate limit).
+- Semua aksi tercatat (siapa, kapan, apa) — tidak bisa "hilang".
+- Pemeriksaan otomatis keanehan pengisian (anomali) membantu mencegah salah input.
+- 82 tes antarmuka + 97 tes backend — setiap perubahan diuji otomatis.
+
+---
+
+## 📋 Apa yang bisa dilihat langsung di demo
+
+1. **Driver** mengajukan klaim BBM dari HP → **GA** menyetujui → **Finance** memverifikasi.
+2. **OB** mengajukan pembelian air minum dengan foto → **Finance** verifikasi → PDF tanda terima.
+3. **Marketing** membuat jadwal kunjungan → **Chief Driver** menugaskan → hasil kunjungan tercatat.
+4. Dashboard **Admin**: analytics, pengguna, dan pantauan realtime.
+
+---
+
+*Dokumen pendukung: materi lengkap `PRESENTASI.md`, slide `presentasi/`, lembar latihan `PELATIHAN.md`, dan video walkthrough `presentasi/videos/`.*
