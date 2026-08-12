@@ -2,6 +2,7 @@
 import os
 import mysql.connector
 from mysql.connector import Error, pooling
+from mysql.connector.connection import MySQLConnection
 
 DB_CONFIG = {
     'host': os.environ.get('DB_HOST', 'db'),
@@ -35,11 +36,16 @@ def get_db_connection():
         except Error as pool_err:
             print(f"⚠ Pool exhausted: {pool_err}")
 
+    # Fallback: koneksi langsung NON-POOL. Penting: buang SEMUA argumen pool
+    # (CNX_POOL_ARGS = pool_name, pool_size, pool_reset_session) karena bila
+    # tersisa, mysql.connector.connect() akan kembali di-routing ke pool global
+    # yang sama (lihat pooling.connect) dan tetap gagal saat pool exhausted.
     max_retries = 5
-    fallback_config = {k: v for k, v in DB_CONFIG.items() if k not in ['pool_name', 'pool_size']}
+    fallback_config = {k: v for k, v in DB_CONFIG.items()
+                       if k not in ('pool_name', 'pool_size', 'pool_reset_session')}
     for attempt in range(max_retries):
         try:
-            return mysql.connector.connect(**fallback_config)
+            return MySQLConnection(**fallback_config)
         except Error as e:
             if attempt == max_retries - 1:
                 raise

@@ -2,6 +2,18 @@
    BPF Fleet & BBM System — SPA Design System
    Acuan UX: ISO 9241-11 (efektivitas, efisiensi, kepuasan)
    ============================================================ */
+
+/* Font Inter di-host lokal (variable font, weight 100–900)
+   — bebas Google Fonts: lebih cepat, offline-friendly, konsol bersih. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/app/fonts/inter-latin-var.woff2') format('woff2-variations');
+  src: url('/app/fonts/inter-latin-var.woff2') format('woff2') tech('variations');
+}
+
 :root {
   --primary: #2563eb;
   --primary-dark: #1d4ed8;

@@ -162,6 +162,7 @@ def log_activity_async(tx_id, action, user_type, user_name, old_data=None, new_d
     """Log activity asynchronously"""
     from modules.config import get_db_connection
     def _log():
+        conn = None
         try:
             conn = get_db_connection()
             if not conn: return
@@ -173,9 +174,15 @@ def log_activity_async(tx_id, action, user_type, user_name, old_data=None, new_d
                   json.dumps(old_data) if old_data else None,
                   json.dumps(new_data) if new_data else None, ip, ua))
             conn.commit()
-            cursor.close(); conn.close()
+            cursor.close()
         except Exception as e:
             print(f"Log error: {e}")
+        finally:
+            # Selalu kembalikan koneksi ke pool — koneksi yang bocor akan
+            # menghabiskan pool (10–15) dan melumpuhkan seluruh aplikasi.
+            if conn:
+                try: conn.close()
+                except Exception: pass
     production_pool_executor.submit(_log)
 
 def validate_bbm_for_vehicle(vehicle_type, bbm_type):

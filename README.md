@@ -324,7 +324,7 @@ Marketing 📣 → Chief Driver 🚛 → Driver 🗺️ → GA ✅
 | Frontend | **Vue 3 + Vite** (vue-router + pinia) — SPA penuh, tidak ada halaman server-render |
 | PWA | Service Worker (scope `/app/`) + IndexedDB + localStorage (offline-first driver) |
 | Container | Docker + Docker Compose |
-| Font | Inter (Google Fonts) + DejaVu Sans |
+| Font | Inter (self-host, offline-friendly) + DejaVu Sans |
 
 ---
 

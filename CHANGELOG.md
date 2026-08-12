@@ -6,6 +6,45 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.14.2] - 2026-08-12
+
+### 🔒 Perubahan Backend Terkunci di Image Docker + Uji Ketahanan DB
+
+- **Image Docker di-rebuild** (`docker compose up -d --build web`): perbaikan `config.py`/`helpers.py` v2.14.1 kini **terkunci permanen di image** (tidak lagi hanya lewat `docker cp`) — verifikasi ulang: container `bbm_web` up, login 200, `MySQLConnection` & `finally` terkonfirmasi ada di image.
+- **Unit test baru `tests/test_db_resilience.py` (+7)**: pool dipakai saat tersedia; fallback **non-pool** saat pool exhausted (memastikan `pool_name`/`pool_size`/`pool_reset_session` TIDAK diteruskan); fallback dipakai saat `db_pool=None`; retry lalu raise saat DB mati; `log_activity_async` menutup koneksi di `finally` (sukses & gagal); aman saat koneksi `None`. **Total pytest kini 104, semua hijau.**
+
+### 🎬 Kartu Judul Video Walkthrough Dilengkapi Logo BPF
+
+- `scripts/make_videos.sh` kini membuat **badge logo bulat BPF** (lingkaran putih + cincin biru, dari `static/icon-192.png`) dan menempatkannya di kartu judul tiap peran + intro/outro, dengan **latar gradien biru** & aksen warna khas. 8 video dibangun ulang (h264 1440×900, durasi sama) dan terverifikasi: logo, cincin, & teks judul tampil di frame.
+
+### 🖥️ Slide Deck Bernuansa BPF + Logo & Gradien
+
+- `presentasi/index.html` kini memiliki **brand fixed** (badge logo + nama sistem) di pojok kiri setiap slide, **hero logo** besar di slide judul, dan **latar gradien halus** (aksen biru & hijau, menyesuaikan mode gelap) — selaras dengan video walkthrough.
+- **PDF diperbarui** (`presentasi/BPF_Fleet_BBM_System_Presentasi.pdf`): 12 halaman A4 landscape terverifikasi per halaman — semua judul utuh, tidak ada halaman kosong, brand tampil di tiap halaman.
+
+### 🧪 E2E Pemulihan Pool DB (+2 test, total 106)
+
+- `tests/test_db_resilience.py` kini punya **uji E2E simulasi pool habis**: `db_pool.get_connection()` selalu melempar `PoolError`, fallback `MySQLConnection` non-pool menjawab query → **login tetap 200 & sesi terbentuk** (fail-open, aplikasi tidak mati); PIN salah tetap **401** (tidak membocorkan status). Total **pytest 106** hijau di container.
+
+---
+
+## [2.14.1] - 2026-08-12
+
+### 🐛 Perbaikan Kritis: Koneksi DB Bocor + Font Self-Host (konsol 100% bersih)
+
+- **🐛 Fix kritis — pool MySQL habis & login 500 (ditemukan saat gladi resik ulang)**: `log_activity_async` (audit log async, dipanggil di SETIAP login) tidak menutup koneksi saat query error — hanya di jalur sukses, bukan `finally` → tiap kegagalan membocorkan 1 koneksi dari pool (10–15). Setelah aktivitas cukup (mis. gladi resik), pool habis total dan semua login/API 500. Kini `conn.close()` dipindah ke `finally` — koneksi selalu kembali ke pool. (ISO/IEC 27001 A.8.2 · keandalan layanan)
+- **🐛 Fix kritis — fallback DB tak pernah pulih saat pool habis**: `get_db_connection()` saat pool exhausted memanggil `mysql.connector.connect()` yang (di versi 8.2.0) **masih me-routing ke pool global yang sama** karena `fallback_config` menyisakan `pool_reset_session` (salah satu `CNX_POOL_ARGS`) → fallback ikut gagal `PoolError`, sistem tak pernah pulih tanpa restart. Kini fallback memakai `MySQLConnection(...)` langsung (non-pool) + semua argumen pool dibuang — aplikasi tetap jalan walau pool penuh.
+- **🔤 Font Inter di-self-host** (`frontend/public/fonts/inter-latin-var.woff2`, 48 KB variable font weight 100–900): tautan Google Fonts dihapus dari `index.html` → menghilangkan **404 `fonts.gstatic.com`** yang mengotori konsol, UI lebih cepat & **tetap rapi saat internet lambat/offline** (penting untuk demo).
+- **🎬 Gladi resik dijalankan ulang → 20/20 cek lulus + konsol 100% bersih (0 error JS)** — termasuk cek isolasi OB, antrean GA, verifikasi Finance, board Chief Driver, 4 tab driver, realtime.
+
+### 🎬 Video Walkthrough Diperkaya (8 mp4, total 22 adegan)
+
+- **Lebih banyak adegan per peran + interaksi nyata**: `frontend/scripts/record.mjs` kini merekam 22 adegan (admin 4, finance 4, driver 4, ga 3, ob/marketing/chief 2) dengan klik tombol (form pengajuan OB, modal verifikasi Finance), isi form (deteksi area otomatis Marketing), dan ganti tab driver (BBM → Kasbon → Trip → Rapor).
+- **Kartu judul per peran** + **intro & outro** pada `walkthrough-all.mp4` (sekarang ±95 dtk), **transisi fade** antar adegan, dan **keterangan teks di tiap adegan** (dari `captions.json`) — di-render oleh `scripts/make_videos.sh` (ffmpeg: zoom Ken Burns + drawtext + fade).
+- Catatan teknis: concat ffmpeg relatif terhadap lokasi file list → path absolut; output per-peran kini memakai glob `for` yang lebih andal.
+
+---
+
 ## [2.14.0] - 2026-08-12
 
 ### 🎬 Gladi Resik Otomatis & Paket Video Walkthrough
