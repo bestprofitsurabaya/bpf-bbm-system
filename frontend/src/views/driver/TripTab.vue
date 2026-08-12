@@ -236,11 +236,11 @@ onMounted(() => { addRow() })
   </div>
 
   <!-- Modal Hasil Kunjungan -->
-  <div v-if="visitAppt" class="modal-overlay" @click.self="visitAppt = null">
-    <div class="modal-box">
+  <div v-if="visitAppt" class="modal-overlay" role="dialog" aria-modal="true" :aria-label="'Hasil kunjungan ' + visitAppt.display_id" @click.self="visitAppt = null" @keydown.esc="visitAppt = null">
+    <div class="modal-box" tabindex="-1">
       <div class="row" style="justify-content:space-between;margin-bottom:10px;">
         <h3 style="margin:0;">🏁 {{ visitAppt.display_id }}</h3>
-        <button class="btn-icon" @click="visitAppt = null">✕</button>
+        <button class="btn-icon" aria-label="Tutup" title="Tutup (Esc)" @click="visitAppt = null">✕</button>
       </div>
       <p class="muted" style="font-size:12px;margin-bottom:10px;">{{ visitAppt.nasabah_name }} · {{ visitAppt.alamat }}</p>
       <div class="field"><label>Hasil kunjungan <span class="req">*</span></label>

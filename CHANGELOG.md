@@ -6,6 +6,22 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.11.0] - 2026-08-12
+
+### 🎨 Aksesibilitas Dialog & Kontras + Verifikasi Browser Nyata
+
+- **Dialog non-Modal diaksesibel**: panel notifikasi (NotificationBell & DriverNotifBell) kini punya `role="dialog"`, `aria-expanded`/`aria-haspopup`, **tutup dengan Esc**, dan perbaikan variabel `--card` → `--surface`. Modal hasil kunjungan di TripTab (driver) dapat `role="dialog"`, `aria-modal`, tutup Esc.
+- **Kontras tombol diperbaiki** (WCAG 2.1.4): `.btn-success` → `#047857` dan `.btn-warning` → `#b45309` agar teks putih ≥ 4,5:1.
+- **Mode Kontras Tinggi (baru) 🔆**: tombol di topbar (di samping 🌙) — token warna diperkuat (teks hitam/putih pekat, border menebal 2px), tersimpan di `localStorage` (`bpf_hc`), kombinasi dengan dark mode (`html.dark.hc`).
+- **Verifikasi browser nyata**: Chrome dijalankan di Docker (CDP port 9222) dan di-drive dengan `puppeteer-core` (`frontend/scripts/verify_ui.mjs`) — **13/13 cek lulus**: login per peran, toggle lihat PIN, dashboard, dark mode, kontras tinggi (border 2px), fokus keyboard terlihat (outline 2px), bell buka/tutup Esc + `aria-expanded`, Dashboard Finance & Air Minum, console bersih.
+- **Materi presentasi**: `PRESENTASI.md` — draft lengkap & terstruktur sesuai prioritas demo (air minum, dashboard per peran, kasbon & kode unik, realtime, offline, keamanan, kualitas), bahasa humanis, dengan skrip, durasi, dan FAQ.
+
+### 🧪 Cakupan Pengujian
+
+- **82 Vitest + 97 pytest** hijau; SPA di-build ulang & terverifikasi langsung di browser.
+
+---
+
 ## [2.10.0] - 2026-08-12
 
 ### 🎨 Peningkatan UI/UX sesuai Standar (WCAG 2.1 · ISO 9241-11)

@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useDriverStore } from '../stores/driverStore'
 
 const store = useDriverStore()
@@ -32,20 +32,24 @@ function toggle() {
     store.loadNotifications()
   }
 }
+
+function onDocKey(e) { if (e.key === 'Escape') open.value = false }
+onMounted(() => document.addEventListener('keydown', onDocKey))
+onBeforeUnmount(() => document.removeEventListener('keydown', onDocKey))
 </script>
 
 <template>
   <div class="notif-wrap">
-    <button class="notif-bell" title="Notifikasi" @click="toggle">
+    <button class="notif-bell" title="Notifikasi" aria-label="Notifikasi" aria-haspopup="dialog" :aria-expanded="open" @click="toggle">
       🔔<span v-if="store.unread" class="notif-badge">{{ store.unread > 99 ? '99+' : store.unread }}</span>
     </button>
 
     <div v-if="open" class="notif-backdrop" @click="open = false"></div>
-    <div class="notif-panel" :class="{ open }">
+    <div class="notif-panel" :class="{ open }" role="dialog" aria-modal="true" aria-label="Notifikasi driver">
       <div class="notif-head">
         <b>🔔 Notifikasi</b>
         <span class="notif-count">{{ store.notifications.length }} notifikasi</span>
-        <button class="btn-icon" style="margin-left:auto;" @click="open = false">✕</button>
+        <button class="btn-icon" style="margin-left:auto;" aria-label="Tutup" title="Tutup (Esc)" @click="open = false">✕</button>
       </div>
       <div class="notif-list">
         <div v-for="n in store.notifications" :key="n.id" class="notif-item" :class="{ unread: !n.is_read }">

@@ -14,6 +14,7 @@ const router = useRouter()
 const open = ref(false)
 const rtOn = ref(false)
 const dark = ref(localStorage.getItem('bpf_dark') === '1')
+const hc = ref(localStorage.getItem('bpf_hc') === '1')
 const brandIcon = '/static/icon-192.png'
 
 const MENU = [
@@ -43,6 +44,12 @@ function toggleDark() {
   localStorage.setItem('bpf_dark', dark.value ? '1' : '0')
 }
 
+function toggleHc() {
+  hc.value = !hc.value
+  document.documentElement.classList.toggle('hc', hc.value)
+  localStorage.setItem('bpf_hc', hc.value ? '1' : '0')
+}
+
 async function doLogout() {
   await auth.logout()
   router.push({ name: 'login' })
@@ -64,6 +71,7 @@ function watchRealtime() {
 
 onMounted(() => {
   document.documentElement.classList.toggle('dark', dark.value)
+  document.documentElement.classList.toggle('hc', hc.value)
   connectRealtime()
 })
 onBeforeUnmount(() => { unwatchRt?.(); rt.disconnect() })
@@ -112,7 +120,8 @@ onBeforeUnmount(() => { unwatchRt?.(); rt.disconnect() })
           {{ rtOn ? '⚡ Realtime' : '🔴 Offline' }}
         </span>
         <NotificationBell />
-        <button class="btn-icon" :title="dark ? 'Mode terang' : 'Mode gelap'" @click="toggleDark">{{ dark ? '☀️' : '🌙' }}</button>
+        <button class="btn-icon" :title="hc ? 'Mode kontras normal' : 'Mode kontras tinggi'" :aria-label="hc ? 'Mode kontras normal' : 'Mode kontras tinggi'" @click="toggleHc">{{ hc ? '🌗' : '🔆' }}</button>
+        <button class="btn-icon" :title="dark ? 'Mode terang' : 'Mode gelap'" :aria-label="dark ? 'Mode terang' : 'Mode gelap'" @click="toggleDark">{{ dark ? '☀️' : '🌙' }}</button>
       </header>
 
       <main class="content" id="konten" tabindex="-1">

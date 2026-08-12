@@ -176,8 +176,9 @@ html.dark .skeleton::after { background: linear-gradient(90deg, transparent, rgb
 .btn:active { transform: translateY(0); }
 .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(37, 99, 235, .3); }
 .btn-danger { background: var(--danger); border-color: var(--danger); color: #fff; }
-.btn-success { background: var(--success); border-color: var(--success); color: #fff; }
-.btn-warning { background: var(--warning); border-color: var(--warning); color: #fff; }
+/* Warna tombol digelapkan agar teks putih ≥4.5:1 (WCAG 2.1.4) */
+.btn-success { background: #047857; border-color: #047857; color: #fff; }
+.btn-warning { background: #b45309; border-color: #b45309; color: #fff; }
 .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 7px; }
 .btn:disabled { opacity: .55; cursor: not-allowed; transform: none; box-shadow: none; }
 
@@ -222,6 +223,46 @@ html.dark .badge-green { background: #064e3b; color: #6ee7b7; }
 html.dark .badge-amber { background: #78350f; color: #fcd34d; }
 html.dark .badge-red { background: #7f1d1d; color: #fca5a5; }
 html.dark .badge-purple { background: #3b0764; color: #c4b5fd; }
+
+/* ---------- Mode Kontras Tinggi (WCAG 1.4.3 / 1.4.6) ---------- */
+html.hc {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #eef2f7;
+  --border: #1e293b;
+  --text: #000000;
+  --text-2: #0f172a;
+  --text-3: #1e293b;
+  --primary: #1d4ed8;
+  --primary-dark: #1e3a8a;
+  --primary-soft: #dbeafe;
+  --success: #047857;
+  --warning: #92400e;
+  --danger: #b91c1c;
+  --info: #155e75;
+  --shadow: none;
+  --shadow-lg: none;
+}
+html.dark.hc {
+  --bg: #000000;
+  --surface: #0a0f1c;
+  --surface-2: #16213a;
+  --border: #cbd5e1;
+  --text: #ffffff;
+  --text-2: #e2e8f0;
+  --text-3: #cbd5e1;
+  --primary: #60a5fa;
+  --primary-soft: #1e3a5f;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --info: #22d3ee;
+  --shadow: none;
+  --shadow-lg: none;
+}
+html.hc .btn, html.hc .input, html.hc .select, html.hc .textarea { border-width: 2px; }
+html.hc .card, html.hc .stat-card, html.hc .modal-box, html.hc .toast { border-width: 2px; }
+html.hc .side-nav a:hover { text-decoration: underline; }
 
 /* ---------- Alerts / toast ---------- */
 .alert { padding: 12px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 14px; }
