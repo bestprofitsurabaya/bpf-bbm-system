@@ -10,8 +10,14 @@ const route = useRoute()
 const brandIcon = '/static/icon-192.png'
 const username = ref('')
 const pin = ref('')
+const showPin = ref(false)
+const capsOn = ref(false)
 const error = ref('')
 const loading = ref(false)
+
+function checkCaps(e) {
+  capsOn.value = e.getModifierState && e.getModifierState('CapsLock')
+}
 
 async function submit() {
   error.value = ''
@@ -48,9 +54,16 @@ async function submit() {
           <input class="input" v-model="username" placeholder="cth: admin" autocomplete="username" required autofocus />
         </div>
         <div class="field">
-          <label>PIN 6-digit</label>
-          <input class="input" v-model="pin" type="password" maxlength="6" inputmode="numeric"
-                 placeholder="••••••" autocomplete="current-password" style="letter-spacing:6px;font-size:18px;" required />
+          <label for="login-pin">PIN 6-digit</label>
+          <div class="pin-wrap">
+            <input id="login-pin" class="input" v-model="pin" :type="showPin ? 'text' : 'password'" maxlength="6" inputmode="numeric"
+                   placeholder="••••••" autocomplete="current-password" @keyup="checkCaps" required />
+            <button type="button" class="btn-icon pin-eye" :title="showPin ? 'Sembunyikan PIN' : 'Lihat PIN'"
+                    :aria-label="showPin ? 'Sembunyikan PIN' : 'Lihat PIN'" @click="showPin = !showPin">
+              {{ showPin ? '🙈' : '👁' }}
+            </button>
+          </div>
+          <div v-if="capsOn" class="caps-hint" role="note">⚠️ Caps Lock sedang aktif — pastikan PIN tidak terkunci huruf besar.</div>
         </div>
         <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px;" :disabled="loading">
           {{ loading ? '⏳ Memverifikasi…' : '🔐 Masuk' }}
@@ -83,4 +96,11 @@ async function submit() {
 .login-brand h1 { font-size: 17px; font-weight: 800; margin-top: 10px; }
 .login-brand p { font-size: 11px; color: var(--text-3); margin-top: 2px; }
 .login-foot { margin-top: 18px; font-size: 11px; color: var(--text-3); text-align: center; line-height: 1.5; }
+.pin-wrap { position: relative; display: flex; }
+.pin-wrap .input { width: 100%; letter-spacing: 6px; font-size: 18px; padding-right: 44px; }
+.pin-eye {
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  width: 34px; height: 34px; border-radius: 8px;
+}
+.caps-hint { font-size: 11px; color: var(--warning); font-weight: 600; }
 </style>

@@ -111,7 +111,7 @@ watch(
       <div class="muted" style="font-size:12px;">Verifikasi klaim BBM, kasbon, dan laporan perjalanan</div>
     </div>
 
-    <div v-if="loading" class="card card-pad muted">Memuat…</div>
+    <div v-if="loading" class="card card-pad muted skeleton">Memuat…</div>
     <template v-else>
       <div class="stat-grid" style="margin-bottom:16px;">
         <StatCard icon="🕐" label="Antrean GA" :value="stats?.pending ?? '—'" color="#dc2626" />

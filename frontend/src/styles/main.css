@@ -12,7 +12,7 @@
   --border: #e2e8f0;
   --text: #0f172a;
   --text-2: #475569;
-  --text-3: #94a3b8;
+  --text-3: #64748b; /* ≥4.5:1 vs surface (WCAG 2.1.4) */
   --success: #059669;
   --warning: #d97706;
   --danger: #dc2626;
@@ -51,6 +51,40 @@ body {
 a { color: var(--primary); text-decoration: none; }
 button { font-family: var(--font); cursor: pointer; }
 input, select, textarea { font-family: var(--font); }
+
+/* ---------- Aksesibilitas: fokus keyboard terlihat (WCAG 2.4.7) ---------- */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.btn:focus-visible, .btn-icon:focus-visible, .side-nav a:focus-visible { outline-offset: 2px; }
+.skip-link {
+  position: absolute; left: -9999px; top: 0; z-index: 3000;
+  background: var(--primary); color: #fff; padding: 8px 14px; border-radius: 0 0 10px 0;
+  font-size: 13px; font-weight: 600;
+}
+.skip-link:focus { left: 0; }
+
+/* ---------- Loading skeleton (shimmer) ---------- */
+.skeleton { position: relative; overflow: hidden; }
+.skeleton::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+  animation: shimmer 1.4s infinite;
+}
+html.dark .skeleton::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent); }
+@keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+/* ---------- Gerakan terbatas (WCAG 2.3.3) ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 /* ---------- Layout ---------- */
 .app-shell { display: flex; min-height: 100vh; }

@@ -118,7 +118,7 @@ onMounted(loadData)
     </form>
 
     <h4 style="margin:14px 0 6px;">📋 Perlu Isi LPJ ({{ pendingLpj.length }})</h4>
-    <div v-if="loading" class="muted" style="font-size:12px;">⏳ Memuat…</div>
+    <div v-if="loading" class="muted skeleton" style="font-size:12px;">⏳ Memuat…</div>
     <div v-else-if="!pendingLpj.length" class="muted" style="font-size:12px;">Tidak ada LPJ pending. 🎉</div>
     <div v-for="c in pendingLpj" :key="c.id" class="lpj-card">
       <strong>{{ c.display_id }}</strong> · Rp {{ Number(c.total_amount).toLocaleString('id-ID') }}
@@ -127,7 +127,7 @@ onMounted(loadData)
     </div>
 
     <h4 style="margin:14px 0 6px;">🕐 Riwayat Pengajuan</h4>
-    <div v-if="loading" class="muted" style="font-size:12px;">⏳ Memuat…</div>
+    <div v-if="loading" class="muted skeleton" style="font-size:12px;">⏳ Memuat…</div>
     <div v-else-if="!history.length" class="muted" style="font-size:12px;">Belum ada pengajuan.</div>
     <div v-for="c in history.slice(0, 10)" :key="c.id" class="hist-card">
       <template v-if="c.status === 'REJECTED'">

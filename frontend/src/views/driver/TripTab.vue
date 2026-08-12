@@ -180,7 +180,7 @@ onMounted(() => { addRow() })
         <div class="spacer"></div>
         <button class="btn btn-sm btn-primary" @click="fillFromAppointments">📥 Muat Semua ke Rute</button>
       </div>
-      <div v-if="apptLoading" class="muted" style="font-size:12px;">⏳ Memuat…</div>
+      <div v-if="apptLoading" class="muted skeleton" style="font-size:12px;">⏳ Memuat…</div>
       <div v-for="a in appointments" :key="a.id" class="appt-item">
         <span class="appt-time">{{ a.sesi === '2' ? '🌆 14.30' : '🌅 08.30' }}</span>
         <div class="appt-body">

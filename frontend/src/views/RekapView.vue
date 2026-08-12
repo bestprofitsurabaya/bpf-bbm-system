@@ -48,7 +48,7 @@ onMounted(load)
       </div>
     </div>
 
-    <div v-if="loading" class="empty">⏳ Memuat…</div>
+    <div v-if="loading" class="empty skeleton">⏳ Memuat…</div>
     <div v-else-if="err" class="alert alert-error">{{ err }}</div>
     <template v-else>
       <div class="stat-grid" style="margin-bottom:16px;">

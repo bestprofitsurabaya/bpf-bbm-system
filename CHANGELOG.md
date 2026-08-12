@@ -6,6 +6,32 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.10.0] - 2026-08-12
+
+### 🎨 Peningkatan UI/UX sesuai Standar (WCAG 2.1 · ISO 9241-11)
+
+- **Fokus keyboard terlihat**: ring `:focus-visible` global di tombol/link/input (WCAG 2.4.7) — pengguna keyboard selalu tahu posisi fokus.
+- **Kontras teks diperbaiki**: `--text-3` (mode terang) digelapkan `#94a3b8 → #64748b` — rasio ≥ 4,5:1 terhadap permukaan (WCAG 2.1.4).
+- **Gerakan terbatas**: blok `prefers-reduced-motion` mematikan animasi bagi pengguna yang sensitif (WCAG 2.3.3).
+- **Skip-link** "Langsung ke konten" di layout — ditempatkan di luar sidebar agar tetap bisa diakses di layar kecil (WCAG 2.4.1).
+- **Modal diaksesibel penuh**: `role="dialog"` + `aria-modal`, tutup dengan **Esc**, fokus awal ke tombol tutup, **restore fokus** ke pemicu, dan **focus trap Tab** agar fokus tidak bocor ke konten belakang (WCAG 2.4.3).
+- **Halaman Login**: toggle **👁 lihat / 🙈 sembunyikan PIN**, peringatan **Caps Lock aktif**, dan label terhubung (`for`/`id`).
+- **Toast**: region `aria-live="polite"` (dibaca pembaca layar), **warna aksen per tipe event** (klaim ⚠️, trip 🔵, appointment 🟣, air minum 🩵), perbaikan variabel `--card` yang keliru → `--surface`.
+- **Loading skeleton**: efek shimmer pada semua state "Memuat…" di 15+ tampilan (teks tidak diubah — test tetap hijau).
+
+### 🧹 Bersih-bersih
+
+- **Akun `ob` (Office Boy) dihapus total dari database** (sebelumnya nonaktif) — tidak ada FK yang mereferensikan users, aman. User aktif: admin, ga_officer, finance_officer, qa, Yusie, driver, ob1/ob2/ob3.
+- **PWA legacy**: root `sw.js` lama bersifat network-first dan melewati `/app` (SPA punya SW sendiri) — perangkat yang sudah terpasang lama tetap berfungsi; instalasi baru memakai `/app/sw.js`. Verifikasi: tidak ada referensi tersisa.
+- **README dirapikan** — riwayat versi lama dipertahankan sebagai catatan sejarah, tabel akses sudah memakai URL `/app/*`.
+
+### 🧪 Cakupan Pengujian
+
+- **82 Vitest + 97 pytest** hijau (tidak ada assert yang berubah).
+- Build SPA sukses, `/app/` & `/app/login` 200.
+
+---
+
 ## [2.9.0] - 2026-08-12
 
 ### 🧹 Bersih-Bersih Kode + Panduan Baru + Server Efisien

@@ -70,7 +70,7 @@ onMounted(load)
       </div>
     </div>
 
-    <div v-if="loading" class="empty">⏳ Memuat…</div>
+    <div v-if="loading" class="empty skeleton">⏳ Memuat…</div>
     <div v-else-if="err" class="alert alert-error">{{ err }}</div>
     <div class="card" v-else>
       <div class="table-wrap">

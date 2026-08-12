@@ -81,7 +81,7 @@ onBeforeUnmount(() => { [ch1, ch2, ch3].forEach((c) => c && c.destroy()) })
       </div>
     </div>
 
-    <div v-if="loading" class="empty">⏳ Memuat…</div>
+    <div v-if="loading" class="empty skeleton">⏳ Memuat…</div>
     <div v-else-if="err" class="alert alert-error">{{ err }}</div>
     <template v-else>
       <!-- Finance -->

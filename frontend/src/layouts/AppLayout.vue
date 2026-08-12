@@ -71,6 +71,7 @@ onBeforeUnmount(() => { unwatchRt?.(); rt.disconnect() })
 
 <template>
   <div class="app-shell">
+    <a href="#konten" class="skip-link">Langsung ke konten</a>
     <div class="backdrop" :class="{ show: open }" @click="open = false"></div>
 
     <aside class="sidebar" :class="{ open }">
@@ -82,7 +83,7 @@ onBeforeUnmount(() => { unwatchRt?.(); rt.disconnect() })
         </div>
       </div>
 
-      <nav class="side-nav">
+      <nav class="side-nav" aria-label="Menu utama">
         <div class="nav-sec">Menu · {{ auth.meta?.label }}</div>
         <router-link v-for="m in items" :key="m.path" :to="m.path" @click="open = false">
           <span class="ico">{{ m.icon }}</span>{{ m.label }}
@@ -97,7 +98,7 @@ onBeforeUnmount(() => { unwatchRt?.(); rt.disconnect() })
             <span class="role-chip" :style="{ background: auth.meta?.color }">{{ auth.meta?.icon }} {{ auth.meta?.label }}</span>
           </div>
         </div>
-        <button class="btn-icon" title="Keluar" @click="doLogout">🚪</button>
+        <button class="btn-icon" title="Keluar" aria-label="Keluar" @click="doLogout">🚪</button>
       </div>
     </aside>
 
@@ -114,7 +115,7 @@ onBeforeUnmount(() => { unwatchRt?.(); rt.disconnect() })
         <button class="btn-icon" :title="dark ? 'Mode terang' : 'Mode gelap'" @click="toggleDark">{{ dark ? '☀️' : '🌙' }}</button>
       </header>
 
-      <main class="content">
+      <main class="content" id="konten" tabindex="-1">
         <router-view />
       </main>
     </div>

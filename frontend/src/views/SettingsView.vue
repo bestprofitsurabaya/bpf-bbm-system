@@ -125,7 +125,7 @@ onMounted(() => { load(); loadWaterNames() })
 <template>
   <div>
     <div v-if="msg" class="alert" :class="msg.startsWith('✅') ? 'alert-success' : 'alert-error'">{{ msg }}</div>
-    <div v-if="loading" class="empty">⏳ Memuat…</div>
+    <div v-if="loading" class="empty skeleton">⏳ Memuat…</div>
     <div v-else-if="err" class="alert alert-error">{{ err }}</div>
     <template v-else>
       <div class="card card-pad" style="margin-bottom:16px;display:flex;align-items:center;">

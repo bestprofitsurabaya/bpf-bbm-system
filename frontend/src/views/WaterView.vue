@@ -190,7 +190,7 @@ onMounted(() => { form.value.items.push(newItem()); load() })
       <button v-if="isFinance" class="btn" @click="openBrandModal">🏷️ Kelola Merk</button>
     </div>
 
-    <div v-if="loading" class="empty">⏳ Memuat…</div>
+    <div v-if="loading" class="empty skeleton">⏳ Memuat…</div>
     <div v-else-if="err" class="alert alert-error">{{ err }}</div>
     <template v-else>
       <!-- Daftar pengajuan -->

@@ -61,7 +61,7 @@ onMounted(load)
       <button class="btn" @click="exportCsv" title="Unduh rekap sebagai CSV">⬇️ Export CSV</button>
     </div>
 
-    <div v-if="loading" class="card card-pad muted">Memuat…</div>
+    <div v-if="loading" class="card card-pad muted skeleton">Memuat…</div>
     <template v-else-if="data">
       <!-- Statistik air minum -->
       <div class="stat-grid" style="margin-bottom:16px;">
