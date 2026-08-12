@@ -17,7 +17,8 @@ const dark = ref(localStorage.getItem('bpf_dark') === '1')
 const brandIcon = '/static/icon-192.png'
 
 const MENU = [
-  { label: 'Dashboard', path: '/dashboard', icon: '📊', roles: ['admin', 'ga'] },
+  { label: 'Dashboard', path: '/dashboard', icon: '📊', roles: ['admin'] },
+  { label: 'Dashboard GA', path: '/ga', icon: '🧾', roles: ['ga', 'admin'] },
   { label: 'Dashboard Finance', path: '/finance', icon: '💰', roles: ['finance', 'admin'] },
   { label: 'Log Perjalanan', path: '/trips', icon: '🗺️', roles: ['ga', 'finance', 'admin'] },
   { label: 'Assignments', path: '/assignments', icon: '🚗', roles: ['ga', 'admin'] },

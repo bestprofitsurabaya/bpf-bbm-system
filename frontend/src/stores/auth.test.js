@@ -5,7 +5,7 @@ import { useAuthStore, ROLE_META } from './auth'
 describe('ROLE_META (ISO/IEC 27001 — hak akses per peran)', () => {
   it('memetakan setiap role ke home dashboard masing-masing', () => {
     expect(ROLE_META.admin.home).toBe('/dashboard')
-    expect(ROLE_META.ga.home).toBe('/dashboard')
+    expect(ROLE_META.ga.home).toBe('/ga')
     expect(ROLE_META.finance.home).toBe('/finance')
     expect(ROLE_META.marketing.home).toBe('/marketing')
     expect(ROLE_META.chief_driver.home).toBe('/chief-driver')

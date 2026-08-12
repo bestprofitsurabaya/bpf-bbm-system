@@ -327,7 +327,7 @@ class TestHomeForRoleOB:
         assert home_for_role('ob') == '/app/water'
 
     def test_role_finance_memiliki_dashboard_sendiri(self):
-        """v2.7: finance punya dashboard khusus /app/finance; ga/admin tetap dashboard."""
+        """v2.7/2.8: finance & ga punya dashboard khusus; admin tetap dashboard."""
         assert home_for_role('finance') == '/app/finance'
-        assert home_for_role('ga') == '/app/dashboard'
+        assert home_for_role('ga') == '/app/ga'
         assert home_for_role('admin') == '/app/dashboard'

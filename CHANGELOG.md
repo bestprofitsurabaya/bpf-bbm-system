@@ -6,6 +6,23 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.8.0] - 2026-08-12
+
+### 🧾 Dashboard Khusus GA + Nama OB Asli
+
+- **GA kini punya halaman sendiri**: `/app/ga` (sebelumnya tercampur dengan admin di `/app/dashboard`). Setelah login, GA langsung diarahkan ke dashboard-nya — menu menampilkan **Dashboard GA** khusus (admin tetap di `/app/dashboard`, dan bisa membuka ketiga dashboard).
+- **Isi dashboard GA**: kartu statistik (antrean GA, verified GA, terarsip, transaksi hari ini, kasbon menunggu approve), **antrean klaim BBM** dengan tombol ✅ Approve / ✕ Tolak (modal alasan — alasan wajib untuk audit trail), **🛡 Verifikasi anomali ML langsung di dashboard** (klaim ber-flag ⚠️ tidak lagi perlu ke Dashboard Admin: modal konfirmasi → `/api/queue/verify` dengan `confirm_anomaly`), ringkasan **kasbon DRAFT** yang menunggu approve GA, **laporan perjalanan pending**, dan aksi cepat (Trip, Assignments, Kasbon, Air Minum, Analytics).
+- **Kontrol akses tetap ketat**: GA tidak bisa membuka `/app/dashboard` maupun `/api/water/recap` (403); `/api/queue/reject` & `/api/queue/verify` memang untuk ga/admin — GA memegang kendali penuh siklus klaimnya.
+- **Nama OB asli**: `ob1` → **Faisol**, `ob2` → **Febri**, `ob3` → **Edwin** (PIN tetap 123456) — nama tampil di PDF tanda terima & notifikasi.
+
+### 🧪 Cakupan Pengujian
+
+- **Vitest +5** (`GaDashboard.test.js`, kini 6 test): kartu statistik, antrean & kasbon DRAFT, approve (confirm), verifikasi anomali (wajib centang → `/api/queue/verify` dengan `confirm_anomaly`), tolak (tombol terkunci tanpa alasan). Update `auth.test.js` (`ga.home` → `/ga`). Total **82**.
+- **pytest**: update assert lama `home_for_role('ga')` → `/app/ga`. Total **97** (hijau di container).
+- **E2E produksi**: GA login → home `/app/ga` ✅ · data dashboard GA (stats/queue/cash/trips) ✅ · GA → `/api/water/recap` = **403** ✅ · admin tetap `/app/dashboard` ✅ · **verifikasi anomali GA**: tanpa konfirmasi → 422, dengan konfirmasi → `verified_ga` ✅ · Faisol buat pengajuan → isolasi OB (`ob_name` Faisol) ✅ · data test dibersihkan ✅.
+
+---
+
 ## [2.7.0] - 2026-08-12
 
 ### 💰 Dashboard Khusus Finance + Rekap Air Minum

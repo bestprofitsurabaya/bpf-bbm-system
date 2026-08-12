@@ -554,6 +554,7 @@ ROLE_HOME = {
     'driver': '/app/driver',
     'ob': '/app/water',
     'finance': '/app/finance',   # v2.7: dashboard khusus Finance (rekap air minum + kasbon)
+    'ga': '/app/ga',             # v2.8: dashboard khusus GA (antrean klaim + kasbon + trip)
 }
 
 

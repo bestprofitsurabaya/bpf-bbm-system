@@ -63,8 +63,8 @@ class TestHomeForRoleDriver:
         assert home_for_role('driver') == '/app/driver'
 
     def test_role_lain_tetap_dashboard(self):
-        assert home_for_role('ga') == '/app/dashboard'
-        # v2.7: finance punya dashboard khusus
+        # v2.8: ga & finance punya dashboard khusus
+        assert home_for_role('ga') == '/app/ga'
         assert home_for_role('finance') == '/app/finance'
 
 

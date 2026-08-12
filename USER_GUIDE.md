@@ -1,4 +1,4 @@
-# 📖 Panduan Pengguna BPF Fleet & BBM System v2.7.0
+# 📖 Panduan Pengguna BPF Fleet & BBM System v2.8.0
 
 **PT. Bestprofit Futures — Surabaya**
 
@@ -190,6 +190,12 @@ Mulai v1.1, kamu akan menerima **notifikasi di HP** setiap kali transaksi atau k
 Tugas utama GA adalah memverifikasi klaim, mengatur penugasan kendaraan, dan meninjau log perjalanan driver.
 
 ### 3.1 Dashboard
+
+> **v2.8**: GA kini punya dashboard sendiri (`/app/ga`):
+> - **Antrean Klaim BBM** — ✅ Approve atau ✕ Tolak (alasan wajib) langsung dari dashboard.
+> - **🛡 Verifikasi anomali** — klaim ber-flag ⚠️ ML: periksa foto bukti lalu centang konfirmasi untuk menyetujui.
+> - **Kasbon Menunggu Approve GA** (status DRAFT) dan **laporan perjalanan menunggu review**.
+> - Aksi cepat ke Trip, Assignments, Kasbon, dan Air Minum.
 
 Buka halaman `/admin`. Di sana terdapat 5 tab utama:
 
