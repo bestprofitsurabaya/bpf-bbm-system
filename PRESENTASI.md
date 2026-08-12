@@ -4,6 +4,7 @@
 > Tiap bagian berisi: tujuan, yang diklik di layar, poin yang dibicarakan, dan "satu kalimat kunci".
 > Total durasi fleksibel — **demo inti ±15 menit**, versi lengkap ±30 menit.
 > 🖥️ **Slide deck interaktif**: buka `presentasi/index.html` di browser (navigasi → ←, tekan **N** untuk catatan pembicara, **Ctrl+P** untuk cetak/PDF).
+> 📄 **Versi PDF siap bagikan**: `presentasi/BPF_Fleet_BBM_System_Presentasi.pdf` (12 halaman landscape A4, tanpa catatan pembicara).
 > 🧪 **Data demo**: sudah diisi di database (label `DEMO` — air minum, klaim BBM, kasbon, trip, appointment). Bersihkan dengan `scripts/demo_cleanup.sql`.
 
 ---

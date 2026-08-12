@@ -6,6 +6,14 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.12.1] - 2026-08-12
+
+### 📄 Versi PDF Slide Deck
+
+- `presentasi/BPF_Fleet_BBM_System_Presentasi.pdf` — **12 halaman** landscape A4 dari slide deck (tanpa catatan pembicara), siap dibagikan sebelum meeting. CSS print di `presentasi/index.html` dioptimalkan: satu slide = satu halaman, ukuran font/table disesuaikan agar tidak terpotong.
+
+---
+
 ## [2.12.0] - 2026-08-12
 
 ### 🎤 Siap Demo: Slide Deck, Data Demo, Verifikasi Chrome Host
