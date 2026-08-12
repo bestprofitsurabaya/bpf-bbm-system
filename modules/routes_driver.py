@@ -154,16 +154,6 @@ def register_driver_routes(app, socketio):
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
 
-    @app.route('/manifest.json')
-    def serve_manifest():
-        return send_from_directory(os.getcwd(), 'manifest.json')
-
-    @app.route('/sw.js')
-    def serve_sw():
-        response = make_response(send_from_directory(os.getcwd(), 'sw.js'))
-        response.headers['Content-Type'] = 'application/javascript'
-        return response
-
     @app.route('/uploads/<filename>')
     def uploaded_file(filename):
         # Hardening (ISO/IEC 27001): file bukti dibuka inline, tapi cegah

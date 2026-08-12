@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import GaDashboard from './GaDashboard.vue'
 
 const { apiMock } = vi.hoisted(() => ({ apiMock: vi.fn() }))
@@ -31,7 +32,10 @@ async function mountView() {
 }
 
 describe('GaDashboard', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    setActivePinia(createPinia())
+  })
   afterEach(() => vi.unstubAllGlobals())
 
   it('menampilkan kartu statistik & kasbon menunggu approve GA', async () => {

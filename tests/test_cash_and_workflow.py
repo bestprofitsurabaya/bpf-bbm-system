@@ -214,13 +214,14 @@ class TestFileCleanup:
     def test_cleanup_function_exists(self):
         """Fungsi cleanup_transaction_files harus ada."""
         # Import dinamis untuk cek keberadaan
+        # v2.9: routes_admin.py dipensiunkan (endpoint aksi klasik dihapus) —
+        # cleanup file kini hidup di jalur SPA: routes_spa.py & routes_cash.py.
         try:
-            from modules.routes_admin import register_admin_routes
-            # Cek apakah fungsi cleanup_transaction_files ada
             import inspect
-            source = inspect.getsource(register_admin_routes)
-            assert 'cleanup_transaction_files' in source or 'os.remove' in source, \
-                "Fungsi cleanup harus ada di routes_admin.py"
+            from modules import routes_spa, routes_cash
+            source = inspect.getsource(routes_spa) + inspect.getsource(routes_cash)
+            assert 'os.remove' in source or '_os.remove' in source, \
+                "Fungsi cleanup file harus ada di routes_spa.py / routes_cash.py"
         except ImportError as e:
             pytest.skip(f"Tidak bisa import: {e}")
 

@@ -6,6 +6,27 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.9.0] - 2026-08-12
+
+### 🧹 Bersih-Bersih Kode + Panduan Baru + Server Efisien
+
+- **Kode mati dibuang**:
+  - `modules/routes_admin.py` dipangkas total — endpoint aksi klasik (ga_approve, finance_payout, finance_archive, reject, unverify, delete, edit-odo, trips verify/reject) **dihapus** karena SPA sudah punya pengganti resmi (`/api/queue/*` & `/api/trips/*`). Tersisa: redirect kompat (`/admin`, `/admin/queue-fragment/<tab>`, `/admin/trips`, `/ga/assignments` → SPA) + **export logsheet Excel/PDF** yang belum punya tombol di SPA.
+  - `modules/routes_driver.py`: route `/manifest.json` & `/sw.js` (root legacy) dihapus — SPA memakai `/app/manifest.webmanifest` & `/app/sw.js`.
+  - File mati di-root **`sw.js` & `manifest.json` dihapus dari repo**; `CSRF_EXEMPT_PREFIXES` di `app.py` dibersihkan (tidak ada lagi `/manifest.json` & `/sw.js`).
+- **Akun OB generik dinonaktifkan**: `ob` (Office Boy) `is_active=0` — tidak bisa login. OB aktif kini hanya `ob1` **Faisol**, `ob2` **Febri**, `ob3` **Edwin**.
+- **Dashboard GA auto-refresh**: antrean klaim langsung ter-refresh saat ada klaim baru masuk (event realtime `new_claim` dipantau lewat watch `realtime.items[0]`, dengan guard anti-overlap saat masih loading).
+- **USER_GUIDE.md ditulis ulang total**: struktur rapi per peran (OB, Driver, GA, Finance, Marketing, Chief Driver, Admin) + alur kasbon lengkap + troubleshooting + glosarium — bahasa humanis, mudah dipahami orang awam, disesuaikan dengan user nyata (Faisol/Febri/Edwin & dashboard per-role).
+- **Server & Docker efisien**: `docker system/image/builder/volume prune` → **1,7 GB+ dibebaskan** (volume 2,1 GB → 677 MB, build cache 220 MB → 0).
+
+### 🧪 Cakupan Pengujian
+
+- **pytest**: `test_cleanup_function_exists` diperbarui — cleanup file kini diverifikasi di `routes_spa.py`/`routes_cash.py` (lokasi sebenarnya setelah routes_admin dipangkas), assert `os.remove`/`_os.remove`. Total **97** hijau.
+- **Vitest**: `GaDashboard.test.js` ditambah setup Pinia (`setActivePinia(createPinia())`) untuk store realtime. Total **82** hijau.
+- **E2E produksi**: GA → `/app/ga` ✅ · Finance → `/app/finance` ✅ · OB1 (Faisol) → `/app/water` ✅ · `ob` nonaktif → login **ditolak** ✅ · `/login` → 302 `/app/login` ✅ · `/admin` → 302 `/app/dashboard` ✅ · `/sw.js` & `/manifest.json` root → **404** ✅ · SPA `/app/` 200 ✅ · antrean GA ✅.
+
+---
+
 ## [2.8.0] - 2026-08-12
 
 ### 🧾 Dashboard Khusus GA + Nama OB Asli

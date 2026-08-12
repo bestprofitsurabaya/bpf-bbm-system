@@ -1,4 +1,4 @@
-# ⛽ BPF Fleet & BBM System v2.8.0 (SPA Vue 3 penuh — 100% Vue)
+# ⛽ BPF Fleet & BBM System v2.9.0 (SPA Vue 3 penuh — 100% Vue)
 
 **Sistem Manajemen Armada, Klaim BBM, Kasbon, Log Perjalanan, Appointment & Air Minum**  
 **PT. Bestprofit Futures - Surabaya**
@@ -6,6 +6,19 @@
 ---
 
 Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pengarsipan klaim BBM, **pengajuan kasbon dengan kode unik**, dan log perjalanan harian (logsheet) dengan workflow GA → Finance → Archive. Dilengkapi **sistem appointment canggih** (Marketing → Chief Driver → Log Perjalanan), deteksi anomali Machine Learning, GPS tracking, **watermark foto otomatis**, PIN security, **session-based login & role-based access**, **CSRF protection**, **notifikasi real-time**, import Excel, audit trail, Chart.js visualization, **PWA offline-first**, dan **WebSocket real-time**.
+
+---
+
+## 🆕 Fitur Terbaru v2.9.0 — Bersih-Bersih Kode, Panduan Baru, Server Efisien
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **🧹 Kode mati dibuang** | Endpoint aksi klasik dihapus dari `routes_admin.py` (SPA sudah punya `/api/queue/*` & `/api/trips/*`); `sw.js` & `manifest.json` root dihapus; daftar CSRF-exempt dibersihkan |
+| **🔒 Akun OB generik dinonaktifkan** | `ob`/Office Boy nonaktif (tidak bisa login) — hanya `ob1` Faisol, `ob2` Febri, `ob3` Edwin |
+| **⚡ Dashboard GA auto-refresh** | Antrean klaim langsung ter-refresh saat klaim baru masuk (realtime `new_claim`) — tanpa muat ulang halaman |
+| **📖 USER_GUIDE ditulis ulang** | Struktur rapi per peran (OB, Driver, GA, Finance, Marketing, Chief Driver, Admin) — bahasa humanis, mudah dipahami orang awam |
+| **🧹 Server & Docker efisien** | Prune volume/image/cache → **1,7 GB+ dibebaskan** |
+| **🧪 Test** | 82 Vitest + 97 pytest + E2E produksi |
 
 ---
 
@@ -395,7 +408,7 @@ bpf-bbm-system/
 │   ├── routes_auth.py              # Login / logout (session, redirect per-role)
 │   ├── routes_appointments.py      # Marketing & Chief Driver (halaman + API)
 │   ├── routes_driver.py            # Driver & PWA routes
-│   ├── routes_admin.py             # Admin dashboard & workflow
+│   ├── routes_admin.py             # Redirect kompat + export logsheet (aksi via /api/queue/*)
 │   ├── routes_reports.py           # Reports, rekap, analytics
 │   ├── routes_settings.py          # Settings + /admin/users (redirect SPA)
 │   ├── routes_cash.py              # Cash request & LPJ

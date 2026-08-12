@@ -93,7 +93,7 @@ register_spa_routes(app)
 # tidak perlu lagi dikecualikan dari proteksi CSRF (defense-in-depth).
 CSRF_EXEMPT_PREFIXES = (
     '/socket.io', '/api/assignments/confirm', '/api/get-feedback',
-    '/api/vehicle-allowed-bbm', '/uploads/', '/manifest.json', '/sw.js',
+    '/api/vehicle-allowed-bbm', '/uploads/',
 )
 
 @app.context_processor

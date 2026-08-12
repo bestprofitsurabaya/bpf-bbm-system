@@ -1,8 +1,9 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { api } from '../../api'
 import StatCard from '../../components/StatCard.vue'
 import Modal from '../../components/Modal.vue'
+import { useRealtimeStore } from '../../stores/realtime'
 
 const stats = ref(null)
 const queue = ref([])
@@ -88,6 +89,19 @@ async function doReject() {
 }
 
 onMounted(load)
+
+// v2.9: antrean GA langsung refresh saat ada klaim BBM baru (event realtime new_claim)
+const realtime = useRealtimeStore()
+let lastClaimToast = null
+watch(
+  () => realtime.items[0],
+  (item) => {
+    if (item && item.type === 'new_claim' && item.id !== lastClaimToast && !loading.value) {
+      lastClaimToast = item.id
+      load()
+    }
+  }
+)
 </script>
 
 <template>
