@@ -119,7 +119,7 @@ describe('AdminDashboard', () => {
     expect(apiMock).toHaveBeenCalledWith('/api/queue/archive/4', { method: 'POST' })
   })
 
-  it('transaksi ber-flag anomali ML tidak bisa di-approve cepat (wajib verifikasi klasik)', async () => {
+  it('transaksi ber-flag anomali ML tidak bisa di-approve cepat — tersedia tombol 🛡 Verifikasi (langsung di SPA)', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
     const auth = useAuthStore()
@@ -127,6 +127,8 @@ describe('AdminDashboard', () => {
     apiMock.mockImplementation((path, opts = {}) => {
       if (path === '/api/stats') return Promise.resolve(STATS)
       if (path === '/api/queue') return Promise.resolve([TX(9, 'pending', true)])
+      if (path.startsWith('/api/transactions/detail/')) return Promise.resolve({ ...DETAIL(9), ml_anomaly_flag: true })
+      if (path.startsWith('/api/cross-check/')) return Promise.resolve(CROSS)
       return Promise.resolve({ status: 'success', msg: 'ok' })
     })
     const w = mount(AdminDashboard, {
@@ -134,8 +136,32 @@ describe('AdminDashboard', () => {
     })
     await flushPromises()
     await flushPromises()
-    expect(w.text()).toContain('Wajib klasik')
+    // Tanpa tautan klasik: tombol approve cepat TIDAK muncul, diganti verifikasi dari SPA
+    expect(w.text()).not.toContain('Wajib klasik')
     expect(btnByText(w, '✅')).toBeFalsy()
+    expect(btnByText(w, '🛡 Verifikasi')).toBeTruthy()
+  })
+
+  it('klik tombol 🛡 Verifikasi di baris membuka modal langsung ke form verifikasi anomali', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const auth = useAuthStore()
+    auth.user = { role: 'ga', full_name: 'GA', user_name: 'ga' }
+    apiMock.mockImplementation((path, opts = {}) => {
+      if (path === '/api/stats') return Promise.resolve(STATS)
+      if (path === '/api/queue') return Promise.resolve([TX(10, 'pending', true)])
+      if (path.startsWith('/api/transactions/detail/')) return Promise.resolve({ ...DETAIL(10), ml_anomaly_flag: true })
+      if (path.startsWith('/api/cross-check/')) return Promise.resolve(CROSS)
+      return Promise.resolve({ status: 'success', msg: 'ok' })
+    })
+    const w = mount(AdminDashboard, {
+      global: { plugins: [pinia], stubs: { 'router-link': { template: '<a><slot /></a>' } } },
+    })
+    await flushPromises(); await flushPromises()
+    await btnByText(w, '🛡 Verifikasi').trigger('click')
+    await flushPromises(); await flushPromises()
+    expect(w.text()).toContain('🛡 Verifikasi Mendalam (Anomali ML)')
+    expect(btnByText(w, '✅ Simpan Verifikasi')).toBeTruthy()
   })
 
   it('klik Detail (👁) membuka modal dengan foto & cross-check, lalu aksi Approve dari modal', async () => {

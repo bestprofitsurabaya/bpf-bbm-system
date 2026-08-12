@@ -69,6 +69,17 @@ async function deleteDriver(name) {
   finally { busy.value = false }
 }
 
+/** Reset PIN massal seluruh akun driver ke 123456 (onboarding cepat). */
+async function resetDriverPinMassal() {
+  if (!confirm('Reset PIN SEMUA akun driver menjadi 123456?')) return
+  busy.value = true; msg.value = ''
+  try {
+    const r = await api('/api/drivers/pin-reset', { method: 'POST', body: { new_pin: '123456' } })
+    msg.value = '✅ ' + (r.msg || 'PIN semua driver direset ke 123456')
+  } catch (e) { msg.value = '❌ ' + e.message }
+  finally { busy.value = false }
+}
+
 async function addVehicle() {
   busy.value = true; msg.value = ''
   try {
@@ -100,6 +111,7 @@ onMounted(load)
         </div>
         <button class="btn btn-primary btn-sm" @click="showDriverForm = true">➕ Tambah Driver</button>
         <button class="btn btn-sm" style="margin-left:8px;" @click="showVehicleForm = true">🚙 Tambah Kendaraan</button>
+        <button class="btn btn-sm" style="margin-left:8px;" :disabled="busy" @click="resetDriverPinMassal" title="Set PIN semua akun driver ke 123456">🔑 PIN Driver = 123456</button>
       </div>
 
       <div class="card" style="margin-bottom:16px;">

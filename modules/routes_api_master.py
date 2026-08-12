@@ -1,5 +1,5 @@
 """API Routes - Master Data (Vehicles, BBM, Drivers, Users)"""
-from flask import request, jsonify
+from flask import request, jsonify, session
 from modules.config import get_db_connection
 from modules.helpers import (finalize_pin, log_activity_async, resolve_user_pin, role_required,
                              pin_rate_check, pin_fail, pin_success, client_ip)
@@ -98,6 +98,39 @@ def register_master_api(app):
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
 
+    @app.route('/api/drivers/pin-reset', methods=['POST'])
+    @role_required(['admin'])
+    def bulk_reset_driver_pin():
+        """Reset PIN massal seluruh user ber-role driver (default 123456).
+
+        Dipakai tombol 'Reset PIN Massal Driver' di SPA Settings (halaman admin).
+        ISO/IEC 27001 A.9.4 — kredensial dikelola Admin (audit trail tercatat).
+        """
+        try:
+            data = request.get_json(silent=True) or {}
+            new_pin = str(data.get('new_pin', '123456') or '123456').strip()
+            if not new_pin.isdigit() or len(new_pin) != 6:
+                return jsonify({'status': 'error', 'msg': 'PIN harus 6 digit angka'}), 400
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'status': 'error', 'msg': 'DB error'}), 500
+            cursor = conn.cursor()
+            # Jumlah total akun driver (untuk laporan), lalu setel PIN semuanya.
+            cursor.execute("SELECT COUNT(*) FROM users WHERE role='driver'")
+            total = cursor.fetchone()[0]
+            cursor.execute("UPDATE users SET pin=%s WHERE role='driver'", (new_pin,))
+            affected = cursor.rowcount
+            conn.commit()
+            cursor.close(); conn.close()
+            log_activity_async(0, 'bulk_driver_pin_reset', 'admin',
+                               (session.get('full_name') or session.get('user_name') or 'Admin'),
+                               new_data={'total': total, 'changed': affected, 'pin': new_pin},
+                               ip=request.remote_addr)
+            return jsonify({'status': 'success',
+                            'msg': f'PIN {total} akun driver disetel ke {new_pin}'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
     @app.route('/api/users')
     @role_required(['admin'])
     def api_users():
@@ -116,7 +149,7 @@ def register_master_api(app):
             data = request.get_json()
             u = data.get('username', '').strip(); f = data.get('full_name', '').strip()
             r = data.get('role', 'ga'); a = data.get('is_active', True)
-            if r not in ('admin', 'ga', 'finance', 'marketing', 'chief_driver'):
+            if r not in ('admin', 'ga', 'finance', 'marketing', 'chief_driver', 'driver'):
                 return jsonify({'status': 'error', 'msg': 'Role tidak valid'}), 400
             if not u or not f: return jsonify({'status': 'error', 'msg': 'Username dan nama wajib'}), 400
 

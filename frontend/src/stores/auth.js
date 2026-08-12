@@ -8,6 +8,7 @@ export const ROLE_META = {
   finance:      { label: 'Finance',      home: '/dashboard',    color: '#059669', icon: '💰' },
   marketing:    { label: 'Marketing',    home: '/marketing',    color: '#d97706', icon: '📣' },
   chief_driver: { label: 'Chief Driver', home: '/chief-driver', color: '#7c3aed', icon: '🚛' },
+  driver:       { label: 'Driver',       home: '/driver',       color: '#16a34a', icon: '🚛' },
 }
 
 export const useAuthStore = defineStore('auth', {

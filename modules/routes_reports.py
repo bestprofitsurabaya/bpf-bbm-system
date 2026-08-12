@@ -1,10 +1,10 @@
 """Report, Rekap, Analytics & Settings Routes"""
-from flask import (render_template, request, redirect, url_for, flash, jsonify, make_response)
+from flask import (request, redirect, url_for, flash, make_response)
 from modules.config import get_db_connection
 from modules.helpers import log_activity_async, role_required
 from modules.engine import get_rekap_data
 from modules.pdf_generator import PDFReportCompact, BBMReportPDF
-from datetime import datetime, timedelta
+from datetime import datetime
 import zipfile, io, os, subprocess
 from io import BytesIO
 
@@ -38,36 +38,9 @@ def register_report_routes(app):
     @app.route('/admin/rekap')
     @role_required(['ga', 'finance', 'admin'])
     def admin_rekap():
-        try:
-            page = request.args.get('page', 1, type=int)
-            per_page = 75
-            today = datetime.now().date()
-            week_ago = (datetime.now() - timedelta(days=7)).date()
-            sd = request.args.get('start_date', '').strip()
-            ed = request.args.get('end_date', '').strip()
-            if not sd and not ed and not request.args.get("nopol") and not request.args.get("driver"):
-                sq, eq = week_ago.strftime('%Y-%m-%d'), today.strftime('%Y-%m-%d')
-                default = True
-            else:
-                sq = sd if sd else None
-                eq = ed if ed else None
-                default = False
-            filters = {'start_date': sd if sd else (week_ago.strftime('%Y-%m-%d') if default else ''),
-                       'end_date': ed if ed else (today.strftime('%Y-%m-%d') if default else ''),
-                       'nopol': request.args.get('nopol', ''), 'driver': request.args.get('driver', ''), 'type': request.args.get('type', '')}
-            all_txs = get_rekap_data(start_date=sq, end_date=eq,
-                                     nopol=filters['nopol'] if filters['nopol'] else None, tx_type=filters['type'] if filters.get('type') else None,
-                                     driver=filters['driver'] if filters['driver'] else None)
-            total = len(all_txs)
-            pages = max((total+per_page-1)//per_page, 1)
-            if page<1: page=1
-            if page>pages: page=pages
-            paginated = all_txs[(page-1)*per_page:page*per_page]
-            pagination = {'page': page, 'total_pages': pages, 'total_count': total,
-                          'has_prev': page>1, 'has_next': page<pages, 'prev_page': page-1, 'next_page': page+1}
-            return render_template('rekap.html', transactions=paginated, filters=filters, pagination=pagination)
-        except Exception as e:
-            return f"Error: {str(e)}", 500
+        # v2.5: halaman klasik dipensiunkan — rekap memakai SPA /app/rekap
+        # (API pengganti: /api/transactions/archive, /admin/rekap/pdf tetap di sini).
+        return redirect('/app/rekap')
 
     @app.route('/admin/rekap/pdf')
     @role_required(['ga', 'finance', 'admin'])
@@ -105,55 +78,16 @@ def register_report_routes(app):
     @app.route('/admin/analytics')
     @role_required(['ga', 'finance', 'admin'])
     def admin_analytics():
-        try:
-            conn = get_db_connection()
-            if not conn: return "DB error", 500
-            today = datetime.now().date()
-            default_start = (datetime.now() - timedelta(days=30)).date()
-            start_date = request.args.get('start_date', default_start.strftime('%Y-%m-%d'))
-            end_date = request.args.get('end_date', today.strftime('%Y-%m-%d'))
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute("""
-                SELECT t.nopol, t.vehicle_type, t.bbm_type, COALESCE(AVG(NULLIF(t.km_per_liter,0)), 0) as avg_km_per_liter,
-                       COUNT(*) as total_transactions, SUM(t.jumlah_appointment) as jumlah_appointment,
-                       SUM(t.nominal) as total_nominal, SUM(t.liter) as total_liter
-                FROM transactions t WHERE t.status IN ('verified','archived','os_finance','verified_ga','rejected')
-                  AND DATE(t.created_at)>=%s AND DATE(t.created_at)<=%s
-                GROUP BY t.nopol, t.vehicle_type, t.bbm_type ORDER BY avg_km_per_liter DESC
-            """, (start_date, end_date))
-            vehicle_perf = cursor.fetchall() or []
-            cursor.execute("""
-                SELECT DATE(created_at) as date, AVG(NULLIF(km_per_liter,0)) as avg_efficiency,
-                       COUNT(*) as transactions, SUM(nominal) as total_nominal
-                FROM transactions WHERE status IN ('verified','archived','os_finance','verified_ga','rejected')
-                  AND DATE(created_at)>=%s AND DATE(created_at)<=%s
-                GROUP BY DATE(created_at) ORDER BY date DESC
-            """, (start_date, end_date))
-            daily_stats = cursor.fetchall() or []
-            summary = {
-                'total_vehicles': len(vehicle_perf) if vehicle_perf else 0,
-                'total_tx': sum([v.get('total_transactions', 0) or 0 for v in vehicle_perf]) if vehicle_perf else 0,
-                'total_nominal': sum([v.get('total_nominal', 0) or 0 for v in vehicle_perf]) if vehicle_perf else 0,
-                'total_liter': round(sum([v.get('total_liter', 0) or 0 for v in vehicle_perf]), 1) if vehicle_perf else 0
-            }
-            cursor.close(); conn.close()
-            return render_template('analytics.html', vehicle_performance=vehicle_perf, daily_stats=daily_stats,
-                                  filters={'start_date': start_date, 'end_date': end_date}, summary=summary)
-        except Exception as e:
-            return f"Error: {str(e)}", 500
+        # v2.5: halaman klasik dipensiunkan — analytics memakai SPA /app/analytics
+        # (API pengganti: /api/analytics di routes_api_transactions).
+        return redirect('/app/analytics')
 
     @app.route('/admin/logs')
     @role_required(['ga', 'finance', 'admin'])
     def admin_logs_view():
-        try:
-            conn = get_db_connection()
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT id, transaction_id, action, user_type, user_name, created_at, ip_address FROM activity_logs ORDER BY created_at DESC LIMIT 150")
-            logs = cursor.fetchall()
-            cursor.close(); conn.close()
-            return render_template('logs.html', logs=logs)
-        except Exception as e:
-            return f"Error: {str(e)}", 500
+        # v2.5: halaman klasik dipensiunkan — logs memakai SPA /app/logs
+        # (API pengganti: /api/logs di routes_api_transactions).
+        return redirect('/app/logs')
 
     @app.route('/admin/riwayat')
     @role_required(['ga', 'finance', 'admin'])

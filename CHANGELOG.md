@@ -6,6 +6,71 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.5.0] - 2026-08-12
+
+### 🚮 Pensiun Total Antarmuka Klasik — 100% SPA Vue 3
+
+- **File sampah klasik dihapus dari repo**: `templates/*.html` (14), `static/js/*` (13), `static/css/*` (11), dan `static/archive.js`. Repo kini murni SPA Vue 3 (bundle di `static/app/`, sumber di `frontend/`) + backend Flask API. Referensi terverifikasi: tidak ada kode tersisa yang memakai `render_template` / aset klasik.
+- **Semua halaman klasik → redirect ke SPA** (bookmark lama tetap berfungsi): `/login` → `/app/login`, `/admin` → `/app/dashboard`, `/admin/trips` → `/app/trips`, `/admin/rekap` → `/app/rekap`, `/admin/analytics` → `/app/analytics`, `/admin/logs` → `/app/logs`, `/admin/users` → `/app/users`, `/admin/settings` → `/app/settings`, `/admin/queue-fragment/<tab>` → `/app/dashboard`, `/marketing` → `/app/marketing`, `/chief-driver` → `/app/chief-driver`, `/ga/assignments` → `/app/assignments`, `/driver` → `/app/driver`, `/` → `/app/`. `_auth_denied_response`/`_auth_forbidden_response` kini mengarah langsung ke SPA (login / home sesuai role).
+- **Jalur legacy `?driver=` anonim DITUTUP** (sebelumnya `session_driver_name() or param` — kini helper baru `resolve_driver_scope()`: sesi driver = identitas sesi, sesi back-office = param eksplisit diizinkan, **tanpa sesi → 401**). Berlaku di: `POST /driver`, `POST /submit-trip`, `/api/cash/request`, `pending-lpj`, `history`, `delete`, `submit-lpj`, `/api/notifications*`, `/api/appointments/driver-today`, `driver-complete`, `completed`, `driver-summary`. (ISO/IEC 27001 A.8.2)
+- **CSRF diperketat (defense-in-depth)**: prefix `/submit-trip`, `/api/cash/request`, `/api/cash/submit-lpj/`, `/api/cash/delete/`, `/api/appointments/driver-complete/` dihapus dari `CSRF_EXEMPT_PREFIXES` — SPA driver mengirim `X-CSRF-Token` di semua request tersebut.
+- **Reset PIN Massal Driver**: `POST /api/drivers/pin-reset` (admin) + tombol `🔑 PIN Driver = 123456` di `/app/settings` — seluruh user ber-role `driver` di-reset ke **123456** (audit `bulk_driver_pin_reset`).
+- `POST /driver` & `POST /submit-trip` kini mengembalikan JSON error (bukan render/flash) — konsisten dengan SPA; pesan "Dashboard Klasik" pada guard anomali ML diganti "dari baris antrean".
+- **🐛 Fix kritis (ditemukan E2E)**: kolom `users.role` di DB lama masih `ENUM(...)` **tanpa `'driver'`** sehingga pembuatan akun driver gagal `Data truncated`. Kini migrasi otomatis di `appointments_schema.py` + `init.sql` menyertakan `'driver'` (idempotent, aman di startup), dan ALTER sudah diterapkan ke DB produksi.
+
+### 🧪 Cakupan Pengujian
+
+- **Vitest naik ke 67 test** — `SettingsView` +1 (reset PIN massal → `/api/drivers/pin-reset` dengan `new_pin: '123456'`).
+- **pytest +4** (`tests/test_driver_session.py`) — `resolve_driver_scope`: anonim→None (401), sesi driver mengalahkan param, back-office param diizinkan, back-office tanpa param → '' (semua). Total **87** (terverifikasi di container).
+- `py_compile` semua modul ✅ · `npm test` + `npm run build` + `scripts/build-spa.sh` ✅.
+- **E2E produksi (DuckDNS :5001)**: semua redirect klasik → SPA ✅ · legacy `?driver=` anonim → 401 ✅ · CSRF driver kini aktif ✅ · create akun driver → login PIN → bulk PIN `123456` ✅ · akun test dinonaktifkan setelah verifikasi ✅.
+
+---
+
+## [2.4.0] - 2026-08-12
+
+### 🎯 Paritas SPA Lengkap — Semua Alur Back-Office Kini di Vue (Fase 1 Migrasi)
+
+- **Antrean GA — verifikasi anomali ML penuh langsung dari SPA**: tombol `🛡 Verifikasi` di baris antrean ber-flag anomali membuka modal detail langsung ke form verifikasi (konfirmasi wajib + foto MyPertamina) — tanpa lagi pindah ke Dashboard Klasik. Tautan `📋 Verifikasi Penuh (Klasik)`, `📋 Klasik`, dan tombol `Dashboard/Assignments Klasik` **dihapus**; halaman klasik back-office tidak lagi ditaut dari SPA.
+- **Board Chief Driver lengkap (paritas dengan halaman klasik)**: saran driver load-balancing otomatis **terisi sebagai default** per baris per sesi (+ hint `💡 Saran`), filter tab Sesi 1/2, override area manual `🌍` (PATCH `area`), `🔄 Ganti` driver (re-assign), `↩️ Batal Tugas` (unassign), `✅ Selesai` dengan **modal hasil kunjungan wajib** (😊 Ditemui / 🤝 Prospek / ❌ Gagal + catatan), `✕` batal appointment (wajib alasan), badge hasil kunjungan + tombol `🎯 Hasil` untuk mengubah hasil appointment selesai, **Ringkasan per Marketing Anggota** (Total/⏳/🚗/✅/✕/konversi/sesi — klik baris = filter board), dan dropdown **filter Marketing Anggota** (bisa dikombinasikan dengan export Excel).
+- **Marketing Hub SPA**: `✏️ Edit` (modal, hanya milik sendiri & status scheduled → PATCH), `✕ Batal` dengan alasan (busy-guard anti double-click), **datalist saran nama marketing anggota** tim sendiri, **preview deteksi area** otomatis dari alamat (📍 chip, saat blur), dan kolom **Hasil** kunjungan di daftar.
+- Backend tidak berubah — semua memakai endpoint yang sudah ada (`PATCH /api/appointments/<id>`, `/assign`, `/unassign`, `/complete`, `/cancel`, `/member-summary`, `/suggestions`, `/marketing/members`, `/detect-area`).
+
+### 🧪 Cakupan Pengujian
+
+- **Vitest naik ke 56 test** (dari 47): AdminDashboard +2 (tombol 🛡 baris → form verifikasi terbuka langsung), ChiefDriverDashboard ditulis ulang jadi 8 test (saran default per sesi, select independen per baris, override area, unassign, cancel, complete wajib hasil + POST `/complete`, filter member dari ringkasan, badge hasil di baris APP-4), MarketingDashboard +2 (edit → PATCH, batal → `/cancel`).
+- `npm run build` sukses ✅ · `bash scripts/build-spa.sh` → `static/app` termutakhirkan ✅ (bind-mount otomatis melayani versi baru).
+
+---
+
+## [2.4.0] - 2026-08-12 (Fase 2) — Driver PWA Migrasi ke Vue + Login PIN
+
+### 🔐 Driver Wajib Login PIN (role baru `driver`)
+
+- **Role `driver`** di tabel `users` (dibuat/reset PIN via halaman Users/Settings — role kini diizinkan di `/api/users/sync`); `ROLE_META['driver']` + route `/app/driver` + `home_for_role('driver')` → `/app/driver`.
+- **`/driver` (GET) redirect ke `/app/driver`** (SPA; guard mengarahkan ke login PIN). POST `/driver` & `/submit-trip` tetap berfungsi untuk antrean offline legacy.
+- **Identitas sesi dipaksa di semua endpoint driver** (anti impersonasi & IDOR — ISO/IEC 27001 A.8.2): `POST /driver`, `/submit-trip`, `/api/cash/request`, `pending-lpj`, `history`, `delete` (cek kepemilikan utk sesi driver), **`submit-lpj` (baru: LPJ hanya untuk kasbon milik sendiri → 403)**, `/api/notifications*`, `/api/appointments/driver-today` & `driver-complete`. Jalur legacy (tanpa sesi, `?driver=`) tetap berjalan sebagai transisi.
+- Endpoint baru **`GET /api/driver/me`** (role driver): profil (nopol, kendaraan, BBM) dari sesi.
+
+### 📱 Driver PWA Vue 3 di `/app/driver` (offline-first penuh)
+
+- **Shell mobile mandiri** `DriverView.vue`: header (logo, nama, bell 🔔, dark mode, logout), status bar 🟢/🟡 online-offline + badge antrean + tombol Sinkron, **bottom-nav 4 tab** (⛽ BBM · 💰 Kasbon · 🗺️ Trip · 📊 Rapor) — port dari PWA klasik.
+- **BBM**: form klaim (auto-fill dari profil master data, daftar BBM valid per kendaraan, hitung liter otomatis, SPBU rekanan/non-rekanan, foto 4x **watermark canvas** perusahaan+tanggal+GPS, GPS satu-klik) → kirim online atau **antre offline**; **mode LPJ** dari kasbon (nominal terkunci).
+- **Trip**: baris rute dinamis + GPS+jam auto-fill, **panel "Jadwal Appointment Saya"** (tel/maps/🏁 hasil kunjungan modal: 😊/🤝/❌), **"📥 Muat Semua ke Rute"** (rute berantai + `appointment_id[]` → auto-complete), multi-rute aman (array per key — fix bug rute tertimpa yang ditemukan review).
+- **Kasbon**: kode unik harian + mode manual/otomatis, pengajuan (total = dasar + kode), daftar LPJ pending → isi di tab BBM, riwayat dengan progress bar + hapus DRAFT.
+- **Rapor**: cek performa km/L (`/api/get-feedback`).
+- **Offline-first**: `utils/idb.js` (3 antrean IndexedDB) + `driverStore.syncAll()` (BBM→`/driver`, LPJ→`/api/cash/submit-lpj`, trip→`/submit-trip`, urut & hapus per item) + auto-sync saat online & tiap 30 detik.
+- **Notifikasi real-time**: bell + panel + toast, Socket.IO join room `driver_<NAMA>`, `driver_notification` realtime.
+- **`DriverNotifBell.vue`** + `stores/driverStore.js` + `utils/gps.js` (Nominatim) + `utils/watermark.js`.
+
+### 🧪 Cakupan Pengujian
+
+- **Vitest naik ke 66 test** (dari 56): `driverStore.test.js` (5: profil, enqueue+badge, syncAll kirim+hapus, push notifikasi, locate GPS, toForm multi-rute array) + `DriverView.test.js` (3: shell 4 tab, profil dari `/api/driver/me`, switch tab kasbon) + guard router +3 kasus role driver (bisa buka `/driver`, tidak bisa masuk back-office, role lain tidak bisa masuk `/driver`).
+- **pytest +7** (`tests/test_driver_session.py`): `session_driver_name` (tanpa sesi→None, sesi driver→UPPER, role lain→None) + `home_for_role('driver')` → `/app/driver`. Dijalankan CI (`docker exec bbm_web pytest`); sintaks semua modul terverifikasi `py_compile`.
+- `npm run build` sukses ✅ · `static/app` termutakhirkan ✅.
+
+---
+
 ## [2.3.0] - 2026-08-11
 
 ### ⚡ Rate Limit Redis (Konsisten Antar Replica)

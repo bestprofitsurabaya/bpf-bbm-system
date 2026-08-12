@@ -4,6 +4,8 @@ import { useAuthStore, ROLE_META } from '../stores/auth'
 const routes = [
   { path: '/login', name: 'login', component: () => import('../views/LoginView.vue'), meta: { public: true } },
   { path: '/403', name: 'forbidden', component: () => import('../views/ForbiddenView.vue'), meta: { public: true } },
+  // Driver PWA (v2.4): layout mobile mandiri, wajib login PIN driver
+  { path: '/driver', name: 'driver', component: () => import('../views/driver/DriverView.vue'), meta: { roles: ['driver'] } },
   {
     path: '/',
     component: () => import('../layouts/AppLayout.vue'),

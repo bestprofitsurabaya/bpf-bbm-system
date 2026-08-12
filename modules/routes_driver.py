@@ -1,9 +1,10 @@
 """Driver & PWA routes"""
-from flask import (render_template, request, redirect, url_for,
-                   send_from_directory, jsonify, make_response, flash)
+from flask import (request, redirect,
+                   send_from_directory, jsonify, make_response)
 from modules.config import get_db_connection
 from modules.helpers import (save_file, resolve_driver_form_context, validate_bbm_for_vehicle,
-                             ensure_all_master_data, generate_display_id, log_activity_async)
+                             ensure_all_master_data, generate_display_id, log_activity_async,
+                             session_driver_name, role_required)
 from modules.engine import PerformanceAnalyzer
 from datetime import datetime
 import os
@@ -12,13 +13,24 @@ def register_driver_routes(app, socketio):
 
     @app.route('/')
     def index():
-        return redirect(url_for('driver_form'))
+        # v2.5: root mengarah ke SPA (router memilih dashboard sesuai role)
+        return redirect('/app/')
 
     @app.route('/driver', methods=['GET', 'POST'])
     def driver_form():
+        # v2.4 (Fase 2 migrasi Vue): halaman klasik digantikan SPA /app/driver.
+        # GET dialihkan ke SPA (login PIN driver; SPA guard yang mengarahkan ke login).
+        # POST dipakai SPA driver (BBM offline queue) — identitas WAJIB dari sesi.
+        if request.method == 'GET':
+            return redirect('/app/driver')
         if request.method == 'POST':
             try:
-                driver_name = request.form.get('driver_name', '').strip().upper()
+                # v2.5: identitas driver WAJIB dari sesi login PIN (jalur legacy
+                # anonim lewat field `driver_name` DITUTUP — anti impersonasi).
+                driver_name = session_driver_name()
+                if not driver_name:
+                    return jsonify({'status': 'error', 'msg': 'Login driver wajib — buka /app/driver'}), 401
+                driver_name = driver_name.strip().upper()
                 nopol = request.form.get('nopol', '').strip().upper()
                 vehicle_type = request.form.get('vehicle_type', 'AVANZA')
                 bbm_type = request.form.get('bbm_type', 'PERTALITE')
@@ -34,8 +46,7 @@ def register_driver_routes(app, socketio):
 
                 conn = get_db_connection()
                 if not conn:
-                    flash('Database error!', 'error')
-                    return render_template('driver.html')
+                    return jsonify({'status': 'error', 'msg': 'Database error'}), 500
                 cursor = conn.cursor(dictionary=True)
                 cursor.execute("SELECT * FROM drivers WHERE name=%s AND is_active=TRUE", (driver_name,))
                 driver_data = cursor.fetchone()
@@ -48,14 +59,12 @@ def register_driver_routes(app, socketio):
 
                 validation = validate_bbm_for_vehicle(vehicle_type, bbm_type)
                 if not validation['valid']:
-                    flash(validation['error'], 'error')
                     cursor.close(); conn.close()
-                    return render_template('driver.html')
+                    return jsonify({'status': 'error', 'msg': validation['error']}), 400
 
                 if not driver_name or not nopol or nominal<=0 or odo_km<=0:
-                    flash('Semua field harus diisi!', 'error')
                     cursor.close(); conn.close()
-                    return render_template('driver.html')
+                    return jsonify({'status': 'error', 'msg': 'Semua field harus diisi!'}), 400
 
                 upload_dir = app.config['UPLOAD_FOLDER']
                 foto_odo_sebelum = save_file(request.files.get('foto_odo_sebelum'), 'ODO1', nopol, upload_dir)
@@ -82,9 +91,9 @@ def register_driver_routes(app, socketio):
                                     os.remove(_p)
                             except OSError:
                                 pass
-                    flash('Foto wajib gagal disimpan (format file tidak didukung): ' + ', '.join(rejected_photos), 'error')
                     cursor.close(); conn.close()
-                    return render_template('driver.html')
+                    return jsonify({'status': 'error',
+                                    'msg': 'Foto wajib gagal disimpan (format file tidak didukung): ' + ', '.join(rejected_photos)}), 400
 
                 cursor.execute("SELECT odo_km FROM transactions WHERE nopol=%s ORDER BY created_at DESC LIMIT 1", (nopol,))
                 previous = cursor.fetchone()
@@ -118,14 +127,32 @@ def register_driver_routes(app, socketio):
 
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.headers.get('Accept') == 'application/json':
                     return jsonify({'status': 'success', 'transaction_id': display_id, 'numeric_id': tx_id, 'message': analysis['message']})
-                flash(f'Klaim {display_id} berhasil! {analysis["message"]}', 'success')
-                return redirect(url_for('driver_form'))
+                return redirect('/app/driver')
             except Exception as e:
                 print(f"Driver error: {e}")
                 import traceback; traceback.print_exc()
-                flash(f'Error: {str(e)}', 'error')
-                return render_template('driver.html')
-        return render_template('driver.html')
+                return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    @app.route('/api/driver/me')
+    @role_required(['driver'])
+    def api_driver_me():
+        """Profil driver dari sesi (v2.4): nama, nopol, kendaraan, BBM, aktif."""
+        try:
+            driver_name = session_driver_name()
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'error': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(
+                "SELECT name, nopol, vehicle_type, bbm_type, is_active FROM drivers WHERE name=%s",
+                (driver_name,))
+            profile = cursor.fetchone()
+            cursor.close(); conn.close()
+            if not profile or not profile.get('is_active'):
+                return jsonify({'status': 'error', 'msg': 'Profil driver tidak ditemukan / nonaktif. Hubungi Admin.'}), 404
+            return jsonify(profile)
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
 
     @app.route('/manifest.json')
     def serve_manifest():
@@ -151,7 +178,11 @@ def register_driver_routes(app, socketio):
     def submit_trip():
         """Process multi-destination trip log submission"""
         try:
-            driver_name = request.form.get('driver_name', '').strip().upper()
+            # v2.5: identitas driver WAJIB dari sesi login (jalur legacy ditutup)
+            driver_name = session_driver_name()
+            if not driver_name:
+                return jsonify({'status': 'error', 'msg': 'Login driver wajib — buka /app/driver'}), 401
+            driver_name = driver_name.strip().upper()
             nopol = request.form.get('nopol', '').strip().upper()
             trip_date = request.form.get('trip_date', datetime.now().strftime('%Y-%m-%d'))
             jam_berangkat = request.form.get('jam_keberangkatan', '')
@@ -160,8 +191,7 @@ def register_driver_routes(app, socketio):
             km_akhir = int(request.form.get('km_akhir', 0) or 0)
 
             if not all([driver_name, nopol, jam_berangkat, km_awal > 0]):
-                flash('Driver, Nopol, Jam Berangkat, dan KM Awal wajib diisi!', 'error')
-                return redirect(url_for('driver_form'))
+                return jsonify({'status': 'error', 'msg': 'Driver, Nopol, Jam Berangkat, dan KM Awal wajib diisi!'}), 400
 
             conn = get_db_connection()
             cursor = conn.cursor()
@@ -254,12 +284,10 @@ def register_driver_routes(app, socketio):
 
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.headers.get('Accept') == 'application/json':
                 return jsonify({'status': 'success', 'trip_id': trip_display_id, 'numeric_id': trip_id, 'routes': detail_count})
-            flash(f'Log perjalanan berhasil disubmit dengan {detail_count} rute!', 'success')
-            return redirect(url_for('driver_form'))
+            return redirect('/app/driver')
         except Exception as e:
             print(f"Trip submit error: {e}")
             import traceback; traceback.print_exc()
-            flash(f'Error: {str(e)}', 'error')
-            return redirect(url_for('driver_form'))
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
 
     from modules.helpers import generate_trip_display_id

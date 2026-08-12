@@ -86,11 +86,12 @@ register_spa_routes(app)
 # CSRF PROTECTION (berlaku untuk sesi admin yang login)
 # Endpoint PWA driver (tanpa session) & socket.io dikecualikan.
 # ================================================================
+# v2.5: endpoint driver (submit-trip, cash request/submit-lpj/delete, driver-complete)
+# kini WAJIB sesi login PIN — SPA driver mengirim X-CSRF-Token (api()/fetch), jadi
+# tidak perlu lagi dikecualikan dari proteksi CSRF (defense-in-depth).
 CSRF_EXEMPT_PREFIXES = (
-    '/socket.io', '/submit-trip', '/api/cash/request', '/api/cash/submit-lpj/',
-    '/api/cash/delete/', '/api/assignments/confirm', '/api/get-feedback',
+    '/socket.io', '/api/assignments/confirm', '/api/get-feedback',
     '/api/vehicle-allowed-bbm', '/uploads/', '/manifest.json', '/sw.js',
-    '/api/appointments/driver-complete/',
 )
 
 @app.context_processor

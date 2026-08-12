@@ -9,13 +9,14 @@ Alur bisnis:
 """
 from datetime import date, datetime
 
-from flask import (render_template, request, jsonify, session, make_response)
+from flask import (redirect, request, jsonify, session, make_response)
 from modules.config import get_db_connection
 from modules.helpers import (role_required, log_activity_async,
                              generate_appointment_display_id,
                              validate_appointment_input, detect_area,
                              get_or_create_team, register_marketing_member,
-                             get_team_members)
+                             get_team_members, session_driver_name,
+                             resolve_driver_scope)
 from modules.realtime import emit_event
 
 # Hasil kunjungan yang dicatat driver / chief driver saat menandai selesai.
@@ -129,21 +130,14 @@ def register_appointment_routes(app):
     @app.route('/marketing')
     @role_required(['marketing'])
     def marketing_page():
-        user = _current_user()
-        return render_template('marketing.html',
-                               username=user['username'],
-                               full_name=user['full_name'],
-                               team_name=_user_team_name(user['username']),
-                               today=date.today().isoformat())
+        # v2.5: halaman klasik dipensiunkan → SPA
+        return redirect('/app/marketing')
 
     @app.route('/chief-driver')
     @role_required(['chief_driver', 'ga', 'admin'])
     def chief_driver_page():
-        user = _current_user()
-        return render_template('chief_driver.html',
-                               username=user['username'],
-                               full_name=user['full_name'],
-                               today=date.today().isoformat())
+        # v2.5: halaman klasik dipensiunkan → SPA
+        return redirect('/app/chief-driver')
 
     # ================================================================
     # LIST APPOINTMENTS
@@ -608,7 +602,10 @@ def register_appointment_routes(app):
     @app.route('/api/appointments/driver-complete/<int:appt_id>', methods=['POST'])
     def api_driver_complete_appointment(appt_id):
         try:
-            driver = (request.form.get('driver') or request.args.get('driver') or '').strip().upper()
+            # v2.5: tanpa sesi sama sekali → ditolak (jalur legacy ?driver= ditutup)
+            driver = resolve_driver_scope(request.form.get('driver') or request.args.get('driver') or '')
+            if driver is None:
+                return jsonify({'status': 'error', 'msg': 'Login driver wajib'}), 401
             if not driver:
                 return jsonify({'status': 'error', 'msg': 'Parameter driver wajib'}), 400
             # Hasil kunjungan: ditemui / prospek / gagal (+ alasan opsional)
@@ -698,7 +695,10 @@ def register_appointment_routes(app):
     @app.route('/api/appointments/completed')
     def api_completed_appointments():
         try:
-            driver = request.args.get('driver', '').strip().upper()
+            # v2.5: tanpa sesi sama sekali → ditolak (jalur legacy ditutup)
+            driver = resolve_driver_scope(request.args.get('driver', ''))
+            if driver is None:
+                return jsonify({'error': 'Login driver wajib'}), 401
             target_date = request.args.get('date', '').strip() or date.today().isoformat()
             if not driver:
                 return jsonify({'error': 'Parameter driver wajib'}), 400
@@ -731,9 +731,13 @@ def register_appointment_routes(app):
         tanpa session), scope dibatasi ke driver_name sendiri.
         Trade-off privasi: no. HP nasabah ikut dikembalikan karena dibutuhkan driver
         untuk menghubungi nasabah — konsisten dengan model akses PWA tanpa login.
+        v2.4: sesi driver login dipaksa memakai identitas sendiri (anti IDOR).
         """
         try:
-            driver = request.args.get('driver', '').strip().upper()
+            # v2.5: tanpa sesi sama sekali → ditolak (jalur legacy ?driver= ditutup)
+            driver = resolve_driver_scope(request.args.get('driver', ''))
+            if driver is None:
+                return jsonify({'error': 'Login driver wajib'}), 401
             target_date = request.args.get('date', '').strip() or date.today().isoformat()
             if not driver:
                 return jsonify({'error': 'Parameter driver wajib'}), 400
@@ -760,7 +764,10 @@ def register_appointment_routes(app):
     def api_driver_appointment_summary():
         """Ringkasan appointment untuk satu driver+date (dipakai PWA driver)."""
         try:
-            driver = request.args.get('driver', '').strip().upper()
+            # v2.5: tanpa sesi sama sekali → ditolak (jalur legacy ditutup)
+            driver = resolve_driver_scope(request.args.get('driver', ''))
+            if driver is None:
+                return jsonify({'error': 'Login driver wajib'}), 401
             target_date = request.args.get('date', '').strip() or date.today().isoformat()
             conn = get_db_connection()
             if not conn:

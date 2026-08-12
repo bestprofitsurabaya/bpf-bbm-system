@@ -80,10 +80,10 @@ def ensure_appointments_schema():
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """, cursor, "appointments")
 
-        # --- users: extend role enum ---
+        # --- users: extend role enum (v2.4: role 'driver' untuk login PIN PWA driver) ---
         _run("""
             ALTER TABLE users
-            MODIFY role ENUM('admin','ga','finance','marketing','chief_driver') NOT NULL DEFAULT 'ga'
+            MODIFY role ENUM('admin','ga','finance','marketing','chief_driver','driver') NOT NULL DEFAULT 'ga'
         """, cursor, "users.role enum")
 
         # --- users: team_name column ---

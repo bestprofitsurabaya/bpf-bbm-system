@@ -1,70 +1,24 @@
-"""Auth Routes - Login & Logout (session-based, PIN user)"""
-from flask import render_template, request, redirect, url_for, session, flash
-from modules.config import get_db_connection
-from modules.helpers import home_for_role, login_rate_check, login_fail, login_success, client_ip
-from urllib.parse import urlparse
+"""Auth Routes - Login & Logout (session-based, PIN user).
+
+v2.5: Halaman login klasik dipensiunkan. Semua autentikasi memakai SPA
+`/app/login` (JSON API `/api/auth/login` di routes_spa.py — sesi yang sama,
+lengkap dengan rate-limit anti brute-force & CSRF). Endpoint lama `/login`
+dan `/logout` hanya mengarahkan ke SPA agar bookmark lama tetap berfungsi.
+"""
+from flask import redirect, session
+from modules.helpers import home_for_role
 
 
 def register_auth_routes(app):
 
     @app.route('/login', methods=['GET', 'POST'])
     def login_page():
-        # Sudah login? langsung ke halaman sesuai role
+        # Sudah login? langsung ke halaman sesuai role di SPA
         if session.get('user_role'):
             return redirect(home_for_role(session.get('user_role')))
-
-        if request.method == 'POST':
-            username = request.form.get('username', '').strip()
-            pin = request.form.get('pin', '').strip()
-            nxt_arg = request.args.get('next', '').strip()
-            # Pertahankan next agar tidak hilang saat login gagal (url_for menangani encoding)
-            login_retry = url_for('login_page', next=nxt_arg) if nxt_arg else url_for('login_page')
-
-            if not username or not pin:
-                flash('Username dan PIN wajib diisi.', 'error')
-                return redirect(login_retry)
-
-            # Rate limit anti brute-force (ISO/IEC 27001 A.8.5)
-            ip_addr = client_ip()
-            allowed, retry_after = login_rate_check(ip_addr)
-            if not allowed:
-                flash(f'Terlalu banyak percobaan. Coba lagi dalam {retry_after // 60} menit.', 'error')
-                return redirect(login_retry)
-
-            try:
-                conn = get_db_connection()
-                if not conn:
-                    flash('Database tidak tersedia.', 'error')
-                    return redirect(login_retry)
-                cursor = conn.cursor(dictionary=True)
-                cursor.execute("SELECT * FROM users WHERE username=%s AND pin=%s AND is_active=TRUE", (username, pin))
-                user = cursor.fetchone()
-                cursor.close(); conn.close()
-            except Exception as e:
-                flash(f'Error: {str(e)}', 'error')
-                return redirect(login_retry)
-
-            if user:
-                login_success(ip_addr)
-                session.clear()
-                session['user_role'] = user['role']
-                session['user_name'] = user['username']
-                session['full_name'] = user['full_name']
-                session.permanent = True
-                nxt = request.args.get('next', '').strip()
-                # Hanya izinkan redirect internal (cegah open redirect)
-                parsed = urlparse(nxt)
-                if nxt and nxt.startswith('/') and not nxt.startswith('//') and not parsed.netloc:
-                    return redirect(nxt)
-                return redirect(home_for_role(user['role']))
-
-            login_fail(ip_addr)
-            flash('Username atau PIN salah.', 'error')
-            return redirect(login_retry)
-
-        return render_template('login.html')
+        return redirect('/app/login')
 
     @app.route('/logout')
     def logout():
         session.clear()
-        return redirect(url_for('login_page'))
+        return redirect('/app/login')

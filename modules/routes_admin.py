@@ -1,149 +1,24 @@
 import os
 """Admin Dashboard & Workflow Routes"""
-from flask import (render_template, request, redirect, url_for, flash, jsonify, make_response)
+from flask import (request, redirect, url_for, flash, jsonify, make_response)
 from modules.config import get_db_connection
-from modules.helpers import log_activity_async, save_file, generate_display_id, generate_trip_display_id, role_required
+from modules.helpers import log_activity_async, role_required
 from modules.notifications import push_driver_notification
-from datetime import datetime, timedelta
 
 def register_admin_routes(app):
-    def cleanup_transaction_files(self, tx_data, upload_folder='uploads'):
-        """Hapus file foto transaksi dari folder uploads."""
-        file_fields = [
-            'foto_odo_sebelum', 'foto_nota_odo_sesudah',
-            'foto_struk', 'foto_struk_dispenser', 'foto_mypertamina_admin'
-        ]
-        deleted = []
-        for field in file_fields:
-            filename = tx_data.get(field) if isinstance(tx_data, dict) else None
-            if filename and filename.strip():
-                fpath = os.path.join(upload_folder, filename)
-                try:
-                    if os.path.exists(fpath):
-                        os.remove(fpath)
-                        deleted.append(filename)
-                except Exception as e:
-                    print(f"Cleanup error {filename}: {e}")
-        return deleted
-
-
-    def _queue_txs(cursor, tab):
-        """Ambil daftar transaksi sesuai tab (dipakai admin_dashboard & queue-fragment).
-        Tab archive menghormati params URL (search/start_date/end_date/bbm_type/page) agar
-        konsisten dengan /api/transactions/archive dan filter loadArchive() (default 7 hari)."""
-        if tab == 'finance':
-            cursor.execute("SELECT * FROM transactions WHERE status='verified_ga' AND (is_dummy=0 OR is_dummy IS NULL) ORDER BY created_at ASC")
-        elif tab == 'driver_confirm':
-            cursor.execute("SELECT * FROM transactions WHERE status='os_finance' AND (is_dummy=0 OR is_dummy IS NULL) ORDER BY created_at ASC")
-        elif tab == 'archive':
-            where = ["status='archived'", "(is_dummy=0 OR is_dummy IS NULL)"]
-            params = []
-            search = request.args.get('search', '').strip()
-            sd = request.args.get('start_date', '').strip()
-            ed = request.args.get('end_date', '').strip()
-            bb = request.args.get('bbm_type', '').strip()
-            if not sd:
-                where.append("created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)")
-            if sd:
-                where.append("DATE(created_at) >= %s"); params.append(sd)
-            if ed:
-                where.append("DATE(created_at) <= %s"); params.append(ed)
-            if search:
-                where.append("(nopol LIKE %s OR driver_name LIKE %s)")
-                params.extend([f"%{search}%", f"%{search}%"])
-            if bb:
-                where.append("bbm_type = %s"); params.append(bb)
-            page = max(1, request.args.get('page', 1, type=int) or 1)
-            limit = 50
-            query = "SELECT * FROM transactions WHERE " + " AND ".join(where) + " ORDER BY created_at DESC LIMIT %s OFFSET %s"
-            cursor.execute(query, params + [limit, (page - 1) * limit])
-        else:
-            cursor.execute("SELECT * FROM transactions WHERE status IN ('pending','modified') AND (is_dummy=0 OR is_dummy IS NULL) ORDER BY created_at ASC")
-        return cursor.fetchall()
 
     @app.route('/admin', methods=['GET', 'POST'])
     @role_required(['ga', 'finance', 'admin'])
     def admin_dashboard():
-        if request.method == 'POST':
-            try:
-                action = request.form.get('action', 'verify')
-                tx_id = request.form.get('tx_id')
-                if action == 'verify':
-                    conn = get_db_connection()
-                    if not conn:
-                        flash('DB error!', 'error')
-                        return redirect(url_for('admin_dashboard'))
-                    cursor = conn.cursor()
-                    is_error = request.form.get('mypertamina_error') == 'on'
-                    upload_dir = app.config['UPLOAD_FOLDER']
-                    foto_mypertamina = save_file(request.files.get('foto_mypertamina'), 'ADMIN_MYPTM', request.form.get('nopol', ''), upload_dir)
-                    cursor.execute("UPDATE transactions SET is_mypertamina_error=%s, foto_mypertamina_admin=%s, status='verified_ga', updated_at=CURRENT_TIMESTAMP WHERE id=%s", (is_error, foto_mypertamina, tx_id))
-                    conn.commit()
-                    cursor.close(); conn.close()
-                    log_activity_async(int(tx_id), 'verify', 'admin', 'Admin', ip=request.remote_addr)
-                    flash('✅ Klaim diverifikasi!', 'success')
-                elif action == 'modify':
-                    conn = get_db_connection()
-                    cursor = conn.cursor()
-                    cursor.execute("UPDATE transactions SET vehicle_type=%s, bbm_type=%s, nominal=%s, odo_km=%s, spbu_type=%s, status='modified', updated_at=CURRENT_TIMESTAMP WHERE id=%s",
-                        (request.form.get('edit_vehicle'), request.form.get('edit_bbm'), request.form.get('edit_nominal'),
-                         request.form.get('edit_odo'), request.form.get('edit_spbu'), tx_id))
-                    conn.commit()
-                    cursor.close(); conn.close()
-                    log_activity_async(int(tx_id), 'modify', 'admin', 'Admin', ip=request.remote_addr)
-                    flash('✅ Data dimodifikasi!', 'success')
-                return redirect(url_for('admin_dashboard'))
-            except Exception as e:
-                flash(f'Error: {str(e)}', 'error')
-                return redirect(url_for('admin_dashboard'))
-
-        try:
-            conn = get_db_connection()
-            if not conn: return "DB tidak tersedia", 500
-            cursor = conn.cursor(dictionary=True)
-            tab = request.args.get('tab', 'ga_queue')
-            if tab not in ('ga_queue', 'finance', 'driver_confirm', 'archive', 'cash'):
-                tab = 'ga_queue'
-            txs = _queue_txs(cursor, tab) if tab != 'cash' else []
-
-            cursor.execute("SELECT COUNT(*) as c FROM transactions"); total = cursor.fetchone()['c']
-            cursor.execute("SELECT COUNT(*) as c FROM transactions WHERE status IN ('pending','modified')"); pending = cursor.fetchone()['c']
-            cursor.execute("SELECT COUNT(*) as c FROM transactions WHERE status='verified_ga'"); vga = cursor.fetchone()['c']
-            cursor.execute("SELECT COUNT(*) as c FROM transactions WHERE status='os_finance'"); osf = cursor.fetchone()['c']
-            cursor.execute("SELECT COUNT(*) as c FROM transactions WHERE status='archived'"); arc = cursor.fetchone()['c']
-            cursor.execute("SELECT COUNT(*) as c FROM transactions WHERE ml_anomaly_flag=TRUE"); anom = cursor.fetchone()['c']
-            cursor.execute("SELECT COUNT(*) as c FROM fuel_cash_requests WHERE status IN ('DRAFT','GA_APPROVED','FINANCE_APPROVED')")
-            cash_pending = cursor.fetchone()['c']
-            cursor.execute("SELECT COUNT(*) as c FROM fuel_cash_requests WHERE status = 'FUNDS_WITH_DRIVER'")
-            cash_with_driver = cursor.fetchone()['c']
-            cursor.execute("SELECT vehicle_type FROM vehicles WHERE is_active=TRUE"); vehicles = cursor.fetchall()
-            cursor.execute("SELECT name FROM bbm_types WHERE is_active=TRUE"); bbm_types = cursor.fetchall()
-            cursor.close(); conn.close()
-
-            return render_template('admin.html', transactions=txs, tab=tab,
-                                  stats={'total': total, 'pending': pending, 'verified_ga': vga, 'os_finance': osf, 'archived': arc, 'anomaly': anom, 'cash_pending': cash_pending if 'cash_pending' in dir() else 0, 'cash_with_driver': cash_with_driver if 'cash_with_driver' in dir() else 0, 'tab': tab},
-                                  vehicles=vehicles, bbm_types=bbm_types)
-        except Exception as e:
-            return f"Error: {str(e)}", 500
+        # v2.5: halaman klasik dipensiunkan — seluruh alur memakai SPA /app/dashboard
+        # (API pengganti: /api/queue/*, /api/transactions/*, /api/cash/*, /api/trips*).
+        return redirect('/app/dashboard')
 
     @app.route('/admin/queue-fragment/<tab>')
     @role_required(['ga', 'finance', 'admin'])
     def queue_fragment(tab):
-        """Fragment HTML konten tab untuk SPA switch tanpa reload (render Jinja sama persis)."""
-        try:
-            if tab not in ('ga_queue', 'finance', 'driver_confirm', 'archive', 'cash'):
-                tab = 'ga_queue'
-            conn = get_db_connection()
-            if not conn:
-                return "DB tidak tersedia", 500
-            cursor = conn.cursor(dictionary=True)
-            txs = _queue_txs(cursor, tab) if tab != 'cash' else []
-            cursor.close(); conn.close()
-            response = make_response(render_template('_tab_content.html', transactions=txs, tab=tab))
-            response.headers['Cache-Control'] = 'no-store'
-            return response
-        except Exception as e:
-            return f"Error: {str(e)}", 500
+        """Fragment tab klasik — dipensiunkan (SPA memakai /api/queue)."""
+        return redirect('/app/dashboard')
 
     @app.route('/ga/approve/<int:tx_id>', methods=['POST'])
     @role_required(['ga', 'admin'])
@@ -396,29 +271,9 @@ def register_admin_routes(app):
     @app.route('/admin/trips')
     @role_required(['ga', 'finance', 'admin'])
     def admin_trips():
-        try:
-            driver_filter = request.args.get('driver', '').strip()
-            date_filter = request.args.get('date', '').strip()
-            status_filter = request.args.get('status', 'pending')
-            conn = get_db_connection()
-            cursor = conn.cursor(dictionary=True)
-            query = """SELECT tm.*, (SELECT COUNT(*) FROM trip_details WHERE trip_master_id = tm.id) as total_routes
-                       FROM trip_masters tm WHERE 1=1"""
-            params = []
-            if driver_filter:
-                query += " AND tm.driver_name LIKE %s"; params.append(f"%{driver_filter}%")
-            if date_filter:
-                query += " AND tm.trip_date = %s"; params.append(date_filter)
-            if status_filter in ['pending', 'verified_ga', 'rejected']:
-                query += " AND tm.status = %s"; params.append(status_filter)
-            query += " ORDER BY tm.created_at DESC LIMIT 100"
-            cursor.execute(query, params)
-            trips = cursor.fetchall()
-            cursor.close(); conn.close()
-            return render_template('trips_review.html', trips=trips,
-                                 filters={'driver': driver_filter, 'date': date_filter, 'status': status_filter})
-        except Exception as e:
-            return f"Error: {str(e)}", 500
+        # v2.5: halaman klasik dipensiunkan — review trip memakai SPA /app/trips
+        # (API pengganti: /api/trips, /api/trips/verify, /api/trips/reject).
+        return redirect('/app/trips')
 
     @app.route('/admin/trips/verify/<int:trip_id>', methods=['POST'])
     @role_required(['ga', 'admin'])
@@ -555,4 +410,6 @@ def register_admin_routes(app):
     @app.route('/ga/assignments')
     @role_required(['ga', 'finance', 'admin'])
     def ga_assignments():
-        return render_template('ga_assignments.html')
+        # v2.5: halaman klasik dipensiunkan — penugasan memakai SPA /app/assignments
+        # (API pengganti: /api/appointments/*).
+        return redirect('/app/assignments')

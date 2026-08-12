@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     full_name VARCHAR(100) NOT NULL,
-    role ENUM('admin','ga','finance','marketing','chief_driver') NOT NULL DEFAULT 'ga',
+    role ENUM('admin','ga','finance','marketing','chief_driver','driver') NOT NULL DEFAULT 'ga',
     pin VARCHAR(255) NOT NULL,
     team_name VARCHAR(100) DEFAULT '',
     is_active TINYINT(1) DEFAULT 1,

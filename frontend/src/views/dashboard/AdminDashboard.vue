@@ -102,7 +102,7 @@ async function modalAction(path, label) {
 
 function doApprove(tx) {
   if (tx.ml_anomaly_flag) {
-    queueMsg.value = '⚠️ Transaksi ber-flag anomali ML — wajib verifikasi penuh (foto bukti) di Dashboard Klasik.'
+    queueMsg.value = '⚠️ Transaksi ber-flag anomali ML — buka 👁 Detail lalu pilih 🛡 Verifikasi Anomali untuk verifikasi penuh.'
     return
   }
   return queueAction(`/api/queue/approve-ga/${tx.id}`, 'menyetujui klaim ini')
@@ -123,7 +123,7 @@ async function doReject(tx) {
   finally { qBusy.value = false }
 }
 
-async function openDetail(tx) {
+async function openDetail(tx, verify = false) {
   sel.value = tx
   selLoading.value = true
   selData.value = null; selCross.value = null
@@ -135,6 +135,8 @@ async function openDetail(tx) {
     ])
     selData.value = d
     selCross.value = c
+    // Tombol 🛡 di baris antrean membuka modal langsung ke form verifikasi anomali
+    if (verify && d?.ml_anomaly_flag) openVerify(tx)
   } catch (e) { queueMsg.value = '❌ ' + e.message }
   finally { selLoading.value = false }
 }
@@ -231,7 +233,6 @@ watch(queueTab, loadQueue)
           <button v-for="t in queueTabs" :key="t.key" class="btn btn-sm" :class="queueTab === t.key ? 'btn-primary' : ''" @click="queueTab = t.key">{{ t.label }}</button>
           <span v-if="queueMsg" class="alert" :class="queueMsg.startsWith('✅') ? 'alert-success' : 'alert-error'" style="margin:0;">{{ queueMsg }}</span>
           <div class="spacer"></div>
-          <a class="btn btn-sm" href="/admin" target="_blank">📋 Verifikasi Penuh (Klasik)</a>
         </div>
         <div v-if="queueLoading" class="empty" style="padding:20px;">⏳ Memuat antrean…</div>
         <div class="table-wrap" v-else>
@@ -252,7 +253,7 @@ watch(queueTab, loadQueue)
                   <button class="btn btn-sm" :disabled="qBusy" title="Detail & verifikasi" @click="openDetail(t)">👁 Detail</button>
                   <template v-if="queueTab === 'ga' && canApprove">
                     <template v-if="t.ml_anomaly_flag">
-                      <span class="muted" style="font-size:11px;margin-left:6px;">⚠️ Wajib klasik</span>
+                      <button class="btn btn-sm btn-primary" :disabled="qBusy" style="margin-left:6px;" title="Verifikasi anomali penuh (foto + konfirmasi) langsung di SPA" @click="openDetail(t, true)">🛡 Verifikasi</button>
                     </template>
                     <template v-else>
                       <button class="btn btn-sm btn-primary" :disabled="qBusy" style="margin-left:6px;" @click="doApprove(t)">✅</button>
@@ -287,13 +288,15 @@ watch(queueTab, loadQueue)
 
       <div class="card card-pad" style="margin-top:18px;">
         <h3>🔎 Verifikasi Mendalam</h3>
-        <p class="muted" style="font-size:12px;margin-bottom:10px;">
-          Klik <b>👁 Detail</b> pada baris antrean untuk melihat foto bukti, hasil cross-check (health score, flag, budget) &amp; riwayat — langsung dari SPA. Verifikasi klasik tetap tersedia di tab baru.
+        <p class="muted" style="font-size:12px;">
+          Semua alur verifikasi kini tersedia langsung dari SPA — tanpa pindah ke antarmuka klasik:
         </p>
-        <div class="row">
-          <a class="btn" href="/admin" target="_blank">📋 Dashboard Klasik</a>
-          <a class="btn" href="/ga/assignments" target="_blank">🚗 Assignments Klasik</a>
-        </div>
+        <ul style="margin:8px 0 0;padding-left:18px;font-size:12px;">
+          <li><b>👁 Detail</b> — foto bukti, cross-check (health score, flag, budget) &amp; riwayat pelaku.</li>
+          <li><b>🛡 Verifikasi Anomali</b> — transaksi ber-flag ML diverifikasi penuh (konfirmasi wajib + foto MyPertamina opsional).</li>
+          <li><b>✏️ Edit</b> — perbaikan data kendaraan/BBM/nominal/ODO/SPBU → status <i>modified</i> untuk review ulang.</li>
+          <li><b>↩️ Unverify</b> / <b>🗑 Hapus</b> (admin) — koreksi status &amp; penghapusan permanen.</li>
+        </ul>
       </div>
     </template>
 
@@ -396,7 +399,6 @@ watch(queueTab, loadQueue)
         </template>
 
         <div class="row" style="justify-content:flex-end;margin-top:14px;gap:6px;flex-wrap:wrap;">
-          <a class="btn btn-sm" :href="'/admin?tab=ga_queue'" target="_blank">📋 Klasik</a>
           <template v-if="selData.status === 'pending' || selData.status === 'modified'">
             <button v-if="canApprove && !selData.ml_anomaly_flag" class="btn btn-sm btn-primary" :disabled="qBusy" @click="modalAction(`/api/queue/approve-ga/${selData.id}`, 'menyetujui klaim ini')">✅ Approve</button>
             <button v-if="canApprove && selData.ml_anomaly_flag" class="btn btn-sm btn-primary" :disabled="qBusy" @click="openVerify(selData)">🛡 Verifikasi Anomali</button>

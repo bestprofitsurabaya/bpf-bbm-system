@@ -41,4 +41,10 @@ describe('Route guard per role', () => {
   it('role yang sudah login dibuka halaman login diarahkan ke home role-nya', () => {
     expect(guardResult({ toMeta: { public: true }, isAuth: true, role: 'chief_driver', toName: 'login' })).toBe('home')
   })
+
+  it('driver hanya bisa membuka /app/driver (PWA) — tidak bisa masuk back-office', () => {
+    expect(guardResult({ toMeta: { roles: ['driver'] }, isAuth: true, role: 'driver', toName: 'driver' })).toBe(true)
+    expect(guardResult({ toMeta: { roles: ['admin', 'ga', 'finance'] }, isAuth: true, role: 'driver', toName: 'dashboard' })).toBe('forbidden')
+    expect(guardResult({ toMeta: { roles: ['driver'] }, isAuth: true, role: 'ga', toName: 'driver' })).toBe('forbidden')
+  })
 })

@@ -300,21 +300,20 @@ def ensure_all_master_data(driver_name, nopol, vehicle_type, bbm_type, price_per
 
 # --- AUTH DECORATORS ---
 from functools import wraps
-from flask import request, jsonify, session, g, redirect, url_for, flash
+from flask import request, jsonify, session, g, redirect, flash
 
 def _auth_denied_response():
-    """Respons saat belum login: halaman -> redirect ke login, API/SPA -> JSON 401."""
+    """Respons saat belum login: halaman -> redirect ke SPA login, API/SPA -> JSON 401."""
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.path.startswith('/api/'):
         return jsonify({'status': 'error', 'msg': 'Akses ditolak. Silakan login terlebih dahulu.'}), 401
-    next_url = request.full_path if request.query_string else request.path
-    return redirect(url_for('login_page', next=next_url))
+    # v2.5: halaman klasik dipensiunkan — semua login lewat SPA /app/login
+    return redirect('/app/login')
 
 def _auth_forbidden_response():
-    """Respons saat role tidak sesuai: halaman -> flash + redirect, API/SPA -> JSON 403."""
+    """Respons saat role tidak sesuai: halaman -> redirect ke home sesuai role, API/SPA -> JSON 403."""
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.path.startswith('/api/'):
         return jsonify({'status': 'error', 'msg': 'Role tidak diizinkan untuk aksi ini.'}), 403
-    flash('Anda tidak memiliki akses ke halaman ini.', 'error')
-    return redirect(url_for('admin_dashboard'))
+    return redirect(home_for_role(session.get('user_role')))
 
 def role_required(allowed_roles):
     """
@@ -552,12 +551,46 @@ def validate_appointment_input(item):
 ROLE_HOME = {
     'marketing': '/app/marketing',
     'chief_driver': '/app/chief-driver',
+    'driver': '/app/driver',
 }
 
 
 def home_for_role(role):
     """Halaman awal sesuai role user setelah login (SPA /app/*)."""
     return ROLE_HOME.get(role, '/app/dashboard')
+
+
+def session_driver_name():
+    """Nama driver dari sesi (role 'driver' → username di-UPPER-kan) atau None.
+
+    Dipakai endpoint driver (v2.4): sesi login PIN driver menjadi identitas
+    tunggal yang TIDAK bisa dipalsukan lewat parameter `driver`/`driver_name`
+    (anti impersonasi & IDOR antar driver — ISO/IEC 27001 A.8.2).
+    Jalur legacy (PWA klasik tanpa sesi) tetap memakai parameter query/form.
+
+    >>> from flask import session
+    >>> # (perlu Flask test request context; lihat tests/test_driver_session.py)
+    """
+    if session.get('user_role') == 'driver':
+        return (session.get('user_name') or '').strip().upper() or None
+
+
+def resolve_driver_scope(param_value=''):
+    """Identitas driver efektif untuk endpoint scope (v2.5 — jalur legacy ditutup).
+
+    - Sesi role 'driver' → identitas sesi (tidak bisa dipalsukan via param).
+    - Sesi back-office (admin/ga/finance/...) → param eksplisit diizinkan
+      (UI admin query data per driver); '' bila tanpa param (artinya semua).
+    - Tanpa sesi sama sekali → None; pemanggil wajib menolak 401.
+      (Sebelum v2.5, param `?driver=` anonim masih diterima — kini DITUTUP.)
+    """
+    sid = session_driver_name()
+    if sid:
+        return sid
+    if session.get('user_role'):
+        return (param_value or '').strip().upper()
+    return None
+    return None
 
 
 # ============================================================

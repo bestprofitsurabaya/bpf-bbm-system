@@ -1,4 +1,4 @@
-# ⛽ BPF Fleet & BBM System v2.2.3
+# ⛽ BPF Fleet & BBM System v2.5.0 (SPA Vue 3 penuh — 100% Vue)
 
 **Sistem Manajemen Armada, Klaim BBM, Kasbon, Log Perjalanan & Appointment**  
 **PT. Bestprofit Futures - Surabaya**
@@ -6,6 +6,45 @@
 ---
 
 Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pengarsipan klaim BBM, **pengajuan kasbon dengan kode unik**, dan log perjalanan harian (logsheet) dengan workflow GA → Finance → Archive. Dilengkapi **sistem appointment canggih** (Marketing → Chief Driver → Log Perjalanan), deteksi anomali Machine Learning, GPS tracking, **watermark foto otomatis**, PIN security, **session-based login & role-based access**, **CSRF protection**, **notifikasi real-time**, import Excel, audit trail, Chart.js visualization, **PWA offline-first**, dan **WebSocket real-time**.
+
+---
+
+## 🆕 Fitur Terbaru v2.5.0 — Pensiun Total Antarmuka Klasik
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **🚮 Halaman klasik dihapus** | `templates/*.html`, `static/js/*`, `static/css/*`, `archive.js` dihapus dari repo — 100% SPA Vue 3 (halaman lama kini redirect ke `/app/*`) |
+| **🔗 Redirect lengkap** | `/login` `/admin` `/admin/trips` `/admin/rekap` `/admin/analytics` `/admin/logs` `/admin/users` `/admin/settings` `/marketing` `/chief-driver` `/driver` → halaman SPA sesuai role |
+| **🚫 Jalur legacy ditutup** | Endpoint `?driver=` anonim (cash, notifications, appointments, `/driver`, `/submit-trip`) kini **wajib sesi login PIN** → 401 tanpa sesi (anti impersonasi/IDOR) |
+| **🔑 Reset PIN Massal Driver** | Tombol di `/app/settings` → `POST /api/drivers/pin-reset` — seluruh akun driver di-reset ke **123456** (audit trail) |
+| **🛡 CSRF diperketat** | Endpoint driver (submit-trip, cash, driver-complete) tak lagi dikecualikan dari proteksi CSRF |
+| **🧪 Test** | 67 Vitest + 87 pytest (`resolve_driver_scope` + sesi driver) |
+
+> ✅ **Migrasi Vue selesai total (v2.5)** — semua halaman (back-office + driver PWA) adalah SPA Vue 3. Halaman klasik **dihapus dari repo**; endpoint lama hanya redirect, dan jalur anonim `?driver=` **diblokir** — driver wajib login PIN (role `driver` dibuat via `/app/users`, PIN massal 123456 via `/app/settings`).
+
+---
+
+## 🆕 Fitur Terbaru v2.4.0 — Paritas SPA Lengkap (Fase 1 Migrasi Vue)
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **🛡 Verifikasi anomali di SPA** | Transaksi ber-flag ML diverifikasi penuh dari antrean GA (`🛡 Verifikasi` → konfirmasi + foto MyPertamina) — tanpa pindah ke Dashboard Klasik |
+| **🚛 Board Chief Driver lengkap** | Saran driver default per sesi, override area 🌍, ganti/batal tugas, ✅ selesai + hasil kunjungan wajib, 🎯 ubah hasil, ringkasan & filter per marketing anggota, export Excel |
+| **📣 Marketing Hub lengkap** | ✏️ Edit & ✕ Batal appointment, saran anggota tim, preview deteksi area 📍, kolom hasil kunjungan |
+| **🚫 Tautan klasik dihapus** | SPA tidak lagi menaut ke halaman klasik back-office (admin/ga/trips/rekap/analytics) — semuanya selesai dari SPA |
+| **🧪 56 Vitest** | AdminDashboard +2, ChiefDriver 8 test (board lengkap), Marketing +2 |
+
+## 🆕 Fitur Terbaru v2.4.0 (Fase 2) — Driver PWA di Vue + Login PIN
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **🔐 Login PIN driver** | Role baru `driver` di Users; driver wajib login PIN sebelum submit; identitas sesi dipaksa di semua endpoint (anti impersonasi/IDOR); `/driver` → redirect `/app/driver` |
+| **📱 Driver PWA Vue** | `/app/driver`: 4 tab (⛽ BBM · 💰 Kasbon · 🗺️ Trip · 📊 Rapor), foto watermark, GPS satu-klik, panel appointment, hasil kunjungan 🏁 |
+| **🔄 Offline-first penuh** | IndexedDB 3 antrean (BBM/LPJ/Trip) + sinkronisasi otomatis saat online & tiap 30 detik + badge antrean |
+| **🔔 Notifikasi real-time** | Bell + panel + toast via Socket.IO room per driver |
+| **🧪 66 Vitest + 84 pytest** | Test store driver, shell 4 tab, guard role driver, sesi driver |
+
+> ✅ **Migrasi Vue selesai total** — semua halaman (back-office + driver PWA) kini SPA Vue 3. Halaman klasik lama tetap ada di repo sebagai referensi & jalur legacy (endpoint dengan `?driver=` masih diterima).
 
 ---
 
@@ -57,7 +96,8 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 | **Kepatuhan ISO** | Pemetaan ISO/IEC 27001:2022, ISO 9241-11, dan ISO 9001 di `SECURITY.md` |
 
 > Login klasik tetap berfungsi dan kini mengarah ke SPA (`/app/dashboard` atau dashboard role masing-masing).
-> Halaman klasik (driver PWA `/driver`, antrean kerja `/admin`) tetap berjalan sebagai transisi.
+> Halaman klasik back-office (admin/GA/trips/rekap/analytics) sudah sepenuhnya digantikan SPA dan tidak lagi ditaut dari SPA.
+> **Driver PWA** kini di `/app/driver` (Vue 3, offline-first, wajib login PIN) — URL `/driver` lama redirect ke SPA.
 
 ---
 
@@ -229,8 +269,8 @@ Marketing 📣 → Chief Driver 🚛 → Driver 🗺️ → GA ✅
 | PDF | FPDF + DejaVu Sans (Unicode) |
 | Excel | openpyxl |
 | Charts | Chart.js 4.4 |
-| Frontend | HTML5 + CSS3 + Vanilla JS (13 JS modules + 11 CSS) |
-| PWA | Service Worker + IndexedDB + localStorage |
+| Frontend | **Vue 3 + Vite** (vue-router + pinia) — SPA penuh, tidak ada halaman server-render |
+| PWA | Service Worker (scope `/app/`) + IndexedDB + localStorage (offline-first driver) |
 | Container | Docker + Docker Compose |
 | Font | Inter (Google Fonts) + DejaVu Sans |
 
@@ -252,14 +292,16 @@ Aplikasi diakses publik melalui **domain permanen** `nasbpfsby.duckdns.org` (HTT
 
 | Halaman | URL Online |
 |---------|------------|
-| **Login (semua role)** | `https://nasbpfsby.duckdns.org:5000/login` |
-| **📣 Marketing Hub** | `https://nasbpfsby.duckdns.org:5000/marketing` |
-| **🚛 Chief Driver** | `https://nasbpfsby.duckdns.org:5000/chief-driver` |
-| **📱 Driver PWA** | `https://nasbpfsby.duckdns.org:5000/driver` |
-| Dashboard Admin | `https://nasbpfsby.duckdns.org:5000/admin` |
-| GA Assignments | `https://nasbpfsby.duckdns.org:5000/ga/assignments` |
-| Trips | `https://nasbpfsby.duckdns.org:5000/admin/trips` |
-| Users | `https://nasbpfsby.duckdns.org:5000/admin/users` |
+| **Login (semua role)** | `https://nasbpfsby.duckdns.org:5000/app/login` |
+| **📣 Marketing Hub** | `https://nasbpfsby.duckdns.org:5000/app/marketing` |
+| **🚛 Chief Driver** | `https://nasbpfsby.duckdns.org:5000/app/chief-driver` |
+| **📱 Driver PWA** | `https://nasbpfsby.duckdns.org:5000/app/driver` |
+| Dashboard Admin | `https://nasbpfsby.duckdns.org:5000/app/dashboard` |
+| GA Assignments | `https://nasbpfsby.duckdns.org:5000/app/assignments` |
+| Trips | `https://nasbpfsby.duckdns.org:5000/app/trips` |
+| Users | `https://nasbpfsby.duckdns.org:5000/app/users` |
+
+> URL lama (`/login`, `/admin`, `/driver`, `/marketing`, dst.) otomatis redirect ke halaman SPA di atas.
 
 > ✅ **URL permanen (DuckDNS)** — tidak berubah saat server di-restart. WebSocket/notifikasi real-time aktif (nginx meneruskan header Upgrade).
 > ⚠️ **Akses cadangan opsional:** Cloudflare Tunnel *quick tunnel* (URL acak `*.trycloudflare.com`) bisa diaktifkan kembali di `docker-compose.yml` — lihat `DEPLOYMENT.md` §11.
@@ -268,20 +310,20 @@ Aplikasi diakses publik melalui **domain permanen** `nasbpfsby.duckdns.org` (HTT
 
 | Halaman | URL | Aktor |
 |---------|-----|-------|
-| Login | http://localhost:5001/login | Semua |
-| Driver | http://localhost:5001/driver | Driver (tanpa login) |
-| **Marketing Hub** | http://localhost:5001/marketing | Marketing |
-| **Chief Driver** | http://localhost:5001/chief-driver | Chief Driver, GA |
-| Dashboard | http://localhost:5001/admin | GA, Finance, Admin |
-| GA Assignments | http://localhost:5001/ga/assignments | GA |
-| Rekap | http://localhost:5001/admin/rekap | Finance, Admin |
-| Analytics | http://localhost:5001/admin/analytics | Manager, Admin |
-| Trips | http://localhost:5001/admin/trips | GA, Admin |
-| Users | http://localhost:5001/admin/users | Admin |
-| Audit Log | http://localhost:5001/admin/logs | Admin |
-| Settings | http://localhost:5001/admin/settings | Admin |
+| Login | http://localhost:5001/app/login | Semua |
+| Driver PWA | http://localhost:5001/app/driver | Driver (wajib login PIN) |
+| **Marketing Hub** | http://localhost:5001/app/marketing | Marketing |
+| **Chief Driver** | http://localhost:5001/app/chief-driver | Chief Driver, GA |
+| Dashboard | http://localhost:5001/app/dashboard | GA, Finance, Admin |
+| GA Assignments | http://localhost:5001/app/assignments | GA |
+| Rekap | http://localhost:5001/app/rekap | Finance, Admin |
+| Analytics | http://localhost:5001/app/analytics | Manager, Admin |
+| Trips | http://localhost:5001/app/trips | GA, Admin |
+| Users | http://localhost:5001/app/users | Admin |
+| Audit Log | http://localhost:5001/app/logs | Admin |
+| Settings | http://localhost:5001/app/settings | Admin |
 
-> ⚠️ **Semua halaman admin kini memerlukan login.** Driver PWA tetap terbuka tanpa login.
+> ⚠️ **Semua halaman (termasuk Driver PWA) kini memerlukan login PIN.** URL klasik redirect ke halaman SPA di atas.
 
 Default Credentials
 
@@ -292,6 +334,7 @@ Default Credentials
 | Finance | finance_officer | 123456 |
 | Marketing (buat via Users) | mis. icang | 123456 (set via Users) |
 | Chief Driver (buat via Users) | mis. chief_driver | 123456 (set via Users) |
+| Driver (buat via Users, role Driver) | mis. rivan | 123456 (**reset massal** via `/app/settings`) |
 
 ---
 
@@ -315,27 +358,23 @@ bpf-bbm-system/
 │   ├── routes_driver.py            # Driver & PWA routes
 │   ├── routes_admin.py             # Admin dashboard & workflow
 │   ├── routes_reports.py           # Reports, rekap, analytics
-│   ├── routes_settings.py          # Settings + /admin/users
+│   ├── routes_settings.py          # Settings + /admin/users (redirect SPA)
 │   ├── routes_cash.py              # Cash request & LPJ
 │   ├── routes_notifications.py     # Notifikasi API
 │   ├── routes_api_master.py        # Master data API
 │   ├── routes_api_transactions.py  # Transactions API
-│   └── routes_api_assignments.py   # Assignments API
+│   ├── routes_api_assignments.py   # Assignments API
+│   └── routes_spa.py               # Auth JSON + trips/queue/detail API + serve /app/*
+├── frontend/                       # SUMBER SPA Vue 3 (Vite + vue-router + pinia)
+│   └── src/
+│       ├── views/                  # dashboard per role, driver/ (4 tab), view back-office
+│       ├── stores/                 # auth, realtime, driverStore (IndexedDB queue + sync)
+│       ├── components/             # Modal, ToastStack, NotificationBell, DriverNotifBell
+│       ├── utils/                  # idb (antrean offline), gps, watermark
+│       └── router/                 # guard per role
 ├── static/
-│   ├── js/
-│   │   ├── theme.js                # Dark mode + fetch 401/CSRF wrapper
-│   │   ├── admin-ui.js             # Toast/dialog/PIN shared (dashboard)
-│   │   ├── admin-tabs.js           # SPA tab switching + load-more arsip
-│   │   ├── admin-dashboard.js      # Dashboard actions
-│   │   ├── admin-cash.js           # Kasbon admin actions
-│   │   ├── admin.js                # Legacy admin helpers
-│   │   ├── notifications.js        # Notifikasi driver PWA
-│   │   ├── driver.js               # Driver PWA logic
-│   │   ├── db.js                   # IndexedDB + cache
-│   │   ├── sync.js                 # Background sync
-│   │   └── drivers.js              # Driver data loader
-│   └── css/                        # 1 file per halaman (base.css + admin/driver/analytics/...)
-├── templates/                      # 14 HTML templates (+ _tab_content fragment)
+│   ├── app/                        # Bundle SPA hasil build (dilayani di /app/*)
+│   └── icon-*.png                  # Ikon PWA
 ├── scripts/
 │   ├── tunnel-check.sh             # Periksa status URL public (online/offline)
 │   ├── tunnel-url.sh               # Tampilkan URL public aktif
@@ -356,7 +395,7 @@ bpf-bbm-system/
 |-------|-----------|
 | **Session Login** | `/login` username+PIN, session cookie, logout |
 | **Role-Based Access** | `@role_required` di 66 halaman/API (admin/ga/finance) |
-| **CSRF Protection** | Token di form + header, exempt untuk endpoint driver PWA |
+| **CSRF Protection** | Token di form + header `X-CSRF-Token` (SPA); endpoint driver kini ber-CSRF penuh |
 | **Anti Open-Redirect** | Validasi parameter `next` |
 | **GET → POST** | Semua aksi state-changing wajib POST |
 | PIN 6-Digit | GA/Finance/Admin (verifikasi ganda di aksi penting) |
@@ -427,7 +466,7 @@ docker exec bbm_mariadb mysql -uroot -ppassword_db bpf_asset_system \
 | Finance Officer | Payout, Archive, ZIP, Export, ODO Edit, kasbon | 123456 |
 | Chief Driver | Command center penugasan driver appointment | 123456 |
 | Marketing | Input & kelola appointment prospek nasabah (1 akun bisa untuk banyak anggota tim) | 123456 |
-| Driver | Submit BBM, Trip Log, Kasbon, Self-analytics, notifikasi (tanpa login) | - |
+| Driver | Submit BBM, Trip Log, Kasbon, Self-analytics, notifikasi — **wajib login PIN** (anti impersonasi) | 123456 (via Users / reset massal) |
 
 ---
 

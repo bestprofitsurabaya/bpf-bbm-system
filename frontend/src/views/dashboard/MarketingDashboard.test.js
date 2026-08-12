@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import MarketingDashboard from './MarketingDashboard.vue'
 
@@ -7,7 +7,7 @@ vi.mock('../../api', () => ({ api: apiMock }))
 
 const APPS = {
   data: [
-    { id: 1, display_id: 'APP-1', nasabah_name: 'Nasabah A', marketing_member: 'M1', nasabah_phone: '0811', sesi: '1', area: 'Surabaya Barat', status: 'scheduled' },
+    { id: 1, display_id: 'APP-1', nasabah_name: 'Nasabah A', marketing_member: 'M1', nasabah_phone: '0811', sesi: '1', area: 'Surabaya Barat', alamat: 'Jl. Darmo 10', notes: '', status: 'scheduled', visit_result: null },
   ],
   stats: { total: 1, sesi1: 1, sesi2: 0, completed: 0 },
 }
@@ -23,7 +23,12 @@ async function mountView() {
 }
 
 describe('MarketingDashboard', () => {
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.stubGlobal('confirm', vi.fn(() => true))
+    vi.stubGlobal('prompt', vi.fn(() => 'Alasan uji'))
+  })
+  afterEach(() => { vi.unstubAllGlobals() })
 
   it('menampilkan form input + statistik + daftar appointment hari ini', async () => {
     const w = await mountView()
@@ -54,5 +59,27 @@ describe('MarketingDashboard', () => {
     expect(w.text()).toContain('wajib diisi')
     const posts = apiMock.mock.calls.filter((c) => c[0] === '/api/appointments' && c[1]?.method === 'POST')
     expect(posts.length).toBe(0)
+  })
+
+  it('klik ✏️ Edit membuka modal dan PATCH /api/appointments/<id> dengan data form', async () => {
+    const w = await mountView()
+    await w.findAll('button').find((b) => b.text().includes('✏️ Edit')).trigger('click')
+    await flushPromises()
+    expect(w.text()).toContain('Edit APP-1')
+    // form modal = form ke-2 di dokumen (form pertama form input baru)
+    await w.findAll('form')[1].trigger('submit.prevent')
+    await flushPromises()
+    expect(apiMock).toHaveBeenCalledWith('/api/appointments/1', {
+      method: 'PATCH',
+      body: expect.objectContaining({ nasabah_name: 'Nasabah A', marketing_member: 'M1' }),
+    })
+  })
+
+  it('klik ✕ Batal membatalkan appointment dengan alasan via /cancel', async () => {
+    const w = await mountView()
+    await w.findAll('button').find((b) => b.text().includes('✕ Batal')).trigger('click')
+    await flushPromises()
+    expect(global.prompt).toHaveBeenCalled()
+    expect(apiMock).toHaveBeenCalledWith('/api/appointments/1/cancel', { method: 'POST', body: { reason: 'Alasan uji' } })
   })
 })

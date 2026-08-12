@@ -66,6 +66,17 @@ describe('SettingsView', () => {
     expect(apiMock).toHaveBeenCalledWith('/api/drivers/RIVAN/delete', { method: 'POST' })
   })
 
+  it('reset PIN massal driver (konfirmasi) memanggil /api/drivers/pin-reset dengan 123456', async () => {
+    const w = await mountView()
+    await w.findAll('button').find((b) => b.text().includes('PIN Driver')).trigger('click')
+    await flushPromises()
+    expect(global.confirm).toHaveBeenCalled()
+    expect(apiMock).toHaveBeenCalledWith('/api/drivers/pin-reset', {
+      method: 'POST',
+      body: expect.objectContaining({ new_pin: '123456' }),
+    })
+  })
+
   it('tipe kendaraan pada modal tidak duplikat (AVANZA hanya sekali)', async () => {
     const w = await mountView()
     await w.findAll('button').find((b) => b.text().includes('Tambah Driver')).trigger('click')

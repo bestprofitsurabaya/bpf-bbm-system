@@ -4,7 +4,8 @@ from datetime import date
 from flask import request, jsonify, session
 import os
 from modules.config import get_db_connection
-from modules.helpers import log_activity_async, generate_display_id, safe_float, role_required
+from modules.helpers import (log_activity_async, generate_display_id, safe_float,
+                             role_required, session_driver_name, resolve_driver_scope)
 from modules.notifications import push_driver_notification
 
 def register_cash_routes(app):
@@ -74,7 +75,13 @@ def register_cash_routes(app):
         """Driver submits a cash advance request"""
         try:
             data = request.get_json()
-            driver_name = data.get('driver_name', '').strip().upper()
+            # v2.5: identitas driver WAJIB dari sesi login PIN; jalur legacy
+            # anonim (field driver_name) DITUTUP — anti impersonasi & spam.
+            driver_name = session_driver_name()
+            if not driver_name:
+                if not session.get('user_role'):
+                    return jsonify({'status': 'error', 'msg': 'Login driver wajib'}), 401
+                driver_name = (data.get('driver_name', '') or '').strip().upper()
             nopol = data.get('nopol', '').strip().upper()
             vehicle_type = data.get('vehicle_type', 'AVANZA')
             bbm_type = data.get('bbm_type', 'PERTALITE')
@@ -233,10 +240,10 @@ def register_cash_routes(app):
     def api_cash_pending_lpj():
         """Get cash requests that need LPJ submission"""
         try:
-            driver = request.args.get('driver', '').strip().upper()
-            # ISO/IEC 27001 A.8.2: tanpa sesi (PWA driver) wajib filter per driver
-            if not session.get('user_role') and not driver:
-                return jsonify({'error': 'Parameter driver wajib'}), 400
+            # v2.5: tanpa sesi sama sekali → ditolak (jalur legacy ?driver= ditutup)
+            driver = resolve_driver_scope(request.args.get('driver', ''))
+            if driver is None:
+                return jsonify({'error': 'Login driver wajib'}), 401
             conn = get_db_connection()
             if not conn: return jsonify({'error': 'DB error'}), 500
             cursor = conn.cursor(dictionary=True)
@@ -370,10 +377,10 @@ def register_cash_routes(app):
     @app.route('/api/cash/history')
     def api_cash_history():
         try:
-            driver = request.args.get('driver', '').strip().upper()
-            # ISO/IEC 27001 A.8.2: tanpa sesi (PWA driver) wajib filter per driver
-            if not session.get('user_role') and not driver:
-                return jsonify({'error': 'Parameter driver wajib'}), 400
+            # v2.5: tanpa sesi sama sekali → ditolak (jalur legacy ?driver= ditutup)
+            driver = resolve_driver_scope(request.args.get('driver', ''))
+            if driver is None:
+                return jsonify({'error': 'Login driver wajib'}), 401
             conn = get_db_connection()
             if not conn: return jsonify({'error': 'DB error'}), 500
             cursor = conn.cursor(dictionary=True)
@@ -441,6 +448,9 @@ def register_cash_routes(app):
         if not cash_id or cash_id == 0:
             cash_id = int(request.form.get('cash_request_id', 0))
         try:
+            # v2.5: submit LPJ WAJIB sesi driver login (jalur legacy ditutup)
+            if not session_driver_name():
+                return jsonify({'status': 'error', 'msg': 'Login driver wajib'}), 401
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM fuel_cash_requests WHERE id = %s AND status = 'FUNDS_WITH_DRIVER'", (cash_id,))
@@ -448,6 +458,12 @@ def register_cash_routes(app):
             if not cash_req:
                 cursor.close(); conn.close()
                 return jsonify({'status': 'error', 'msg': 'Pengajuan tidak ditemukan'}), 404
+
+            # v2.4: sesi driver login hanya boleh submit LPJ untuk kasbon miliknya sendiri
+            # (anti IDOR antar driver — ISO/IEC 27001 A.8.2).
+            if session_driver_name() and session_driver_name() != (cash_req['driver_name'] or '').strip().upper():
+                cursor.close(); conn.close()
+                return jsonify({'status': 'error', 'msg': 'LPJ hanya bisa diisi untuk kasbon milik Anda'}), 403
 
             driver_name = cash_req['driver_name']
             nopol = cash_req['nopol']
@@ -513,12 +529,13 @@ def register_cash_routes(app):
     @app.route('/api/cash/delete/<int:cash_id>', methods=['POST', 'DELETE'])
     def api_cash_delete(cash_id):
         try:
-            # Proteksi kepemilikan (ISO/IEC 27001 A.8.2): tanpa sesi (PWA driver)
-            # wajib menyertakan driver & harus cocok — mencegah IDOR antar driver.
-            if not session.get('user_role'):
-                driver = (request.args.get('driver') or '').strip().upper()
-                if not driver:
-                    return jsonify({'status': 'error', 'msg': 'Parameter driver wajib untuk pengajuan dari driver'}), 400
+            # v2.5: tanpa sesi sama sekali → ditolak (jalur legacy ditutup).
+            # Sesi driver login dipaksa memakai identitas sendiri; back-office
+            # (ga/finance/admin) tetap boleh menghapus DRAFT apa pun.
+            driver = resolve_driver_scope(request.args.get('driver', ''))
+            if driver is None:
+                return jsonify({'status': 'error', 'msg': 'Login driver wajib'}), 401
+            is_driver_session = bool(session_driver_name())
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM fuel_cash_requests WHERE id = %s AND status = 'DRAFT'", (cash_id,))
@@ -526,7 +543,8 @@ def register_cash_routes(app):
             if not req:
                 cursor.close(); conn.close()
                 return jsonify({'status': 'error', 'msg': 'Hanya pengajuan DRAFT yang bisa dihapus'}), 400
-            if not session.get('user_role') and req['driver_name'].upper() != driver:
+            if (is_driver_session
+                    and req['driver_name'].upper() != (driver or '').upper()):
                 cursor.close(); conn.close()
                 return jsonify({'status': 'error', 'msg': 'Pengajuan ini bukan milik Anda'}), 403
             cursor.execute("DELETE FROM fuel_cash_requests WHERE id = %s", (cash_id,))

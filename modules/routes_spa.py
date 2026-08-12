@@ -215,12 +215,12 @@ def register_spa_routes(app):
                 return jsonify({'status': 'error', 'msg': 'DB error'}), 500
             cursor = conn.cursor(dictionary=True)
             # Transaksi ber-flag anomali ML wajib verifikasi penuh (foto bukti)
-            # di antarmuka klasik — tidak boleh di-approve cepat dari SPA.
+            # dari modal detail SPA — tidak boleh di-approve cepat dari antrean.
             cursor.execute("SELECT ml_anomaly_flag FROM transactions WHERE id=%s", (tx_id,))
             prow = cursor.fetchone()
             if prow and prow.get('ml_anomaly_flag'):
                 cursor.close(); conn.close()
-                return jsonify({'status': 'error', 'msg': f'Transaksi #{tx_id} ber-flag anomali ML — wajib verifikasi penuh (foto bukti) di Dashboard Klasik.'}), 409
+                return jsonify({'status': 'error', 'msg': f'Transaksi #{tx_id} ber-flag anomali ML — wajib verifikasi penuh (foto bukti) dari baris antrean.'}), 409
             cursor.execute("UPDATE transactions SET status='verified_ga', ga_approved_by=%s, ga_approved_at=NOW(), approved_by_user=%s WHERE id=%s AND status IN ('pending','modified')", (actor, actor, tx_id))
             affected = cursor.rowcount
             conn.commit()

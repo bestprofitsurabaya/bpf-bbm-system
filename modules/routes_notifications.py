@@ -1,6 +1,7 @@
 """API Routes - Driver Notifications"""
 from flask import request, jsonify
 from modules.config import get_db_connection
+from modules.helpers import resolve_driver_scope
 
 
 def register_notification_routes(app):
@@ -8,7 +9,10 @@ def register_notification_routes(app):
     @app.route('/api/notifications')
     def api_notifications():
         try:
-            driver = request.args.get('driver', '').strip().upper()
+            # v2.5: tanpa sesi sama sekali → ditolak (jalur legacy ?driver= ditutup)
+            driver = resolve_driver_scope(request.args.get('driver', ''))
+            if driver is None:
+                return jsonify({'error': 'Login driver wajib'}), 401
             if not driver:
                 return jsonify({'error': 'Parameter driver wajib'}), 400
             conn = get_db_connection()
@@ -40,7 +44,10 @@ def register_notification_routes(app):
     def api_notifications_read():
         try:
             data = request.get_json() or {}
-            driver = (data.get('driver') or '').strip().upper()
+            # v2.5: tanpa sesi sama sekali → ditolak (jalur legacy ditutup)
+            driver = resolve_driver_scope(data.get('driver') or '')
+            if driver is None:
+                return jsonify({'status': 'error', 'msg': 'Login driver wajib'}), 401
             if not driver:
                 return jsonify({'status': 'error', 'msg': 'driver wajib'}), 400
             conn = get_db_connection()
