@@ -2,13 +2,13 @@
 // Konek ke Chrome yang berjalan di Docker: docker run ... -p 9222:9222 zenika/alpine-chrome
 import puppeteer from 'puppeteer-core'
 
-const BASE = process.env.BASE || 'http://web:5000'
-const CDP = 'http://localhost:9222'
+const BASE = process.env.BASE || 'http://localhost:5001'
+const CHROME = '/home/it-ef/.local/opt/chrome/chrome-linux64/chrome'
 const SHOT_DIR = '/tmp/ui_shots'
 import { mkdirSync } from 'fs'
 mkdirSync(SHOT_DIR, { recursive: true })
 
-const browser = await puppeteer.connect({ browserURL: CDP, defaultViewport: { width: 1440, height: 900 } })
+const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-gpu'], defaultViewport: { width: 1440, height: 900 } })
 const page = await browser.newPage()
 
 const errors = []
@@ -48,7 +48,7 @@ while (!sessionCookie && Date.now() - t0 < 12000) await new Promise((r) => setTi
 // Akses verifikasi via HTTP — set cookie sesi manual via CDP (produksi pakai HTTPS + Secure cookie)
 const cdp = await page.createCDPSession()
 await cdp.send('Network.setCookie', {
-  name: 'session', value: sessionCookie, url: 'http://web:5000',
+  name: 'session', value: sessionCookie, url: 'http://localhost:5001',
   path: '/', httpOnly: true, secure: false, sameSite: 'Lax',
 })
 await page.goto(BASE + '/app/dashboard', { waitUntil: 'domcontentloaded' })

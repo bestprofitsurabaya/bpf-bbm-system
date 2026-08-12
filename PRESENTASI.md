@@ -3,6 +3,8 @@
 > **Panduan demo lengkap**: urutan sudah disusun dari yang paling berkesan ke yang paling teknis.
 > Tiap bagian berisi: tujuan, yang diklik di layar, poin yang dibicarakan, dan "satu kalimat kunci".
 > Total durasi fleksibel — **demo inti ±15 menit**, versi lengkap ±30 menit.
+> 🖥️ **Slide deck interaktif**: buka `presentasi/index.html` di browser (navigasi → ←, tekan **N** untuk catatan pembicara, **Ctrl+P** untuk cetak/PDF).
+> 🧪 **Data demo**: sudah diisi di database (label `DEMO` — air minum, klaim BBM, kasbon, trip, appointment). Bersihkan dengan `scripts/demo_cleanup.sql`.
 
 ---
 

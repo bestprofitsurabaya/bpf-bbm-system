@@ -110,6 +110,8 @@ Semua env di-set di `docker-compose.yml` (tidak perlu file `.env` terpisah, tapi
 | `TZ` | `Asia/Jakarta` | Zona waktu |
 | `SESSION_HOURS` | `12` | Masa berlaku sesi login (jam) — kebijakan sesi ISO/IEC 27001 A.8.5 |
 | `SESSION_COOKIE_SECURE` | `true` | Cookie sesi hanya lewat HTTPS. Set `false` hanya untuk dev http lokal |
+
+> 💡 **Akses HTTP lokal di browser**: cookie `Secure` tidak dikirim browser lewat HTTP polos — login tampak "gagal". Untuk dev lokal, aktifkan baris komentar `SESSION_COOKIE_SECURE=false` di `docker-compose.yml` (service `web`) lalu `docker compose up -d web`. Jangan aktifkan di produksi HTTPS.
 | `SESSION_COOKIE_SAMESITE` | `Lax` | Proteksi CSRF tingkat cookie (jangan ubah tanpa alasan) |
 
 **Cara generate SECRET_KEY aman:**

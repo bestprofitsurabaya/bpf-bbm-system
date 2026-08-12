@@ -6,6 +6,23 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.12.0] - 2026-08-12
+
+### 🎤 Siap Demo: Slide Deck, Data Demo, Verifikasi Chrome Host
+
+- **Chrome host berfungsi**: dependensi sistem (`libnspr4`, `libnss3`, dll) terpasang → Chrome for Testing 151 berjalan langsung di host. `frontend/scripts/verify_ui.mjs` kini launch Chrome sendiri (tanpa Docker) — **13/13 cek lulus, console 100% bersih** (login per peran, PIN toggle, dashboard, dark, kontras tinggi, fokus keyboard, bell+Esc, Finance, Air Minum).
+- **Slide deck interaktif**: `presentasi/index.html` — 12 slide dari materi `PRESENTASI.md`, navigasi keyboard (→ ←, Home/End), **catatan pembicara** (tekan N), swipe di HP, mode cetak/PDF (Ctrl+P), dark mode otomatis.
+- **Data demo lengkap** (label `DEMO`, aman dibedakan):
+  - Merk air minum (AQUA Galon, Club, Le Minerale, VIT Botol, VIT Gelas) + 2 pengajuan (WTR-DEMO-01 pending Faisol, WTR-DEMO-02 verified Febri).
+  - Klaim BBM: 2 pending + 1 `verified_ga` + 1 `os_finance` (RIVAN/BUDI/ANDRE).
+  - Kasbon: 2 DRAFT + 1 GA_APPROVED · Trip 1 pending · Appointment 2 (scheduled & assigned).
+  - **Terverifikasi E2E**: antrean GA, kasbon, rekap air minum, trips semuanya menampilkan data demo.
+  - **Pembersih**: `scripts/demo_cleanup.sql` (hapus semua baris label DEMO).
+- **Akses HTTP lokal**: opsi `SESSION_COOKIE_SECURE=false` di `docker-compose.yml` (baris komentar, aman produksi) + catatan praktis di `DEPLOYMENT.md` — solusi "login gagal di browser lewat http dev".
+- `PRESENTASI.md` ditautkan ke slide deck & data demo.
+
+---
+
 ## [2.11.0] - 2026-08-12
 
 ### 🎨 Aksesibilitas Dialog & Kontras + Verifikasi Browser Nyata

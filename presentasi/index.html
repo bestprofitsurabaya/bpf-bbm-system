@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BPF Fleet &amp; BBM System — Materi Presentasi</title>
+<style>
+  :root {
+    --bg: #f1f5f9; --surface: #ffffff; --ink: #0f172a; --ink2: #475569; --ink3: #64748b;
+    --border: #e2e8f0; --primary: #2563eb; --primary-soft: #eff6ff;
+    --accent: #059669; --warn: #d97706; --danger: #dc2626;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0b1120; --surface: #111c30; --ink: #e2e8f0; --ink2: #94a3b8; --ink3: #64748b; --border: #24344f; --primary: #3b82f6; --primary-soft: #1e3a5f; }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--ink); overflow: hidden; }
+
+  .deck { height: 100vh; position: relative; }
+  .slide {
+    position: absolute; inset: 0; padding: 6vh 7vw;
+    display: flex; flex-direction: column; justify-content: center;
+    opacity: 0; visibility: hidden; transform: translateX(24px);
+    transition: opacity .35s ease, transform .35s ease;
+  }
+  .slide.active { opacity: 1; visibility: visible; transform: none; }
+  .slide-inner { max-width: 960px; width: 100%; margin: 0 auto; }
+
+  .kicker { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); margin-bottom: 14px; }
+  h1 { font-size: clamp(28px, 5vw, 52px); line-height: 1.1; font-weight: 800; letter-spacing: -.02em; margin-bottom: 16px; }
+  h2 { font-size: clamp(22px, 3.6vw, 38px); font-weight: 800; letter-spacing: -.02em; margin-bottom: 18px; }
+  h3 { font-size: 17px; font-weight: 700; margin: 18px 0 8px; }
+  p { font-size: clamp(15px, 2vw, 19px); line-height: 1.55; color: var(--ink2); }
+  .lead { font-size: clamp(16px, 2.2vw, 21px); line-height: 1.6; color: var(--ink2); }
+  ul { list-style: none; margin-top: 12px; }
+  li { font-size: clamp(14px, 1.9vw, 18px); line-height: 1.6; color: var(--ink2); padding: 6px 0 6px 30px; position: relative; }
+  li::before { content: '→'; position: absolute; left: 6px; color: var(--primary); font-weight: 700; }
+  .key {
+    margin-top: 26px; padding: 14px 18px; border-left: 4px solid var(--accent);
+    background: var(--surface); border-radius: 10px; font-size: clamp(14px, 1.9vw, 17px);
+    color: var(--ink); font-weight: 600; box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  }
+  .key b { color: var(--accent); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 18px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+  .card .ico { font-size: 26px; }
+  .card b { display: block; margin: 8px 0 4px; font-size: 15px; }
+  .card span { font-size: 13px; color: var(--ink2); line-height: 1.5; display: block; }
+  table { width: 100%; border-collapse: collapse; margin-top: 14px; background: var(--surface); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+  th { text-align: left; padding: 10px 14px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink2); background: var(--primary-soft); }
+  td { padding: 10px 14px; font-size: 14px; border-top: 1px solid var(--border); color: var(--ink2); }
+  td b { color: var(--ink); }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-right: 6px; }
+  .pill.b { background: #dbeafe; color: #1d4ed8; }
+  .pill.g { background: #d1fae5; color: #065f46; }
+  .pill.a { background: #fef3c7; color: #92400e; }
+  .pill.r { background: #fee2e2; color: #991b1b; }
+  .pill.p { background: #ede9fe; color: #5b21b6; }
+  .big { font-size: clamp(40px, 9vw, 90px); font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+  .center { text-align: center; }
+  .muted { color: var(--ink3); font-size: 13px; }
+
+  /* chrome */
+  .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--primary); transition: width .3s ease; z-index: 20; }
+  .counter { position: fixed; bottom: 16px; right: 20px; font-size: 13px; color: var(--ink3); z-index: 20; }
+  .navdots { position: fixed; bottom: 16px; left: 20px; display: flex; gap: 7px; z-index: 20; }
+  .navdots button { width: 9px; height: 9px; border-radius: 50%; border: none; background: var(--border); cursor: pointer; padding: 0; transition: background .2s, transform .2s; }
+  .navdots button.on { background: var(--primary); transform: scale(1.3); }
+  .hint { position: fixed; top: 16px; right: 20px; font-size: 11px; color: var(--ink3); z-index: 20; }
+  .notes { display: none; margin-top: 22px; padding: 12px 16px; border: 1px dashed var(--border); border-radius: 10px; font-size: 13px; color: var(--ink2); background: var(--surface); }
+  body.show-notes .notes { display: block; }
+
+  @media print {
+    body { overflow: visible; }
+    .slide { position: relative; inset: auto; opacity: 1; visibility: visible; transform: none; page-break-after: always; min-height: 90vh; padding: 4vh 4vw; }
+    .progress, .counter, .navdots, .hint { display: none; }
+    .notes { display: block; }
+  }
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <!-- 1: JUDUL -->
+  <section class="slide active"><div class="slide-inner">
+    <div class="kicker">Materi Presentasi · Demo Aplikasi</div>
+    <h1>⛽ BPF Fleet &amp; BBM<br/>System</h1>
+    <p class="lead">Satu aplikasi untuk semua urusan armada, BBM, kasbon, log perjalanan, appointment, dan air minum.</p>
+    <div class="cards">
+      <div class="card"><div class="ico">🚚</div><b>Driver</b><span>Klaim BBM · Kasbon · Trip · Offline</span></div>
+      <div class="card"><div class="ico">💧</div><b>OB</b><span>Pengajuan air minum + foto bukti</span></div>
+      <div class="card"><div class="ico">🧾</div><b>GA &amp; Finance</b><span>Verifikasi, persetujuan, rekap</span></div>
+      <div class="card"><div class="ico">📣</div><b>Marketing &amp; Chief Driver</b><span>Appointment &amp; pembagian tugas</span></div>
+    </div>
+    <div class="notes">Sapaan singkat, lalu langsung ke cerita: "Coba bayangkan seorang sopir..." Lanjut ke slide berikutnya dengan panah kanan.</div>
+  </div></section>
+
+  <!-- 2: CERITA MASALAH -->
+  <section class="slide"><div class="slide-inner">
+    <div class="kicker">Pembuka</div>
+    <h2>🎭 Cerita dari Lapangan</h2>
+    <ul>
+      <li>Sopir <b>bayar BBM pakai uang sendiri</b> — lalu menunggu berhari-hari uangnya diganti.</li>
+      <li>Finance <b>merekap struk manual di Excel</b> — sering bingung "uang ini untuk yang mana?".</li>
+      <li>OB beli galon air minum — <b>tidak ada bukti resmi</b> kapan, berapa, dari siapa.</li>
+      <li>Laporan perjalanan <b>hilang atau telat</b>, tidak ada jejak siapa yang mengerjakan apa.</li>
+    </ul>
+    <div class="key">💡 <b>Kunci:</b> dari "catat di kertas, rekap di Excel" menjadi <b>satu aplikasi, semua tercatat otomatis, semua bisa diaudit</b>.</div>
+    <div class="notes">Bacakan narasi humanis. Tahan jeda di poin terakhir — itu alasan aplikasi ini dibuat.</div>
+  </div></section>
+
+  <!-- 3: SATU APLIKASI SEMUA PERAN -->
+  <section class="slide"><div class="slide-inner">
+    <div class="kicker">Gambaran Besar</div>
+    <h2>🧑‍🤝‍🧑 Satu Aplikasi, Semua Peran</h2>
+    <p class="lead">Setiap orang login dengan <b>Username + PIN 6 digit</b> dan langsung masuk ke <b>halamannya masing-masing</b>.</p>
+    <table>
+      <tr><th>Peran</th><th>Langsung dibawa ke</th></tr>
+      <tr><td><b>Admin</b></td><td>Dashboard Admin — seluruh operasi + manajemen user</td></tr>
+      <tr><td><b>GA</b></td><td>Dashboard GA — klaim, kasbon, trip, verifikasi anomali</td></tr>
+      <tr><td><b>Finance</b></td><td>Dashboard Finance — rekap air minum &amp; kasbon</td></tr>
+      <tr><td><b>Driver</b></td><td>Aplikasi Driver (PWA) — BBM, kasbon, trip, rapor</td></tr>
+      <tr><td><b>OB</b></td><td>Halaman Air Minum</td></tr>
+      <tr><td><b>Marketing / Chief Driver</b></td><td>Marketing Hub / Board Chief Driver</td></tr>
+    </table>
+    <div class="key">🔒 <b>Kunci:</b> satu aplikasi untuk semua — tapi setiap orang <b>hanya melihat dunia yang menjadi tugasnya</b> (least privilege).</div>
+    <div class="notes">Demo: login sebagai admin, tunjukkan menu. Jelaskan setiap peran punya halaman sendiri.</div>
+  </div></section>
+
+  <!-- 4: AIR MINUM -->
+  <section class="slide"><div class="slide-inner">
+    <div class="kicker">Demo Utama 1</div>
+    <h2>💧 Air Minum: OB → Finance → PDF</h2>
+    <div class="cards">
+      <div class="card"><div class="ico">📝</div><b>1. OB mengisi</b><span>Tanggal, jumlah, jenis (Gelas/Botol/Galon), merk + <b>foto sebelum &amp; sesudah</b></span></div>
+      <div class="card"><div class="ico">✅</div><b>2. Finance verifikasi</b><span>Periksa bukti, isi remark &amp; catatan — semua terekam</span></div>
+      <div class="card"><div class="ico">📄</div><b>3. PDF tanda terima</b><span>Ditandatangani Finance (penyerah) &amp; GA (penerima)</span></div>
+    </div>
+    <ul>
+      <li>Nama OB asli: <b>Faisol, Febri, Edwin</b> — masing-masing hanya melihat pengajuannya sendiri.</li>
+      <li>Tanpa foto bukti, pengajuan <b>tidak bisa diproses</b>.</li>
+    </ul>
+    <div class="key">🏁 <b>Kunci:</b> dari pembelian galon sampai tanda terima resmi — <b>tercatat, terbukti, bisa diaudit</b>, tanpa kertas.</div>
+    <div class="notes">Demo live: login ob1 → buat pengajuan (foto contoh sudah disiapkan) → login finance_officer → verifikasi → buka PDF.</div>
+  </div></section>
+
+  <!-- 5: DASHBOARD PER PERAN -->
+  <section class="slide"><div class="slide-inner">
+    <div class="kicker">Demo Utama 2</div>
+    <h2>🧾 Dashboard per Peran</h2>
+    <table>
+      <tr><th>Halaman</th><th>Yang bisa dilakukan langsung</th></tr>
+      <tr><td><b>Dashboard GA</b></td><td><span class="pill g">✅ Approve</span><span class="pill r">✕ Tolak</span> klaim · <span class="pill p">🛡 Verifikasi anomali</span> · kasbon DRAFT · trip pending</td></tr>
+      <tr><td><b>Dashboard Finance</b></td><td>Rekap air minum <b>per OB / per jenis / per merk</b> · antrean verifikasi · kasbon menunggu · <span class="pill b">⬇ Export CSV</span></td></tr>
+      <tr><td><b>Dashboard Admin</b></td><td>Ringkasan seluruh operasi + akses Users, Settings, Audit Log</td></tr>
+    </table>
+    <ul>
+      <li>Alasan penolakan <b>wajib diisi</b> — untuk jejak audit.</li>
+      <li>Klaim bertanda ⚠️ melewati <b>verifikasi anomali</b> khusus.</li>
+    </ul>
+    <div class="key">🎯 <b>Kunci:</b> pekerjaan selesai dari satu halaman — tidak berpindah-pindah menu.</div>
+    <div class="notes">Demo: login bergantian ga_officer → finance_officer → admin. Tunjukkan tombol approve/tolak & export CSV.</div>
+  </div></section>
+
+  <!-- 6: KASBON & KODE UNIK -->
+  <section class="slide"><div class="slide-inner">
+    <div class="kicker">Demo Utama 3</div>
+    <h2>💰 Klaim BBM &amp; Kasbon</h2>
+    <p class="lead">Alur relay: <b>Driver → GA → Finance → LPJ → Selesai 🎉</b></p>
+    <table>
+      <tr><th>Tahap</th><th>Siapa</th><th>Status</th></tr>
+      <tr><td>Ajukan klaim + foto struk</td><td>Driver</td><td><span class="pill a">Draft / Pending</span></td></tr>
+      <tr><td>Setujui &amp; serahkan dana</td><td>GA</td><td><span class="pill g">Disetujui GA</span></td></tr>
+      <tr><td>Cairkan dana</td><td>Finance</td><td><span class="pill b">Diserahkan</span></td></tr>
+      <tr><td>Isi LPJ (pertanggungjawaban)</td><td>Driver</td><td><span class="pill p">LPJ Diajukan</span></td></tr>
+      <tr><td>Verifikasi LPJ</td><td>GA</td><td><span class="pill g">Selesai 🎉</span></td></tr>
+    </table>
+    <div class="key">🔢 <b>Kode unik:</b> kasbon Rp 100.000 otomatis menjadi Rp 100.023 — nominal persis inilah bukti "uang ini untuk kasbon siapa".</div>
+    <div class="notes">Ceritakan kode unik dengan contoh konkret. Demo: buka halaman Kasbon & Dashboard GA.</div>
+  </div></section>
+
+  <!-- 7: REALTIME -->
+  <section class="slide"><div class="slide-inner">
+    <div class="kicker">Demo Utama 4</div>
+    <h2>⚡ Realtime &amp; Notifikasi</h2>
+    <div class="cards">
+      <div class="card"><div class="ico">🔔</div><b>Toast &amp; Lonceng</b><span>Pengajuan baru muncul seketika — ikon per jenis (klaim, trip, air minum, appointment)</span></div>
+      <div class="card"><div class="ico">🔄</div><b>Auto-refresh</b><span>Antrean GA/Finance ter-refresh sendiri tanpa muat ulang</span></div>
+      <div class="card"><div class="ico">🟢</div><b>Indikator hidup</b><span>"⚡ Realtime" di pojok — jika putus tampil merah</span></div>
+    </div>
+    <div class="key">📡 <b>Kunci:</b> aplikasi ini "hidup" — begitu ada yang mengajukan, <b>yang berwenang langsung tahu</b>, bukan besok pagi.</div>
+    <div class="notes">Demo 2-3 tab: login OB di satu tab, Finance di tab lain → buat pengajuan → lihat toast + auto-refresh muncul sendiri.</div>
+  </div></section>
+
+  <!-- 8: DRIVER OFFLINE -->
+  <section class="slide"><div class="slide-inner">
+    <div class="kicker">Demo Utama 5</div>
+    <h2>📱 Driver: Offline di Jalan</h2>
+    <ul>
+      <li>Login PIN — <b>identitas menempel otomatis</b> di semua laporan (tidak bisa mengaku-ngaku).</li>
+      <li>4 tab: <b>⛽ BBM · 💰 Kasbon · 🗺️ Trip · 📊 Rapor</b>.</li>
+      <li><b>Offline-first:</b> data tersimpan di HP, terkirim otomatis saat sinyal kembali + tombol 🔄 Sinkron.</li>
+      <li><b>Rapor performa:</b> masukkan nopol → HEMAT / CUKUP / BOROS.</li>
+      <li>Bisa <b>dipasang di layar utama HP</b> seperti aplikasi biasa (PWA).</li>
+    </ul>
+    <div class="key">🌐 <b>Kunci:</b> sopir di jalan tetap produktif — <b>sinyal hilang bukan alasan data hilang</b>.</div>
+    <div class="notes">Demo: buka /app/driver di mode ponsel (DevTools), tunjukkan tab & status offline.</div>
+  </div></section>
+
+  <!-- 9: MARKETING & CHIEF DRIVER -->
+  <section class="slide"><div class="slide-inner">
+    <div class="kicker">Demo Pendukung</div>
+    <h2>📣 Marketing &amp; Chief Driver</h2>
+    <div class="cards">
+      <div class="card"><div class="ico">📅</div><b>Marketing Hub</b><span>Input appointment, pantau status, lihat hasil kunjungan — data penjualan tersaji otomatis</span></div>
+      <div class="card"><div class="ico">🚛</div><b>Chief Driver</b><span>Papan pembagian tugas: kendaraan belum ditugaskan, beban tiap driver, unduh rekap harian Excel</span></div>
+    </div>
+    <div class="key">🗂️ <b>Kunci:</b> bukan hanya BBM — <b>penjadwalan kunjungan &amp; pembagian sopir juga satu pintu</b>.</div>
+    <div class="notes">Cukup 1-2 layar. Tekankan integrasi: appointment → tugas driver → hasil kunjungan.</div>
+  </div></section>
+
+  <!-- 10: KEAMANAN -->
+  <section class="slide"><div class="slide-inner">
+    <div class="kicker">Kepercayaan</div>
+    <h2>🔐 Keamanan &amp; Tata Kelola</h2>
+    <table>
+      <tr><th>Aspek</th><th>Jawaban singkat</th></tr>
+      <tr><td><b>Login PIN per orang</b></td><td>Tidak ada akun bersama — semua aksi tercatat siapa</td></tr>
+      <tr><td><b>Role-based access</b></td><td>GA tak bisa buka rekap finance; OB tak bisa lihat klaim</td></tr>
+      <tr><td><b>Audit Log</b></td><td>Semua aksi penting tercatat &amp; bisa difilter</td></tr>
+      <tr><td><b>Anti peretasan</b></td><td>Percobaan login dibatasi · token CSRF · unggahan diperiksa</td></tr>
+      <tr><td><b>Kerahasiaan</b></td><td>Sesi aman (HTTPS) · cookie ketat · foto bukti terlindungi</td></tr>
+    </table>
+    <div class="key">🛡️ <b>Kunci:</b> keamanan berlapis — dari PIN pengguna sampai <b>jejak audit setiap transaksi</b>.</div>
+    <div class="notes">Bagian ini untuk pengambil keputusan. Jangan terlalu teknis — satu kalimat per baris.</div>
+  </div></section>
+
+  <!-- 11: KUALITAS -->
+  <section class="slide"><div class="slide-inner">
+    <div class="kicker">Kredibilitas</div>
+    <h2>🧪 Kualitas &amp; Kepatuhan</h2>
+    <div class="cards">
+      <div class="card"><div class="ico">✅</div><b>179 uji otomatis</b><span>97 backend + 82 frontend — setiap perubahan diuji</span></div>
+      <div class="card"><div class="ico">🌐</div><b>E2E di produksi</b><span>Alur kritis diverifikasi di lingkungan nyata</span></div>
+      <div class="card"><div class="ico">📜</div><b>Standar ISO</b><span>27001 (keamanan) · 9241-11 (UX) · 9001 (mutu)</span></div>
+      <div class="card"><div class="ico">♿</div><b>Aksesibilitas</b><span>Fokus keyboard, kontras ≥4,5:1, mode kontras tinggi &amp; gelap</span></div>
+    </div>
+    <div class="key">🏆 <b>Kunci:</b> bukan prototipe — <b>sistem yang diuji, diamankan, dan siap dipakai harian</b>.</div>
+    <div class="notes">Tunjukkan tombol 🔆 (kontras tinggi) dan 🌙 (gelap) di aplikasi sebagai bukti.</div>
+  </div></section>
+
+  <!-- 12: PENUTUP -->
+  <section class="slide"><div class="slide-inner">
+    <div class="kicker">Penutup</div>
+    <h2>Rangkuman &amp; Langkah Berikutnya</h2>
+    <div class="big">1 · 0 · 100%</div>
+    <p class="lead" style="margin-top:10px;"><b>1 aplikasi</b> untuk semua peran · <b>0 kertas</b> arsip manual · <b>100% tercatat &amp; bisa diaudit</b> — setiap rupiah, setiap galon, setiap perjalanan.</p>
+    <ul>
+      <li><b>Langkah berikutnya:</b> lengkapi data master (armada, driver, merk), pelatihan singkat per peran (panduan sudah ada), dan prioritas pengembangan berikutnya.</li>
+    </ul>
+    <div class="key" style="border-left-color:var(--primary)">🙏 <b>Terima kasih.</b> Siap menjawab pertanyaan dan mendampingi penerapan.</div>
+    <div class="notes">Tutup dengan kalimat penutup dari materi PRESENTASI.md. Ajukan tanya-jawab.</div>
+  </div></section>
+
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="navdots" id="navdots"></div>
+<div class="counter" id="counter"></div>
+<div class="hint">→ ← navigasi · N catatan · P cetak</div>
+
+<script>
+  const slides = [...document.querySelectorAll('.slide')]
+  const dotsBox = document.getElementById('navdots')
+  let idx = 0
+
+  slides.forEach((_, i) => {
+    const b = document.createElement('button')
+    b.setAttribute('aria-label', 'Slide ' + (i + 1))
+    b.onclick = () => go(i)
+    dotsBox.appendChild(b)
+  })
+
+  function go(i) {
+    idx = Math.max(0, Math.min(slides.length - 1, i))
+    slides.forEach((s, k) => s.classList.toggle('active', k === idx))
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%'
+    document.getElementById('counter').textContent = (idx + 1) + ' / ' + slides.length
+    ;[...dotsBox.children].forEach((d, k) => d.classList.toggle('on', k === idx))
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(idx + 1) }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(idx - 1) }
+    else if (e.key === 'Home') { e.preventDefault(); go(0) }
+    else if (e.key === 'End') { e.preventDefault(); go(slides.length - 1) }
+    else if (e.key.toLowerCase() === 'n') document.body.classList.toggle('show-notes')
+  })
+
+  // swipe support
+  let sx = null
+  window.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX })
+  window.addEventListener('touchend', (e) => {
+    if (sx === null) return
+    const dx = e.changedTouches[0].clientX - sx
+    if (Math.abs(dx) > 60) go(idx + (dx < 0 ? 1 : -1))
+    sx = null
+  })
+
+  go(0)
+</script>
+</body>
+</html>
