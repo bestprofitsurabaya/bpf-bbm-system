@@ -6,6 +6,18 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.13.0] - 2026-08-12
+
+### 🎤 Paket Lengkap Presentasi & Demo
+
+- **Versi PPTX editabel**: `presentasi/BPF_Fleet_BBM_System_Presentasi.pptx` — 12 slide 16:9 dari materi presentasi, siap diedit di PowerPoint. Generator: `scripts/make_pptx.py` (python-pptx, jalankan ulang kapan saja). Terverifikasi 12 slide dengan judul lengkap.
+- **PDF diperiksa halaman per halaman** (pdftotext): 12 halaman A4 landscape, semua judul slide utuh, tidak ada halaman kosong atau terpotong — aman dibagikan.
+- **Data analytics demo**: 70 transaksi riwayat ~3 bulan (label `BPF-DEMO-H*`, 5 driver, nominal & km_per_liter bervariasi) — grafik Analytics kini hidup (90+ transaksi, grafik bulanan 2–3 bar). Ikut terhapus oleh `scripts/demo_cleanup.sql` (prefix `BPF-DEMO-%`).
+- **Lembar latihan per peran**: `PELATIHAN.md` — langkah + hasil yang diharapkan untuk OB, Driver, GA, Finance, Marketing, Chief Driver, Admin, plus daftar periksa sebelum demo.
+- Tooling: `python3-pip` + `poppler-utils` terpasang di server (pengembangan/dokumen).
+
+---
+
 ## [2.12.1] - 2026-08-12
 
 ### 📄 Versi PDF Slide Deck
