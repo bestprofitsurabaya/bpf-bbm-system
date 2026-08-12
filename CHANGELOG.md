@@ -15,6 +15,7 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 - **PDF Tanda Terima Serah Terima** (`WaterReceiptPDF`): kop surat PT Bestprofit, nomor unik `WTR-YYYYMMDD-xxxx`, tabel item, hasil verifikasi (remark/note/alasan), **blok tanda tangan Finance (menyerahkan) & GA (menerima)** — nama TTD di-set global oleh admin di `/app/settings`, dan **lampiran 2 foto**. Status pending/verified/rejected masing-masing punya tampilan PDF sendiri.
 - **Kontrol akses**: OB hanya melihat & mengunduh PDF pengajuannya sendiri; master merk & verifikasi khusus Finance/admin; tanpa sesi → 401. Semua aksi tercatat di audit trail (`water_*`).
 - **Validasi input**: minimal 1 item, maks 20 item/pengajuan, kuantitas angka 1–99.999, satuan di-whitelist, foto wajib (JPG/PNG), remark di-truncate 500 / note 2000 karakter. Batch-load item di daftar pengajuan (hindari N+1), page-break aman untuk blok TTD PDF.
+- **🔔 Notifikasi realtime ke Finance**: saat OB mengirim pengajuan, event `water_purchase_new` di-broadcast — Finance & admin mendapat toast 💧 + badge di lonceng notifikasi tanpa reload (pola sama dengan `new_claim`/`new_trip_report`).
 
 ### 🗄️ Skema Database (otomatis di startup + init.sql)
 

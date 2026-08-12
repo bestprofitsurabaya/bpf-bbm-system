@@ -181,7 +181,9 @@ table.tbl { width: 100%; border-collapse: collapse; background: var(--surface); 
 .badge-red { background: #fee2e2; color: #991b1b; }
 .badge-gray { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); }
 .badge-purple { background: #ede9fe; color: #5b21b6; }
+.badge-cyan { background: #cffafe; color: #0e7490; }
 html.dark .badge-blue { background: #1e3a5f; color: #93c5fd; }
+html.dark .badge-cyan { background: #164e63; color: #67e8f9; }
 html.dark .badge-green { background: #064e3b; color: #6ee7b7; }
 html.dark .badge-amber { background: #78350f; color: #fcd34d; }
 html.dark .badge-red { background: #7f1d1d; color: #fca5a5; }

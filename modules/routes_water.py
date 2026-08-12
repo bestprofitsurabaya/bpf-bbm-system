@@ -8,6 +8,7 @@ Alur:
 4. Pengajuan terverifikasi -> PDF tanda terima TTD Finance (menyerahkan)
    & GA (menerima); nama TTD di-set admin via system_config.
 """
+from datetime import datetime
 from flask import request, jsonify, make_response, session
 from modules.config import get_db_connection
 from modules.helpers import (role_required, log_activity_async, save_file,
@@ -192,6 +193,19 @@ def register_water_routes(app):
             log_activity_async(0, 'water_purchase_create', session.get('user_role', ''),
                                ob_name, new_data={'display_id': display_id, 'items': normalized},
                                ip=client_ip())
+            # Realtime: beri tahu Finance/admin bahwa ada pengajuan baru (broadcast)
+            try:
+                from modules.realtime import emit_event
+                emit_event('water_purchase_new', {
+                    'id': purchase_id,
+                    'display_id': display_id,
+                    'ob_name': ob_name,
+                    'item_count': len(normalized),
+                    'purchase_date': tanggal,
+                    'created_at': datetime.now().strftime('%d/%m/%Y %H:%M'),
+                })
+            except Exception:
+                pass
             return jsonify({'status': 'success', 'msg': f'Pengajuan {display_id} dikirim ke Finance',
                             'display_id': display_id, 'id': purchase_id})
         except Exception as e:

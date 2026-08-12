@@ -35,6 +35,11 @@ export const useRealtimeStore = defineStore('realtime', {
           socket.on('new_trip_report', (d) => this.push(`🗺️ ${d?.driver_name || 'Driver'} submit laporan perjalanan`, 'new_trip_report', d))
         }
 
+        // Pengajuan air minum baru — relevan untuk Finance & admin
+        if (['finance', 'admin'].includes(role)) {
+          socket.on('water_purchase_new', (d) => this.push(`💧 ${d?.ob_name || 'OB'} mengajukan pembelian air minum ${d?.display_id || ''}`, 'water_purchase_new', d))
+        }
+
         // Appointment board (marketing / chief driver)
         if (['marketing', 'chief_driver', 'ga', 'admin'].includes(role)) {
           socket.on('appointment_update', (d) => {
