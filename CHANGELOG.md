@@ -26,6 +26,12 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 - `tests/test_db_resilience.py` kini punya **uji E2E simulasi pool habis**: `db_pool.get_connection()` selalu melempar `PoolError`, fallback `MySQLConnection` non-pool menjawab query → **login tetap 200 & sesi terbentuk** (fail-open, aplikasi tidak mati); PIN salah tetap **401** (tidak membocorkan status). Total **pytest 106** hijau di container.
 
+### 🖊️ PPTX Editabel Kini Berlogo BPF + ONEPAGER Diperbarui
+
+- `scripts/make_pptx.py` + **`presentasi/bpf-badge.png`** (badge bulat 400px, cincin biru): badge besar di slide judul + logo kecil di footer **semua 12 slide** — konsisten dengan slide deck HTML & video. Terverifikasi 12 slide, tiap slide punya logo.
+- `ONEPAGER.md`: badge logo di header + angka test terkini (**82 frontend + 106 backend**).
+- **Push v2.14.2 ke `origin/main`** (8bdb136..6c0cc4b) + **gladi resik final 20/20 konsol bersih** setelah semua perubahan.
+
 ---
 
 ## [2.14.1] - 2026-08-12

@@ -19,9 +19,21 @@ GREEN = RGBColor(0x05, 0x96, 0x69)
 SOFT = RGBColor(0xEF, 0xF6, 0xFF)
 
 SW, SH = Inches(13.333), Inches(7.5)
+BADGE = "presentasi/bpf-badge.png"  # badge logo bulat BPF (dibuat oleh make_videos.sh / generate badge)
 prs = Presentation()
 prs.slide_width, prs.slide_height = SW, SH
 BLANK = prs.slide_layouts[6]
+
+import os
+
+
+def logo(slide, size=Inches(0.5), x=Inches(0.3), y=Inches(6.95)):
+    """Tempel badge logo BPF (bulat, cincin biru) — aman bila file tidak ada."""
+    if os.path.isfile(BADGE):
+        try:
+            slide.shapes.add_picture(BADGE, x, y, width=size, height=size)
+        except Exception as e:
+            print(f"⚠ logo skip: {e}")
 
 
 def new_slide():
@@ -141,6 +153,7 @@ def table(slide, rows, y=Inches(1.95), h=Inches(3.4), col_w=None, header=True):
 
 
 def footer(slide, n, total):
+    logo(slide)  # badge kecil kiri bawah
     text(slide, Inches(11.9), Inches(7.05), Inches(1.2), Inches(0.35),
          f"{n} / {total}", size=11, color=GRAY, align=PP_ALIGN.RIGHT)
 
@@ -152,6 +165,7 @@ s = new_slide()
 box(s, 0, 0, SW, SH, fill=LIGHT)
 box(s, 0, 0, SW, Inches(0.12), fill=BLUE)
 kicker(s, "Materi Presentasi · Demo Aplikasi")
+logo(s, size=Inches(1.7), x=Inches(10.9), y=Inches(0.35))  # badge besar kanan atas
 text(s, Inches(0.9), Inches(1.6), Inches(11.5), Inches(1.9),
      ["BPF Fleet & BBM System"], size=48, color=DARK, bold=True)
 text(s, Inches(0.9), Inches(2.8), Inches(11.5), Inches(0.6),

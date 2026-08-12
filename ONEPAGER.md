@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="presentasi/bpf-badge.png" width="96" alt="BPF" />
+</p>
+
 # BPF Fleet & BBM System — Ringkasan Satu Halaman
 
 **PT Bestprofit Futures · Surabaya** · Sistem digital untuk pengelolaan BBM armada, kasbon driver, pembelian air minum, dan jadwal kunjungan tim — satu aplikasi, semua pihak terhubung.
@@ -43,7 +47,7 @@ Sebelumnya, pencatatan BBM, kasbon, dan pembelian air minum dilakukan manual —
 - Login dengan PIN 6 digit per pengguna · sesi aman · proteksi laju permintaan (rate limit).
 - Semua aksi tercatat (siapa, kapan, apa) — tidak bisa "hilang".
 - Pemeriksaan otomatis keanehan pengisian (anomali) membantu mencegah salah input.
-- 82 tes antarmuka + 97 tes backend — setiap perubahan diuji otomatis.
+- 82 tes antarmuka + 106 tes backend (termasuk E2E pemulihan koneksi DB) — setiap perubahan diuji otomatis.
 
 ---
 
