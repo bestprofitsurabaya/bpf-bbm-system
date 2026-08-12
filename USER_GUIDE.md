@@ -1,4 +1,4 @@
-# 📖 Panduan Pengguna BPF Fleet & BBM System v2.2.0
+# 📖 Panduan Pengguna BPF Fleet & BBM System v2.6.0
 
 **PT. Bestprofit Futures — Surabaya**
 
@@ -23,6 +23,7 @@ Selamat datang di sistem manajemen armada dan BBM kita. Panduan ini akan meneman
 7. [Untuk Admin](#7-untuk-admin)
 8. [Panduan Arsip](#8-panduan-arsip)
 9. [Panduan Kasbon (Uang Muka BBM)](#9-panduan-kasbon-uang-muka-bbm)
+9b. [Panduan Air Minum (OB & Finance)](#9b-panduan-air-minum-ob--finance)
 10. [Perbandingan: Klaim Biasa vs. Kasbon](#10-perbandingan-klaim-biasa-vs-kasbon)
 11. [Troubleshooting (Mengatasi Masalah)](#11-troubleshooting-mengatasi-masalah)
 12. [Glosarium](#12-glosarium)
@@ -598,6 +599,34 @@ Tabel berikut menjelaskan tindakan yang bisa dilakukan pada setiap status:
 
 ---
 
+## 9b. Panduan Air Minum (OB & Finance) 💧
+
+> Fitur **Tanda Terima Pembelian Air Minum** (v2.6): mencatat pembelian air minum kantor (gelas/botol/galon) — diisi **OB**, diverifikasi **Finance**, dokumen PDF ditandatangani **Finance** (menyerahkan) & **GA** (menerima).
+
+### 9b.1 Untuk OB
+
+1. Login dengan akun OB (PIN) → otomatis masuk ke halaman **Air Minum** (`/app/water`).
+2. Klik **➕ Ajukan Pembelian**.
+3. Isi **tanggal pembelian**, lalu tambahkan barang: pilih **jenis** (Gelas/Botol/Galon) dan **merk** dari dropdown (disediakan Finance), isi **satuan** & **kuantitas**. Bisa menambah beberapa baris item sekaligus (maks 20).
+4. **Wajib mengunggah 2 foto**: 📸 *sebelum diisi* dan 📸 *sesudah diisi* (berisi timestamp — bukti serah terima galon).
+5. Klik **Kirim ke Finance** — pengajuan tercatat dengan nomor unik `WTR-…` dan berstatus *Menunggu Verifikasi*.
+6. Pantau statusnya di daftar. Setelah diverifikasi/ditolak, klik **📄 PDF** untuk mengunduh tanda terima (hanya pengajuan milik sendiri).
+
+### 9b.2 Untuk Finance
+
+1. Di halaman **Air Minum**: tab **Master Merk** — tambahkan merk per jenis air minum (menjadi pilihan dropdown OB). Merk yang tidak dipakai bisa dinonaktifkan.
+2. Tab **Pengajuan**: buka pengajuan berstatus *Menunggu Verifikasi*.
+3. **Setujui** → isi **remark** (wajib) + **note** tambahan (opsional) → *Terverifikasi*.
+4. **Tolak** → isi alasan → status *Ditolak* (OB bisa melihat alasannya).
+5. Unduh **PDF tanda terima** yang memuat tabel barang, hasil verifikasi, **TTD Finance (Menyerahkan) & GA (Menerima)**, dan lampiran 2 foto.
+
+### 9b.3 Untuk Admin
+
+- Set **nama penandatangan** di **Pengaturan → Nama TTD Air Minum** (Finance & GA) — dipakai di semua PDF tanda terima.
+- Kelola akun OB: **Users → Tambah User → role OB**.
+
+---
+
 ## 10. Perbandingan: Klaim Biasa vs. Kasbon
 
 | Aspek | 🟢 Klaim Biasa | 💰 Kasbon (Uang Muka) |
@@ -667,6 +696,8 @@ Tabel berikut menjelaskan tindakan yang bisa dilakukan pada setiap status:
 | **Chief Driver** | Petugas yang membagi appointment ke driver dan memantau pelaksanaannya |
 | **Tim Marketing** | Kelompok marketing (mis. "Tim Yusie") tempat anggota marketing bernaung |
 | **Area Manual** | Area yang diubah langsung oleh Chief Driver (tombol 🌍) untuk mengoreksi hasil deteksi otomatis |
+| **OB (Office Boy)** | Role pengguna yang mengisi pengajuan pembelian air minum (tanggal, item, foto sebelum/sesudah) |
+| **Tanda Terima Air Minum** | Dokumen PDF `WTR-…` hasil verifikasi Finance — TTD Finance (menyerahkan) & GA (menerima), lampiran 2 foto timestamp |
 
 ---
 

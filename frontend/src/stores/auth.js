@@ -9,6 +9,7 @@ export const ROLE_META = {
   marketing:    { label: 'Marketing',    home: '/marketing',    color: '#d97706', icon: '📣' },
   chief_driver: { label: 'Chief Driver', home: '/chief-driver', color: '#7c3aed', icon: '🚛' },
   driver:       { label: 'Driver',       home: '/driver',       color: '#16a34a', icon: '🚛' },
+  ob:           { label: 'OB',           home: '/water',        color: '#0d9488', icon: '🚰' },
 }
 
 export const useAuthStore = defineStore('auth', {

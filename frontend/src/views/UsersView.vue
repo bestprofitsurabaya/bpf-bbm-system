@@ -13,7 +13,7 @@ const busy = ref(false)
 
 const ROLES = [
   ['admin', '🛡️ Admin'], ['ga', '🧾 GA Officer'], ['finance', '💰 Finance'],
-  ['marketing', '📣 Marketing'], ['chief_driver', '🚛 Chief Driver'],
+  ['marketing', '📣 Marketing'], ['chief_driver', '🚛 Chief Driver'], ['ob', '🚰 OB'],
 ]
 const roleLabel = (r) => (ROLES.find((x) => x[0] === r) || [r, r])[1]
 

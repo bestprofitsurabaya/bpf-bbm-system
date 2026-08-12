@@ -1,11 +1,24 @@
-# ⛽ BPF Fleet & BBM System v2.5.0 (SPA Vue 3 penuh — 100% Vue)
+# ⛽ BPF Fleet & BBM System v2.6.0 (SPA Vue 3 penuh — 100% Vue)
 
-**Sistem Manajemen Armada, Klaim BBM, Kasbon, Log Perjalanan & Appointment**  
+**Sistem Manajemen Armada, Klaim BBM, Kasbon, Log Perjalanan, Appointment & Air Minum**  
 **PT. Bestprofit Futures - Surabaya**
 
 ---
 
 Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pengarsipan klaim BBM, **pengajuan kasbon dengan kode unik**, dan log perjalanan harian (logsheet) dengan workflow GA → Finance → Archive. Dilengkapi **sistem appointment canggih** (Marketing → Chief Driver → Log Perjalanan), deteksi anomali Machine Learning, GPS tracking, **watermark foto otomatis**, PIN security, **session-based login & role-based access**, **CSRF protection**, **notifikasi real-time**, import Excel, audit trail, Chart.js visualization, **PWA offline-first**, dan **WebSocket real-time**.
+
+---
+
+## 🆕 Fitur Terbaru v2.6.0 — Tanda Terima Pembelian Air Minum
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **💧 Role OB baru** | Halaman `/app/water`: OB mengisi tanggal + item multi-baris (tipe/merk/satuan/kuantitas) + **2 foto timestamp wajib** (sebelum & sesudah diisi) |
+| **🏷️ Master merk oleh Finance** | Tipe (Gelas/Botol/Galon) + merk dikelola Finance di halaman yang sama → dropdown untuk OB |
+| **✅ Verifikasi Finance** | Approve (remark wajib + note opsional) atau tolak (alasan) |
+| **📄 PDF Tanda Terima TTD** | PDF `WTR-…` berisi tabel item, remark/note, TTD **Finance (menyerahkan) & GA (menerima)** — nama di-set admin di `/app/settings`, plus lampiran 2 foto |
+| **🛡 Kontrol akses** | OB hanya melihat pengajuannya sendiri; verifikasi/master khusus Finance/admin; audit trail `water_*`; tanpa sesi → 401 |
+| **🧪 Test** | 71 Vitest + 94 pytest (`tests/test_water.py` + `WaterView.test.js` + E2E produksi) |
 
 ---
 

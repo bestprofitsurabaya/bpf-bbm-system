@@ -80,10 +80,11 @@ def ensure_appointments_schema():
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """, cursor, "appointments")
 
-        # --- users: extend role enum (v2.4: role 'driver' untuk login PIN PWA driver) ---
+        # --- users: extend role enum (v2.4: role 'driver' untuk login PIN PWA driver;
+        # v2.6: role 'ob' untuk Office Boy — pengajuan pembelian air minum) ---
         _run("""
             ALTER TABLE users
-            MODIFY role ENUM('admin','ga','finance','marketing','chief_driver','driver') NOT NULL DEFAULT 'ga'
+            MODIFY role ENUM('admin','ga','finance','marketing','chief_driver','driver','ob') NOT NULL DEFAULT 'ga'
         """, cursor, "users.role enum")
 
         # --- users: team_name column ---
@@ -119,9 +120,84 @@ def ensure_appointments_schema():
             WHERE display_id IS NULL OR display_id = ''
         """, cursor, "trip_masters.display_id backfill")
 
+        # ============================================================
+        # AIR MINUM (v2.6) — tanda terima pembelian air minum galon
+        # Master tipe & merk dikelola Finance; pengajuan diisi OB;
+        # verifikasi (approve/tolak) oleh Finance; PDF TTD Finance+GA.
+        # ============================================================
+
+        # --- water_drink_types: gelas / botol / galon ---
+        _run("""
+            CREATE TABLE IF NOT EXISTS water_drink_types (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(50) NOT NULL UNIQUE,
+                is_active TINYINT(1) DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """, cursor, "water_drink_types")
+        # Seed tipe default (idempotent)
+        _run("""
+            INSERT IGNORE INTO water_drink_types (name) VALUES ('Gelas'), ('Botol'), ('Galon')
+        """, cursor, "water_drink_types seed")
+
+        # --- water_drink_brands: merk per tipe (dikelola Finance) ---
+        _run("""
+            CREATE TABLE IF NOT EXISTS water_drink_brands (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                type_id INT NOT NULL,
+                brand VARCHAR(100) NOT NULL,
+                is_active TINYINT(1) DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY uq_type_brand (type_id, brand),
+                FOREIGN KEY (type_id) REFERENCES water_drink_types(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """, cursor, "water_drink_brands")
+
+        # --- water_purchases: pengajuan pembelian (diisi OB) ---
+        _run("""
+            CREATE TABLE IF NOT EXISTS water_purchases (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                display_id VARCHAR(30) NOT NULL UNIQUE,
+                ob_name VARCHAR(100) NOT NULL,
+                purchase_date DATE NOT NULL,
+                status ENUM('pending','verified','rejected') DEFAULT 'pending',
+                remark VARCHAR(500) DEFAULT '',
+                note TEXT,
+                rejection_reason VARCHAR(500) DEFAULT '',
+                verified_by VARCHAR(100) DEFAULT '',
+                verified_at DATETIME DEFAULT NULL,
+                foto_before VARCHAR(255),
+                foto_after VARCHAR(255),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_status (status),
+                INDEX idx_ob (ob_name)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """, cursor, "water_purchases")
+
+        # --- water_purchase_items: rincian multi-item ---
+        _run("""
+            CREATE TABLE IF NOT EXISTS water_purchase_items (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                purchase_id INT NOT NULL,
+                drink_type VARCHAR(50) NOT NULL,
+                brand VARCHAR(100) NOT NULL,
+                satuan VARCHAR(20) DEFAULT 'pcs',
+                quantity INT NOT NULL DEFAULT 1,
+                FOREIGN KEY (purchase_id) REFERENCES water_purchases(id) ON DELETE CASCADE,
+                INDEX idx_purchase (purchase_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """, cursor, "water_purchase_items")
+        # Upgrade DB lama: kolom satuan
+        _run("""
+            ALTER TABLE water_purchase_items ADD COLUMN satuan VARCHAR(20) DEFAULT 'pcs'
+        """, cursor, "water_purchase_items.satuan")
+
         conn.commit()
         cursor.close()
-        print("✔ Appointment schema ready")
+        print("✔ Appointment & Air Minum schema ready")
     except Exception as e:
         print(f"[appointments-schema] error: {e}")
     finally:

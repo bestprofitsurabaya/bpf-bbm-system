@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     full_name VARCHAR(100) NOT NULL,
-    role ENUM('admin','ga','finance','marketing','chief_driver','driver') NOT NULL DEFAULT 'ga',
+    role ENUM('admin','ga','finance','marketing','chief_driver','driver','ob') NOT NULL DEFAULT 'ga',
     pin VARCHAR(255) NOT NULL,
     team_name VARCHAR(100) DEFAULT '',
     is_active TINYINT(1) DEFAULT 1,
@@ -289,6 +289,62 @@ CREATE TABLE IF NOT EXISTS notifications (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     KEY idx_driver_read (driver_name, is_read),
     KEY idx_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- AIR MINUM (v2.6) — Tanda Terima Pembelian Air Minum
+-- Master tipe & merk dikelola Finance; pengajuan diisi OB;
+-- verifikasi (approve/tolak) oleh Finance; PDF TTD Finance+GA.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS water_drink_types (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    is_active TINYINT(1) DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT IGNORE INTO water_drink_types (name) VALUES ('Gelas'), ('Botol'), ('Galon');
+
+CREATE TABLE IF NOT EXISTS water_drink_brands (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    type_id INT NOT NULL,
+    brand VARCHAR(100) NOT NULL,
+    is_active TINYINT(1) DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_type_brand (type_id, brand),
+    FOREIGN KEY (type_id) REFERENCES water_drink_types(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS water_purchases (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    display_id VARCHAR(30) NOT NULL UNIQUE,
+    ob_name VARCHAR(100) NOT NULL,
+    purchase_date DATE NOT NULL,
+    status ENUM('pending','verified','rejected') DEFAULT 'pending',
+    remark VARCHAR(500) DEFAULT '',
+    note TEXT,
+    rejection_reason VARCHAR(500) DEFAULT '',
+    verified_by VARCHAR(100) DEFAULT '',
+    verified_at DATETIME DEFAULT NULL,
+    foto_before VARCHAR(255),
+    foto_after VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_status (status),
+    INDEX idx_ob (ob_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS water_purchase_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    purchase_id INT NOT NULL,
+    drink_type VARCHAR(50) NOT NULL,
+    brand VARCHAR(100) NOT NULL,
+    satuan VARCHAR(20) DEFAULT 'pcs',
+    quantity INT NOT NULL DEFAULT 1,
+    FOREIGN KEY (purchase_id) REFERENCES water_purchases(id) ON DELETE CASCADE,
+    INDEX idx_purchase (purchase_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 SELECT '✅ Clean database ready' AS result;

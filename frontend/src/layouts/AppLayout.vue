@@ -28,6 +28,7 @@ const MENU = [
   { label: 'Manajemen User', path: '/users', icon: '👥', roles: ['admin'] },
   { label: 'Pengaturan', path: '/settings', icon: '⚙️', roles: ['admin'] },
   { label: 'Audit Log', path: '/logs', icon: '📝', roles: ['admin'] },
+  { label: 'Air Minum', path: '/water', icon: '🚰', roles: ['ob', 'finance', 'admin'] },
 ]
 
 const items = computed(() => MENU.filter((m) => m.roles.includes(auth.role)))

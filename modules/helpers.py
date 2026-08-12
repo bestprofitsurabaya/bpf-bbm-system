@@ -552,6 +552,7 @@ ROLE_HOME = {
     'marketing': '/app/marketing',
     'chief_driver': '/app/chief-driver',
     'driver': '/app/driver',
+    'ob': '/app/water',
 }
 
 

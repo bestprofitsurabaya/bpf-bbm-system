@@ -388,6 +388,166 @@ class PDFReportCompact(BPFBasePDF):
 # ============================================================
 # MULTI-TRANSACTION REKAP PDF
 # ============================================================
+# ============================================================
+# TANDA TERIMA PEMBELIAN AIR MINUM (v2.6)
+# Diisi OB -> diverifikasi Finance -> PDF TTD Finance (penyerah) & GA (penerima)
+# ============================================================
+class WaterReceiptPDF(BPFBasePDF):
+    """Tanda terima serah terima air minum (gelas/botol/galon)."""
+
+    def __init__(self):
+        super().__init__(orientation='P', unit='mm', format='A4')
+        self.set_auto_page_break(auto=True, margin=8)
+        self.set_margins(12, 8, 12)
+
+    def generate(self, p, items, ga_name='', finance_name=''):
+        """p = dict pengajuan; items = list rincian; nama TTD dari system_config."""
+        self._draw_title(p)
+        self._draw_info(p)
+        self._draw_items_table(items)
+        self._draw_verification(p)
+        self._draw_signatures(p, ga_name, finance_name)
+        self._draw_photos(p)
+
+    # ---- Judul ----
+    def _draw_title(self, p):
+        self.set_font(self._font(), 'B', 13)
+        self.set_text_color(15, 23, 42)
+        self.cell(0, 7, 'TANDA TERIMA SERAH TERIMA AIR MINUM', align='C', new_x="LMARGIN", new_y="NEXT")
+        self.set_font(self._font(), '', 8)
+        self.set_text_color(100, 116, 139)
+        self.cell(0, 4, f'No. {p.get("display_id", "-")}', align='C', new_x="LMARGIN", new_y="NEXT")
+        self.ln(4)
+        self.set_text_color(0, 0, 0)
+
+    # ---- Info pengajuan ----
+    def _draw_info(self, p):
+        self.section_title('INFORMASI PENGAJUAN')
+        rows = [
+            ('Nomor', p.get('display_id', '-')),
+            ('Tanggal Pembelian', (p.get('purchase_date') or '').strftime('%d-%m-%Y') if getattr(p.get('purchase_date'), 'strftime', None) else p.get('purchase_date') or '-'),
+            ('Diajukan oleh (OB)', self.clean_text(str(p.get('ob_name', '-')).upper())),
+            ('Diajukan pada', p.get('created_at').strftime('%d-%m-%Y %H:%M') if p.get('created_at') else '-'),
+        ]
+        col1_x, col2_x = self.l_margin, self.w / 2 + 5
+        y_start = self.get_y()
+        for i, (label, val) in enumerate(rows):
+            y = y_start + (i * 5.5)
+            self.info_row(label, val, col1_x, y)
+        self.set_y(y_start + len(rows) * 5.5 + 2)
+
+    # ---- Tabel item ----
+    def _draw_items_table(self, items):
+        self.section_title('RINCIAN BARANG')
+        headers = ['NO', 'JENIS', 'MERK', 'SATUAN', 'KUANTITAS']
+        widths = [10, 30, 70, 30, 30]
+        self.set_font(self._font(), 'B', 8)
+        self.set_fill_color(37, 99, 235)
+        self.set_text_color(255, 255, 255)
+        for i, h in enumerate(headers):
+            self.cell(widths[i], 7, h, border=1, align='C', fill=True)
+        self.ln()
+        self.set_text_color(0, 0, 0)
+        self.set_font(self._font(), '', 8)
+        fill = False
+        for idx, it in enumerate(items, 1):
+            self.set_fill_color(241, 245, 249) if fill else self.set_fill_color(255, 255, 255)
+            self.cell(widths[0], 6, str(idx), border=1, align='C', fill=True)
+            self.cell(widths[1], 6, self.clean_text(str(it.get('drink_type', '-'))), border=1, align='C', fill=True)
+            self.cell(widths[2], 6, self.clean_text(str(it.get('brand', '-'))), border=1, fill=True)
+            self.cell(widths[3], 6, self.clean_text(str(it.get('satuan', 'pcs'))), border=1, align='C', fill=True)
+            self.cell(widths[4], 6, str(it.get('quantity', 1)), border=1, align='C', fill=True)
+            self.ln()
+            fill = not fill
+        self.ln(4)
+
+    # ---- Hasil verifikasi ----
+    def _draw_verification(self, p):
+        self.section_title('HASIL VERIFIKASI FINANCE')
+        status = p.get('status', '')
+        if status == 'verified':
+            remark = self.clean_text(str(p.get('remark', '') or ''))
+            note = self.clean_text(str(p.get('note', '') or ''))
+            self.set_font(self._font(), 'B', 8)
+            self.set_text_color(22, 163, 74)
+            self.cell(0, 5, '✔ TERVERIFIKASI', new_x="LMARGIN", new_y="NEXT")
+            self.set_text_color(0, 0, 0)
+            self.set_font(self._font(), '', 8)
+            self.multi_cell(0, 4.5, f'Remark: {remark or "-"}', new_x="LMARGIN", new_y="NEXT")
+            if note:
+                self.multi_cell(0, 4.5, f'Catatan tambahan: {note}', new_x="LMARGIN", new_y="NEXT")
+            ver = self.clean_text(str(p.get('verified_by', '') or ''))
+            if ver:
+                self.set_font(self._font(), 'I', 7)
+                self.set_text_color(100, 116, 139)
+                self.cell(0, 4.5, f'Diverifikasi oleh: {ver}', new_x="LMARGIN", new_y="NEXT")
+            self.set_text_color(0, 0, 0)
+        elif status == 'rejected':
+            self.set_font(self._font(), 'B', 8)
+            self.set_text_color(220, 38, 38)
+            self.cell(0, 5, '✘ DITOLAK', new_x="LMARGIN", new_y="NEXT")
+            self.set_text_color(0, 0, 0)
+            self.set_font(self._font(), '', 8)
+            self.multi_cell(0, 4.5, f'Alasan: {self.clean_text(str(p.get("rejection_reason", "-") or "-"))}', new_x="LMARGIN", new_y="NEXT")
+        else:
+            self.set_font(self._font(), 'I', 8)
+            self.set_text_color(148, 163, 184)
+            self.cell(0, 5, 'Menunggu verifikasi Finance...', new_x="LMARGIN", new_y="NEXT")
+            self.set_text_color(0, 0, 0)
+        self.ln(3)
+
+    # ---- Tanda tangan ----
+    def _draw_signatures(self, p, ga_name, finance_name):
+        self.section_title('TANDA TANGAN')
+        self.ln(4)
+        # Blok TTD memakai posisi absolut (set_xy) yang tidak memicu page-break —
+        # paksa pindah halaman dulu bila sisa ruang tidak cukup agar TTD tidak
+        # terpotong/terpecah di antara dua halaman.
+        if self.get_y() + 45 > self.h - 25:
+            self.add_page()
+        col_w = (self.w - self.l_margin - self.r_margin) / 2
+        self.set_font(self._font(), 'B', 8)
+        self.set_text_color(30, 41, 59)
+        self.set_xy(self.l_margin, self.get_y())
+        self.cell(col_w, 5, 'Menyerahkan,', align='C')
+        self.set_xy(self.l_margin + col_w, self.get_y())
+        self.cell(col_w, 5, 'Menerima,', align='C')
+        self.ln(26)
+        self.set_draw_color(100, 116, 139)
+        self.set_line_width(0.3)
+        self.set_xy(self.l_margin + 6, self.get_y())
+        self.line(self.l_margin + 6, self.get_y(), self.l_margin + col_w - 6, self.get_y())
+        self.set_xy(self.l_margin + col_w + 6, self.get_y())
+        self.line(self.l_margin + col_w + 6, self.get_y(), self.w - self.r_margin - 6, self.get_y())
+        self.ln(2)
+        self.set_font(self._font(), 'B', 9)
+        self.set_text_color(30, 41, 59)
+        self.set_xy(self.l_margin + 6, self.get_y())
+        self.cell(col_w - 12, 5, self.clean_text(str(finance_name or 'FINANCE')).upper(), align='C')
+        self.set_xy(self.l_margin + col_w + 6, self.get_y())
+        self.cell(col_w - 12, 5, self.clean_text(str(ga_name or 'GA')).upper(), align='C')
+        self.ln(5)
+        self.set_font(self._font(), 'I', 7)
+        self.set_text_color(100, 116, 139)
+        self.set_xy(self.l_margin + 6, self.get_y())
+        self.cell(col_w - 12, 4, 'Finance', align='C')
+        self.set_xy(self.l_margin + col_w + 6, self.get_y())
+        self.cell(col_w - 12, 4, 'GA Officer', align='C')
+        self.set_text_color(0, 0, 0)
+        self.ln(8)
+
+    # ---- Lampiran foto ----
+    def _draw_photos(self, p):
+        photos = []
+        if p.get('foto_before'):
+            photos.append({'path': p['foto_before'], 'label': 'Foto SEBELUM diisi'})
+        if p.get('foto_after'):
+            photos.append({'path': p['foto_after'], 'label': 'Foto SESUDAH diisi'})
+        if photos:
+            self.section_title('LAMPIRAN FOTO (TIMESTAMP)')
+            self.add_photo_grid(photos, 'uploads')
+
+
 class BBMReportPDF(BPFBasePDF):
     """Landscape multi-transaction recap PDF."""
 

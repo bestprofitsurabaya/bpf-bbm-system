@@ -67,6 +67,7 @@ from modules.routes_settings import register_settings_routes
 from modules.routes_notifications import register_notification_routes
 from modules.routes_auth import register_auth_routes
 from modules.routes_appointments import register_appointment_routes
+from modules.routes_water import register_water_routes
 from modules.routes_spa import register_spa_routes
 
 register_driver_routes(app, socketio)
@@ -80,6 +81,7 @@ register_report_routes(app)
 register_settings_routes(app)
 register_notification_routes(app)
 register_appointment_routes(app)
+register_water_routes(app)
 register_spa_routes(app)
 
 # ================================================================

@@ -16,6 +16,30 @@ const driverForm = ref({ driver_name: '', nopol: '', vehicle_type: 'AVANZA', bbm
 const showVehicleForm = ref(false)
 const vehicleForm = ref({ nopol: '', vehicle_type: 'AVANZA', brand: 'Toyota', bbm_default: 'PERTALITE' })
 
+// Tanda tangan tanda terima air minum (v2.6): Finance = penyerah, GA = penerima
+const waterNames = ref({ ga: '', finance: '' })
+const waterMsg = ref('')
+
+async function loadWaterNames() {
+  try {
+    const [ga, finance] = await Promise.all([
+      api('/api/system-config/water_ga_name').catch(() => ({ value: '' })),
+      api('/api/system-config/water_finance_name').catch(() => ({ value: '' })),
+    ])
+    waterNames.value = { ga: ga.value || '', finance: finance.value || '' }
+  } catch { /* noop */ }
+}
+
+async function saveWaterNames() {
+  busy.value = true; waterMsg.value = ''
+  try {
+    await api('/api/system-config/water_ga_name', { method: 'PUT', body: { value: waterNames.value.ga } })
+    await api('/api/system-config/water_finance_name', { method: 'PUT', body: { value: waterNames.value.finance } })
+    waterMsg.value = '✅ Nama penandatangan air minum disimpan'
+  } catch (e) { waterMsg.value = '❌ ' + e.message }
+  finally { busy.value = false }
+}
+
 const vehicleTypes = computed(() => ['AVANZA', ...[...new Set(vehicles.value.map((v) => (v.vehicle_type || '').trim()).filter(Boolean))].sort()].filter((v, i, a) => a.indexOf(v) === i).slice(0, 12))
 const bbmNames = computed(() => bbms.value.map((b) => b.name).filter(Boolean))
 
@@ -95,7 +119,7 @@ async function addVehicle() {
   finally { busy.value = false }
 }
 
-onMounted(load)
+onMounted(() => { load(); loadWaterNames() })
 </script>
 
 <template>
@@ -112,6 +136,19 @@ onMounted(load)
         <button class="btn btn-primary btn-sm" @click="showDriverForm = true">➕ Tambah Driver</button>
         <button class="btn btn-sm" style="margin-left:8px;" @click="showVehicleForm = true">🚙 Tambah Kendaraan</button>
         <button class="btn btn-sm" style="margin-left:8px;" :disabled="busy" @click="resetDriverPinMassal" title="Set PIN semua akun driver ke 123456">🔑 PIN Driver = 123456</button>
+      </div>
+
+      <div class="card card-pad" style="margin-bottom:16px;">
+        <h3 style="margin:0;">🚰 Tanda Terima Air Minum</h3>
+        <p class="muted" style="font-size:11px;">Nama penandatangan dokumen PDF pembelian air minum — Finance selaku <b>Menyerahkan</b> &amp; GA selaku <b>Menerima</b></p>
+        <div class="form-grid" style="margin-top:12px;">
+          <div class="field"><label>Nama Finance (Menyerahkan)</label><input class="input" v-model="waterNames.finance" placeholder="mis. Rina Wijaya" /></div>
+          <div class="field"><label>Nama GA (Menerima)</label><input class="input" v-model="waterNames.ga" placeholder="mis. Andi Prasetyo" /></div>
+        </div>
+        <div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px;">
+          <span class="muted" style="font-size:12px;">{{ waterMsg }}</span>
+          <button class="btn btn-primary btn-sm" :disabled="busy" @click="saveWaterNames">💾 Simpan Nama TTD</button>
+        </div>
       </div>
 
       <div class="card" style="margin-bottom:16px;">

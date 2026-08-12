@@ -6,6 +6,29 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.6.0] - 2026-08-12
+
+### 💧 Tanda Terima Pembelian Air Minum (Gelas/Botol/Galon)
+
+- **Role baru `OB`** (Office Boy): halaman khusus `/app/water` — mengisi tanggal pembelian, daftar item multi-baris (tipe + merk + satuan + kuantitas, tanpa harga), serta **wajib mengunggah 2 foto timestamp: "sebelum diisi" dan "sesudah diisi"**.
+- **Finance mengelola master data**: tipe air minum (Gelas/Botol/Galon — seed otomatis) dan **merk** (dropdown untuk OB). Finance juga memverifikasi setiap pengajuan — **approve** (remark wajib + note tambahan opsional) atau **tolak** (alasan).
+- **PDF Tanda Terima Serah Terima** (`WaterReceiptPDF`): kop surat PT Bestprofit, nomor unik `WTR-YYYYMMDD-xxxx`, tabel item, hasil verifikasi (remark/note/alasan), **blok tanda tangan Finance (menyerahkan) & GA (menerima)** — nama TTD di-set global oleh admin di `/app/settings`, dan **lampiran 2 foto**. Status pending/verified/rejected masing-masing punya tampilan PDF sendiri.
+- **Kontrol akses**: OB hanya melihat & mengunduh PDF pengajuannya sendiri; master merk & verifikasi khusus Finance/admin; tanpa sesi → 401. Semua aksi tercatat di audit trail (`water_*`).
+- **Validasi input**: minimal 1 item, maks 20 item/pengajuan, kuantitas angka 1–99.999, satuan di-whitelist, foto wajib (JPG/PNG), remark di-truncate 500 / note 2000 karakter. Batch-load item di daftar pengajuan (hindari N+1), page-break aman untuk blok TTD PDF.
+
+### 🗄️ Skema Database (otomatis di startup + init.sql)
+
+- Tabel baru: `water_drink_types` (seed Gelas/Botol/Galon), `water_drink_brands` (soft-delete), `water_purchases` (status, ob_name, foto, remark/note, verified_by), `water_purchase_items` (drink_type, brand, satuan, quantity).
+- `users.role` enum diperluas dengan `'ob'` (idempotent).
+
+### 🧪 Cakupan Pengujian
+
+- **pytest +7** (`tests/test_water.py`) — PDF verified/rejected/pending diekstrak teksnya lewat helper `_pdf_text` (parser ToUnicode per-font tanpa dependensi pypdf), `_get_ttd_names` dari `system_config`, `home_for_role('ob')` → `/app/water`. Total **94** (terverifikasi di container).
+- **Vitest +4** (`WaterView.test.js`) — render form OB, verifikasi Finance, detail modal. Total **71**.
+- **E2E produksi (:5001)**: login OB → home `/app/water` ✅ · Finance tambah merk ✅ · OB kirim pengajuan multi-item + 2 foto ✅ · Finance approve & tolak ✅ · OB dilarang verifikasi (403) ✅ · PDF berisi item, remark/note, TTD FIN/GA ✅ · validasi qty non-angka → 400 ✅ · tanpa sesi → 401 ✅ · data test dibersihkan ✅.
+
+---
+
 ## [2.5.0] - 2026-08-12
 
 ### 🚮 Pensiun Total Antarmuka Klasik — 100% SPA Vue 3

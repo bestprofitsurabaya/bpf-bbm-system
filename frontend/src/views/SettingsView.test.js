@@ -48,9 +48,12 @@ describe('SettingsView', () => {
     await w.findAll('button').find((b) => b.text().includes('Tambah Driver')).trigger('click')
     await flushPromises()
     expect(w.text()).toContain('Tambah Driver')
-    const inputs = w.findAll('input')
-    await inputs[0].setValue('budi')
-    await w.findAll('button').find((b) => b.text().includes('Simpan')).trigger('click')
+    // Input nama driver ada di modal (placeholder 'mis. RIVAN') — jangan pakai
+    // inputs[0] karena kartu TTD air minum (di atas) ikut punya input.
+    const nameInput = w.findAll('input').find((i) => i.attributes('placeholder') === 'mis. RIVAN')
+    await nameInput.setValue('budi')
+    // Tombol modal simpan = '💾 Simpan' persis (bukan '💾 Simpan Nama TTD' dari kartu air minum)
+    await w.findAll('button').find((b) => b.text().trim() === '💾 Simpan').trigger('click')
     await flushPromises()
     expect(apiMock).toHaveBeenCalledWith('/api/drivers/sync', {
       method: 'POST',
