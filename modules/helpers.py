@@ -553,6 +553,7 @@ ROLE_HOME = {
     'chief_driver': '/app/chief-driver',
     'driver': '/app/driver',
     'ob': '/app/water',
+    'finance': '/app/finance',   # v2.7: dashboard khusus Finance (rekap air minum + kasbon)
 }
 
 

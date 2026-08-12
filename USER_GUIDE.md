@@ -1,4 +1,4 @@
-# 📖 Panduan Pengguna BPF Fleet & BBM System v2.6.0
+# 📖 Panduan Pengguna BPF Fleet & BBM System v2.7.0
 
 **PT. Bestprofit Futures — Surabaya**
 
@@ -620,10 +620,19 @@ Tabel berikut menjelaskan tindakan yang bisa dilakukan pada setiap status:
 4. **Tolak** → isi alasan → status *Ditolak* (OB bisa melihat alasannya).
 5. Unduh **PDF tanda terima** yang memuat tabel barang, hasil verifikasi, **TTD Finance (Menyerahkan) & GA (Menerima)**, dan lampiran 2 foto.
 
-### 9b.3 Untuk Admin
+### 9b.3 Untuk Finance — Dashboard & Rekap
+
+- Login Finance → langsung masuk **Dashboard Finance** (`/app/finance`):
+  - **Rekap air minum**: total pengajuan, menunggu verifikasi, terverifikasi, ditolak, total kuantitas — bisa difilter per rentang tanggal.
+  - **Antrean verifikasi**: pengajuan yang menunggu Anda, langsung menuju halaman Air Minum.
+  - **Ringkasan per OB** dan **per jenis/merk** (Gelas/Botol/Galon).
+  - **Kasbon menunggu Finance**: jumlah + nominal kasbon yang perlu di-approve dan LPJ yang perlu disetujui.
+  - **⬇️ Export CSV**: unduh rekap (terbuka rapi di Excel).
+
+### 9b.4 Untuk Admin
 
 - Set **nama penandatangan** di **Pengaturan → Nama TTD Air Minum** (Finance & GA) — dipakai di semua PDF tanda terima.
-- Kelola akun OB: **Users → Tambah User → role OB**.
+- Kelola akun OB (bisa beberapa orang): **Users → Tambah User → role OB** — tiap OB hanya melihat pengajuannya sendiri.
 
 ---
 

@@ -11,7 +11,8 @@ const routes = [
     component: () => import('../layouts/AppLayout.vue'),
     children: [
       { path: '', name: 'home', component: () => import('../views/HomeView.vue') },
-      { path: 'dashboard', name: 'dashboard', component: () => import('../views/dashboard/AdminDashboard.vue'), meta: { roles: ['admin', 'ga', 'finance'] } },
+      { path: 'dashboard', name: 'dashboard', component: () => import('../views/dashboard/AdminDashboard.vue'), meta: { roles: ['admin', 'ga'] } },
+      { path: 'finance', name: 'finance', component: () => import('../views/dashboard/FinanceDashboard.vue'), meta: { roles: ['finance', 'admin'] } },
       { path: 'marketing', name: 'marketing', component: () => import('../views/dashboard/MarketingDashboard.vue'), meta: { roles: ['marketing'] } },
       { path: 'chief-driver', name: 'chief-driver', component: () => import('../views/dashboard/ChiefDriverDashboard.vue'), meta: { roles: ['chief_driver', 'ga', 'admin'] } },
       { path: 'trips', name: 'trips', component: () => import('../views/TripsView.vue'), meta: { roles: ['ga', 'finance', 'admin'] } },

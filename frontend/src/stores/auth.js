@@ -5,7 +5,7 @@ import { api } from '../api'
 export const ROLE_META = {
   admin:        { label: 'Admin',        home: '/dashboard',    color: '#2563eb', icon: '🛡️' },
   ga:           { label: 'GA Officer',   home: '/dashboard',    color: '#0891b2', icon: '🧾' },
-  finance:      { label: 'Finance',      home: '/dashboard',    color: '#059669', icon: '💰' },
+  finance:      { label: 'Finance',      home: '/finance',      color: '#059669', icon: '💰' },
   marketing:    { label: 'Marketing',    home: '/marketing',    color: '#d97706', icon: '📣' },
   chief_driver: { label: 'Chief Driver', home: '/chief-driver', color: '#7c3aed', icon: '🚛' },
   driver:       { label: 'Driver',       home: '/driver',       color: '#16a34a', icon: '🚛' },

@@ -6,6 +6,24 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.7.0] - 2026-08-12
+
+### 💰 Dashboard Khusus Finance + Rekap Air Minum
+
+- **Finance kini punya halaman sendiri**: `/app/finance` (sebelumnya tercampur dengan admin/GA di `/app/dashboard`). Setelah login, Finance langsung diarahkan ke dashboard-nya — menu juga menampilkan **Dashboard Finance** khusus.
+- **Rekap air minum**: kartu statistik (total, menunggu verifikasi, terverifikasi, ditolak, total kuantitas), **antrean verifikasi** (langsung link ke halaman Air Minum), **ringkasan per OB**, **per jenis & per merk** (bar chart ringan), filter **rentang tanggal** (default 90 hari terakhir), dan **Export CSV** (UTF-8 BOM — terbuka rapi di Excel, satu baris per item).
+- **Ringkasan kasbon yang menunggu Finance**: jumlah + nominal kasbon berstatus `GA_APPROVED` (menunggu approve) dan LPJ `LPJ_SUBMITTED` (menunggu approve) — dengan link ke halaman Kasbon.
+- **Kontrol akses**: endpoint `/api/water/recap` & `/api/water/recap/export` hanya untuk Finance/Admin (OB & GA → 403), semua aksi tercatat audit (`water_recap_view`/`water_recap_export`). Query rekap dibatasi rentang tanggal + `LIMIT 2000` (anti pembesaran data), parameter tanggal divalidasi format.
+- **Beberapa akun OB didukung**: akun per orang (ob1/ob2/ob3…), tiap OB hanya melihat pengajuannya sendiri (identitas dari `full_name` sesi).
+
+### 🧪 Cakupan Pengujian
+
+- **pytest +3** (`TestWaterRecap`): agregasi ringkasan/per-OB, per-jenis/merk + antrean, CSV BOM/header/baris. Update test lama: `home_for_role('finance')` → `/app/finance`. Total **97**.
+- **Vitest +5** (`FinanceDashboard.test.js`): kartu statistik, antrean & per-OB, kasbon, export CSV, filter tanggal. Update `auth.test.js` (finance home `/finance`). Total **76**.
+- **E2E produksi**: login finance → home `/app/finance` ✅ · OB1 buat pengajuan → rekap menampilkan ringkasan/per-OB/antrean ✅ · Export CSV berisi BOM + header + data ✅ · **isolasi OB** (OB1 hanya melihat 1 punya) ✅ · OB & GA akses rekap → **403** ✅ · akun ob1/ob2/ob3 login → `/app/water` ✅ · data test dibersihkan ✅.
+
+---
+
 ## [2.6.0] - 2026-08-12
 
 ### 💧 Tanda Terima Pembelian Air Minum (Gelas/Botol/Galon)

@@ -8,7 +8,8 @@ Alur:
 4. Pengajuan terverifikasi -> PDF tanda terima TTD Finance (menyerahkan)
    & GA (menerima); nama TTD di-set admin via system_config.
 """
-from datetime import datetime
+import re as _re
+from datetime import datetime, timedelta
 from flask import request, jsonify, make_response, session
 from modules.config import get_db_connection
 from modules.helpers import (role_required, log_activity_async, save_file,
@@ -51,9 +52,144 @@ def _purchase_row(cur, p):
     cur.execute("SELECT drink_type, brand, satuan, quantity "
                 "FROM water_purchase_items WHERE purchase_id=%s ORDER BY id", (p['id'],))
     p['items'] = cur.fetchall()
-    p['status_label'] = {'pending': 'Menunggu Verifikasi', 'verified': 'Terverifikasi',
-                         'rejected': 'Ditolak'}.get(p['status'], p['status'])
+    p['status_label'] = STATUS_LABEL.get(p['status'], p['status'])
     return p
+
+
+STATUS_LABEL = {'pending': 'Menunggu Verifikasi', 'verified': 'Terverifikasi',
+                'rejected': 'Ditolak'}
+
+
+def _aggregate_water_recap(rows, items_by, kas):
+    """Agregasi rekap pengajuan air minum (murni, tanpa DB) — dipakai endpoint
+    /api/water/recap dan /export. rows = baris pengajuan; items_by = {purchase_id: [item]};
+    kas = hasil agregasi fuel_cash_requests (count/nominal status GA_APPROVED & LPJ_SUBMITTED)."""
+    summary = {'total': 0, 'pending': 0, 'verified': 0, 'rejected': 0, 'qty': 0}
+    per_ob, per_type, per_brand, queue = {}, {}, {}, []
+    for r in rows:
+        s = r.get('status') or 'pending'
+        if s not in summary:
+            s = 'pending'
+        summary['total'] += 1
+        summary[s] += 1
+        ob = (str(r.get('ob_name') or '')).strip() or '-'
+        po = per_ob.setdefault(ob, {'ob_name': ob, 'total': 0, 'pending': 0,
+                                    'verified': 0, 'rejected': 0, 'qty': 0})
+        po['total'] += 1
+        po[s] += 1
+        for it in items_by.get(r.get('id'), []):
+            try:
+                qty = int(it.get('quantity', 0) or 0)
+            except (TypeError, ValueError):
+                qty = 0
+            summary['qty'] += qty
+            po['qty'] += qty
+            t = (str(it.get('drink_type') or '')).strip() or '-'
+            b = (str(it.get('brand') or '')).strip() or '-'
+            pt = per_type.setdefault(t, {'name': t, 'qty': 0, 'purchases': 0})
+            pt['qty'] += qty
+            pt['purchases'] += 1
+            pb = per_brand.setdefault(b, {'name': b, 'qty': 0, 'purchases': 0})
+            pb['qty'] += qty
+            pb['purchases'] += 1
+        if s == 'pending' and len(queue) < 20:
+            queue.append({
+                'id': r.get('id'),
+                'display_id': r.get('display_id'),
+                'ob_name': ob,
+                'purchase_date': str(r.get('purchase_date') or ''),
+                'item_count': len(items_by.get(r.get('id'), [])),
+            })
+    kasbon = {
+        'waiting_approve': {
+            'count': int(kas.get('waiting_approve_count') or 0),
+            'nominal': float(kas.get('waiting_approve_nominal') or 0),
+        },
+        'waiting_lpj': {'count': int(kas.get('waiting_lpj_count') or 0)},
+    }
+    return {
+        'summary': summary,
+        'per_ob': sorted(per_ob.values(), key=lambda x: -x['total']),
+        'per_type': sorted(per_type.values(), key=lambda x: -x['qty']),
+        'per_brand': sorted(per_brand.values(), key=lambda x: -x['qty']),
+        'queue': queue,
+        'kasbon': kasbon,
+    }
+
+
+def _water_recap_data(from_date='', to_date=''):
+    """Ambil data pengajuan + item + ringkasan kasbon utk rekap dashboard Finance.
+
+    Filter rentang tanggal (format YYYY-MM-DD; nilai tak valid diabaikan).
+    Tanpa filter, default 90 hari terakhir agar query tetap ringan seiring
+    bertambahnya data."""
+    def _valid_date(s):
+        return bool(s and _re.fullmatch(r'\d{4}-\d{2}-\d{2}', s))
+    conds, params = [], []
+    lo = from_date if _valid_date(from_date) else ''
+    hi = to_date if _valid_date(to_date) else ''
+    if not lo:
+        lo = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
+    conds.append("DATE(purchase_date) >= %s")
+    params.append(lo)
+    if hi:
+        conds.append("DATE(purchase_date) <= %s")
+        params.append(hi)
+    conn = get_db_connection()
+    if not conn:
+        return None
+    cur = conn.cursor(dictionary=True)
+    cur.execute(
+        "SELECT id, display_id, ob_name, purchase_date, status, remark, created_at "
+        "FROM water_purchases WHERE " + ' AND '.join(conds) + " ORDER BY id DESC LIMIT 2000",
+        params)
+    rows = cur.fetchall()
+    items_by = {}
+    if rows:
+        ids = [r['id'] for r in rows]
+        fmt = ','.join(['%s'] * len(ids))
+        cur.execute(
+            "SELECT purchase_id, drink_type, brand, satuan, quantity "
+            f"FROM water_purchase_items WHERE purchase_id IN ({fmt}) ORDER BY id",
+            tuple(ids))
+        for it in cur.fetchall():
+            items_by.setdefault(it['purchase_id'], []).append(it)
+    cur.execute("""SELECT
+        SUM(CASE WHEN status='GA_APPROVED' THEN 1 ELSE 0 END) AS waiting_approve_count,
+        SUM(CASE WHEN status='GA_APPROVED' THEN total_amount ELSE 0 END) AS waiting_approve_nominal,
+        SUM(CASE WHEN status='LPJ_SUBMITTED' THEN 1 ELSE 0 END) AS waiting_lpj_count
+        FROM fuel_cash_requests""")
+    kas = cur.fetchone()
+    cur.close()
+    conn.close()
+    result = _aggregate_water_recap(rows, items_by, kas)
+    result['rows'] = rows
+    result['items_by'] = items_by
+    return result
+
+
+def _build_water_csv(rows, items_by):
+    """CSV (UTF-8 BOM agar terbuka rapi di Excel) — satu baris per item."""
+    import csv
+    import io as _io
+    buf = _io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(['Tanggal', 'Nomor', 'OB', 'Status', 'Jenis', 'Merk', 'Satuan', 'Kuantitas', 'Remark'])
+    for r in rows:
+        items = items_by.get(r.get('id'), []) or [{}]
+        for it in items:
+            w.writerow([
+                str(r.get('purchase_date') or ''),
+                r.get('display_id'),
+                r.get('ob_name'),
+                STATUS_LABEL.get(r.get('status'), r.get('status') or ''),
+                it.get('drink_type') or '',
+                it.get('brand') or '',
+                it.get('satuan') or '',
+                it.get('quantity') if it.get('quantity') is not None else '',
+                (r.get('remark') or '') if it else '',
+            ])
+    return '\ufeff' + buf.getvalue()
 
 
 def register_water_routes(app):
@@ -332,6 +468,37 @@ def register_water_routes(app):
             return jsonify({'status': 'success', 'msg': 'Pengajuan ditolak'})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    # ============================================================
+    # REKAP — dashboard Finance
+    # ============================================================
+    @app.route('/api/water/recap')
+    @role_required(WATER_FINANCE_ROLES)
+    def api_water_recap():
+        """Rekap pengajuan air minum: ringkasan, per-OB, per-jenis/merk, antrean verifikasi,
+        dan ringkasan kasbon yang menunggu Finance. Filter rentang tanggal opsional."""
+        data = _water_recap_data(request.args.get('from', ''), request.args.get('to', ''))
+        if data is None:
+            return jsonify({'error': 'DB error'}), 500
+        log_activity_async(0, 'water_recap_view', session.get('user_role', ''),
+                           _session_name(), ip=client_ip())
+        return jsonify({k: v for k, v in data.items() if k not in ('rows', 'items_by')})
+
+    @app.route('/api/water/recap/export')
+    @role_required(WATER_FINANCE_ROLES)
+    def api_water_recap_export():
+        """Unduh rekap air minum sebagai CSV (satu baris per item, UTF-8 BOM)."""
+        data = _water_recap_data(request.args.get('from', ''), request.args.get('to', ''))
+        if data is None:
+            return make_response('DB error', 500)
+        csv_text = _build_water_csv(data['rows'], data['items_by'])
+        resp = make_response(csv_text)
+        resp.headers['Content-Type'] = 'text/csv; charset=utf-8'
+        fname = f'Rekap_AirMinum_{datetime.now().strftime("%Y%m%d_%H%M")}.csv'
+        resp.headers['Content-Disposition'] = f'attachment; filename={fname}'
+        log_activity_async(0, 'water_recap_export', session.get('user_role', ''),
+                           _session_name(), ip=client_ip())
+        return resp
 
     # ============================================================
     # PDF TANDA TERIMA

@@ -1,4 +1,4 @@
-# ⛽ BPF Fleet & BBM System v2.6.0 (SPA Vue 3 penuh — 100% Vue)
+# ⛽ BPF Fleet & BBM System v2.7.0 (SPA Vue 3 penuh — 100% Vue)
 
 **Sistem Manajemen Armada, Klaim BBM, Kasbon, Log Perjalanan, Appointment & Air Minum**  
 **PT. Bestprofit Futures - Surabaya**
@@ -6,6 +6,19 @@
 ---
 
 Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pengarsipan klaim BBM, **pengajuan kasbon dengan kode unik**, dan log perjalanan harian (logsheet) dengan workflow GA → Finance → Archive. Dilengkapi **sistem appointment canggih** (Marketing → Chief Driver → Log Perjalanan), deteksi anomali Machine Learning, GPS tracking, **watermark foto otomatis**, PIN security, **session-based login & role-based access**, **CSRF protection**, **notifikasi real-time**, import Excel, audit trail, Chart.js visualization, **PWA offline-first**, dan **WebSocket real-time**.
+
+---
+
+## 🆕 Fitur Terbaru v2.7.0 — Dashboard Khusus Finance + Rekap Air Minum
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **💰 Dashboard Finance sendiri** | Finance login → `/app/finance` (terpisah dari admin/GA) — menu khusus + ringkasan pekerjaan |
+| **📊 Rekap air minum** | Kartu statistik, antrean verifikasi, ringkasan per OB, per jenis & merk, filter tanggal, **Export CSV** (Excel-ready) |
+| **💵 Kasbon menunggu Finance** | Jumlah + nominal kasbon `GA_APPROVED` & LPJ `LPJ_SUBMITTED` di dashboard |
+| **👥 Beberapa akun OB** | Satu akun per orang (ob1/ob2/ob3…) — tiap OB hanya melihat pengajuannya sendiri |
+| **🛡 Kontrol akses rekap** | Rekap hanya Finance/Admin (OB & GA → 403); query dibatasi rentang tanggal + LIMIT |
+| **🧪 Test** | 76 Vitest + 97 pytest + E2E produksi |
 
 ---
 
