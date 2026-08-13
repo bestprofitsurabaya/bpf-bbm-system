@@ -37,10 +37,10 @@ STATUS_LABELS = {
 }
 
 # Rate limit form publik: maks 10 submit / 10 menit per IP (anti spam).
+# (Rate limit per-proses — cukup untuk satu instance web; lihat catatan bawah.)
 _SUBMIT_MAX = 10
 _SUBMIT_WINDOW = 600
 _submit_log = {}
-_submit_lock = time.time()
 
 
 def _serialize(row):
@@ -447,7 +447,7 @@ def register_applicant_routes(app):
             cursor.close(); conn.close()
             return jsonify({'status': 'success',
                             'msg': f'Kehadiran {applicant_stage_label(stage)} tercatat',
-                            'status': new_status})
+                            'applicant_status': new_status})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
 

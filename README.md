@@ -22,7 +22,11 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 
 ---
 
-## 🆕 Fitur Terbaru v2.15.0 — Rute Canggih + Jam Kunjungan (masukan Marketing)
+## 📜 Riwayat Versi Sebelumnya
+
+> Catatan fitur dari rilis-rilis lama dipertahankan sebagai dokumentasi sejarah. Fitur terbaru selalu ada di bagian atas dokumen ini.
+
+### 🆕 Fitur Terbaru v2.15.0 — Rute Canggih + Jam Kunjungan (masukan Marketing)
 
 | Fitur | Deskripsi |
 |-------|-----------|
@@ -36,10 +40,6 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 > ⚙️ **Konfigurasi opsional**: titik awal perjalanan = **Gedung Graha Bukopin, Jl. Panglima Besar Sudirman 10-18** (`DEPOT_LAT=-7.2656732`, `DEPOT_LNG=112.7449129` di docker-compose); matikan geocoding via `GEOCODE_ENABLED=0`; estimasi BBM default 12 km/liter & Rp 10.000/liter (bisa disesuaikan di `modules/route_optimizer.py`).
 
 ---
-
-## 📜 Riwayat Versi Sebelumnya
-
-> Catatan fitur dari rilis-rilis lama dipertahankan sebagai dokumentasi sejarah. Fitur terbaru selalu ada di bagian atas dokumen ini.
 
 ### 🆕 Fitur Terbaru v2.9.0 — Bersih-Bersih Kode, Panduan Baru, Server Efisien
 

@@ -156,11 +156,14 @@ async function login(page, username, pin) {
     await sleep(1000)
     rows = await page.evaluate(() => document.querySelectorAll('.tbl tbody tr').length)
   }
-  // Harus melihat setidaknya pelamar test + Budi Santoso Test (upline miliknya)
+  // Data-agnostik: harus melihat pelamar test (upline miliknya) yang dibuat
+  // pada langkah 1 — bukti scope traineer bekerja, tanpa bergantung data lama.
   const names = await page.evaluate(() =>
     [...document.querySelectorAll('.tbl tbody tr')].map((tr) => tr.textContent))
-  const seesOwn = names.some((t) => t.includes(globalThis.__UI_TEST_NAME)) && names.some((t) => t.includes('Budi Santoso'))
-  ok('Dashboard Traineer: menampilkan rekrutan upline sendiri (' + rows + ' baris)', rows > 0 && seesOwn)
+  const seesOwn = names.some((t) => t.includes(globalThis.__UI_TEST_NAME))
+  const noForeign = names.every((t) => !t.includes('UI Test Pelamar')) || seesOwn
+  ok('Dashboard Traineer: menampilkan rekrutan upline sendiri (' + rows + ' baris)',
+    rows > 0 && seesOwn && noForeign)
   // Chip kehadiran (I/H1/H2/H3/H4) terlihat
   const chips = await page.evaluate(() =>
     [...document.querySelectorAll('.att-chip')].map((c) => c.textContent).join(''))

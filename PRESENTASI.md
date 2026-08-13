@@ -26,9 +26,10 @@
 | 5 | **Demo: Realtime & notifikasi** | 2 mnt | "Wow factor", teknologi terasa |
 | 6 | **Demo: Driver PWA offline** | 2 mnt | Relevan untuk pengguna lapangan |
 | 7 | **Demo: Marketing & Chief Driver** | 2 mnt | Fitur pendukung penjualan |
-| 8 | Keamanan & tata kelola | 3 mnt | Menjawab kekhawatiran pengambil keputusan |
-| 9 | Kualitas & kepatuhan | 2 mnt | Bukti kredibilitas teknis |
-| 10 | Penutup: nilai & langkah berikutnya | 2 mnt | Ajakan bertindak |
+| 8 | **Demo: Pelamar Kerja (form → Receptionist → Traineer)** | 2 mnt | Menggantikan Google Form, data dikelola internal |
+| 9 | Keamanan & tata kelola | 3 mnt | Menjawab kekhawatiran pengambil keputusan |
+| 10 | Kualitas & kepatuhan | 2 mnt | Bukti kredibilitas teknis |
+| 11 | Penutup: nilai & langkah berikutnya | 2 mnt | Ajakan bertindak |
 
 ---
 
@@ -169,7 +170,22 @@
 
 ---
 
-## 8️⃣ Keamanan & Tata Kelola (3 menit) 🔐
+## 8️⃣ Demo Pendukung — Pelamar Kerja: Form → Receptionist → Traineer (2 menit) 🪪
+
+> Sebelumnya data pelamar dikumpulkan lewat Google Form + Google Sheet. Kini semuanya **internal**: pelamar mengisi form, Receptionist memverifikasi & mencatat kehadiran, Traineer memantau rekrutannya.
+
+**Alur demo:**
+1. Buka **`/app/apply`** (tanpa login) → isi form singkat → muncul **No. Registrasi `PLM-*` + jam interview otomatis** dari waktu submit.
+2. Login **Receptionist** → data pelamar tadi langsung tampil → **✅ Verifikasi**, **🎯 catat kehadiran Interview + Training H1** → chip I·H1 menyala, status naik otomatis.
+3. Coba **🚪 Mengundurkan Diri tanpa alasan** → ditolak (alasan wajib) → isi alasan → status **Mengundurkan Diri**.
+4. Pilih tahap laporan → **📄 Laporan PDF** → dokumen resmi berlogo BPF + TTD Receptionist.
+5. Login **Traineer** → hanya melihat rekrutan dengan UPLINE miliknya (scope otomatis).
+
+**Poin yang ditekankan:** menggantikan tautan Google Form; jam interview otomatis; kehadiran 4 hari training; laporan PDF resmi; traineer memantau rekrutan sendiri.
+
+---
+
+## 9️⃣ Keamanan & Tata Kelola (3 menit) 🔐
 
 > Bagian ini yang paling sering ditanya pengambil keputusan. Siapkan jawaban singkat.
 
@@ -186,7 +202,7 @@
 
 ---
 
-## 9️⃣ Kualitas & Kepatuhan (2 menit) 🧪
+## 🔟 Kualitas & Kepatuhan (2 menit) 🧪
 
 **Poin yang dibicarakan:**
 - **97 uji otomatis backend + 82 uji frontend** — setiap perubahan diuji sebelum dipakai.
@@ -200,7 +216,7 @@
 
 ---
 
-## 🔟 Penutup — Nilai & Langkah Berikutnya (2 menit)
+## 1️⃣1️⃣ Penutup — Nilai & Langkah Berikutnya (2 menit)
 
 **Rangkum dalam 3 angka:**
 > - **1 aplikasi** untuk semua peran.
@@ -218,10 +234,10 @@
 
 | Persiapan | Detail |
 |---|---|
-| **Data contoh** | 1 pengajuan air minum + 1 klaim BBM + 1 kasbon (status beragam agar tiap layar hidup) |
+| **Data contoh** | 1 pengajuan air minum + 1 klaim BBM + 1 kasbon + 1 pelamar kerja (status beragam agar tiap layar hidup) |
 | **2 tab/3 tab browser** | Dashboard GA, Dashboard Finance, dan login OB (untuk demo realtime) |
 | **Foto contoh** | 2 foto air minum (sebelum/sesudah) + 1 struk BBM, sudah ada di perangkat |
-| **Akun** | `admin`, `ga_officer`, `finance_officer`, `ob1` (PIN semua `123456`) |
+| **Akun** | `admin`, `ga_officer`, `finance_officer`, `ob1`, `receptionis`, `traineer_a` (PIN semua `123456`) |
 | **Mode gelap/kontras** | Tunjukkan tombol 🌙 dan 🔆 di pojok kanan atas sebagai penutup bagian UI/UX |
 | **Koneksi** | Pastikan internet stabil (demo realtime butuh koneksi) |
 | **Gladi resik otomatis** | Jalankan `node frontend/scripts/rehearsal.mjs` — 20/20 cek per peran + konsol bersih, selesai dalam ±2 menit |
@@ -237,6 +253,8 @@
 | "Bagaimana kalau ada sopir baru / OB baru?" | Admin membuat akun dalam hitungan menit dari halaman Users. |
 | "Bisa integrasi Excel?" | Sudah: export CSV rekap air minum, export Excel logsheet & rekap harian. |
 | "Apakah ini bisa dipakai untuk cabang lain?" | Ya — tinggal tambah pengguna & data master; alurnya sama. |
+| "Data pelamar masih lewat Google Form?" | Tidak — sudah diganti form internal; Receptionist verifikasi, kehadiran training 4 hari, laporan PDF resmi. |
+| "Upline bisa lihat rekrutannya?" | Ya — Traineer membuka halamannya, otomatis hanya rekrutan dengan UPLINE miliknya. |
 
 ---
 
