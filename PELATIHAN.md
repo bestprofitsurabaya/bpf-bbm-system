@@ -86,6 +86,32 @@
 
 ---
 
+## 🪪 Receptionist — Pelamar Kerja
+
+| # | Langkah | Hasil yang diharapkan |
+|---|---------|------------------------|
+| 1 | Login akun Receptionist | Masuk **dashboard Pelamar Kerja** |
+| 2 | Buka `/app/apply` (tab baru, tanpa login) → isi form pelamar | Sukses + No. Registrasi `PLM-*` + jam interview otomatis |
+| 3 | Cari nama pelamar tadi di dashboard (kotak pencarian / filter tanggal) | Baris pelamar tampil |
+| 4 | Klik **✅ Verifikasi** lalu **🎯 Catat Kehadiran** → tandai Interview + Training H1 | Status naik otomatis; chip I & H1 menyala |
+| 5 | Klik **🚪 Mengundurkan Diri** tanpa alasan | Ditolak — **alasan wajib** |
+| 6 | Isi alasan → simpan | Status **Mengundurkan Diri** |
+| 7 | Pilih tahap laporan → **📄 Laporan PDF** | PDF resmi berlogo BPF + TTD Receptionist terunduh |
+| 8 | (Opsional) ✏️ Edit data yang salah | Data berubah, tercatat audit |
+
+---
+
+## 🎯 Traineer — Pantau Rekrutan
+
+| # | Langkah | Hasil yang diharapkan |
+|---|---------|------------------------|
+| 1 | Login akun Traineer | Masuk **Rekrutan Saya** — langsung berisi pelamar yang mencantumkan UPLINE = kamu |
+| 2 | Gunakan filter tanggal / user / status + pencarian | Daftar terfilter sesuai |
+| 3 | Perhatikan chip kehadiran (I · H1–H4) | Chip menyala sesuai tahap yang sudah dihadiri |
+| 4 | (Coba) klik tombol edit/hapus | Tidak ada — Traineer hanya melihat (read-only) |
+
+---
+
 ## ⚙️ Admin — User & Pengaturan
 
 | # | Langkah | Hasil yang diharapkan |
@@ -103,7 +129,7 @@
 - [ ] Data demo masih ada (cek: antrean GA ada klaim, rekap finance ada air minum)
 - [ ] 2–3 tab browser siap (GA, Finance, OB) untuk demo realtime
 - [ ] Foto contoh siap di perangkat (air minum sebelum/sesudah, struk BBM)
-- [ ] Akun & PIN terverifikasi (`admin`, `ga_officer`, `finance_officer`, `ob1`, `ob2`, `ob3`)
+- [ ] Akun & PIN terverifikasi (`admin`, `ga_officer`, `finance_officer`, `ob1`, `ob2`, `ob3`, receptionist, traineer)
 - [ ] PDF slide deck & PPTX siap dibagikan (`presentasi/`)
 - [ ] Bersihkan data demo setelah selesai: `docker exec -i bbm_mariadb mariadb -uroot -ppassword_db bpf_asset_system < scripts/demo_cleanup.sql`
 

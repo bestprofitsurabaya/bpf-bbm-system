@@ -15,10 +15,12 @@
 6. [Untuk Finance — Pembayaran & Rekap 💰](#6-untuk-finance--pembayaran--rekap)
 7. [Untuk Marketing — Jadwal Appointment 📣](#7-untuk-marketing--jadwal-appointment)
 8. [Untuk Chief Driver — Pembagian Tugas 🚛](#8-untuk-chief-driver--pembagian-tugas)
-9. [Untuk Admin — Pengaturan Sistem ⚙️](#9-untuk-admin--pengaturan-sistem)
-10. [Kasbon: Alur Lengkap dari A sampai Z](#10-kasbon-alur-lengkap-dari-a-sampai-z)
-11. [Mengatasi Masalah (Troubleshooting)](#11-mengatasi-masalah-troubleshooting)
-12. [Istilah-istilah Penting](#12-istilah-istilah-penting)
+9. [Untuk Receptionist — Pelamar Kerja 🪪](#9-untuk-receptionist--pelamar-kerja)
+10. [Untuk Traineer / Upline — Pantau Rekrutan 🎯](#10-untuk-traineer--upline--pantau-rekrutan)
+11. [Untuk Admin — Pengaturan Sistem ⚙️](#11-untuk-admin--pengaturan-sistem)
+12. [Kasbon: Alur Lengkap dari A sampai Z](#12-kasbon-alur-lengkap-dari-a-sampai-z)
+13. [Mengatasi Masalah (Troubleshooting)](#13-mengatasi-masalah-troubleshooting)
+14. [Istilah-istilah Penting](#14-istilah-istilah-penting)
 
 ---
 
@@ -315,36 +317,76 @@ Semua perubahan papan berjalan realtime — saat driver menyelesaikan tugas, sta
 
 ---
 
-## 9. Untuk Admin — Pengaturan Sistem ⚙️
+## 9. Untuk Receptionist — Pelamar Kerja 🪪
+
+> **Kamu adalah Receptionist.** Pelamar kerja mengisi form sendiri lewat halaman publik (tanpa login). Tugasmu: memverifikasi, memperbaiki data yang salah, mencatat kehadiran interview & training, dan membuat laporan PDF resmi.
+
+### 9.1 Pelamar Mengisi Form (Halaman Publik `/app/apply`)
+
+- Pelamar membuka **Formulir Pendaftaran Kerja** (link dari resepsionis): Nama Lengkap, Pendidikan, No. HP, UPLINE, User, Posisi.
+- **Tanggal & jam interview diambil otomatis** dari waktu pengiriman form — pelamar langsung mendapat No. Registrasi (mis. `PLM-20260813-…`).
+
+### 9.2 Dashboard Receptionist `/app/receptionist`
+
+- **Mencari & memfilter**: kolom tanggal (dari/sampai), UPLINE, User, Status, dan kotak pencarian (nama/HP/posisi).
+- **✅ Verifikasi** — pastikan data pelamar benar, lalu klik tombol centang.
+- **✏️ Edit** — perbaiki kesalahan input pelamar (nama, HP, upline, dll).
+- **🎯 Catat Kehadiran** — buka modal kehadiran, lalu tandai **Interview** dan/atau **Training Hari 1–4** sesuai tahap yang dihadiri. Status pelamar otomatis mengikuti tahap terjauh.
+- **🚪 Mengundurkan Diri** — jika pelamar berhenti (mis. setelah training hari 1), pilih *Mengundurkan Diri* dan **tuliskan alasannya (WAJIB karena pelamar sudah pernah hadir)**.
+- **🏁 Lulus / ✕ Tolak** — setelah 4 hari training tuntas, tandai **Lulus**; atau **Tolak** dengan alasan (opsional).
+- **🗑 Hapus** — hapus data pelamar beserta riwayat kehadirannya.
+
+### 9.3 Laporan PDF Resmi 📄
+
+- Pilih **tahap laporan** (Interview / Training H1–H4), atur rentang tanggal + filter UPLINE/User sesuai kombinasi yang biasa kamu pakai, lalu klik **📄 Laporan PDF**.
+- Hasilnya dokumen resmi **berkop & berlogo BPF**, berisi tabel kehadiran, ringkasan total, dan blok tanda tangan Receptionist — siap cetak/arsip.
+
+---
+
+## 10. Untuk Traineer / Upline — Pantau Rekrutan 🎯
+
+> **Kamu adalah Traineer / Upline.** Halaman ini menampilkan **hanya orang yang kamu rekrut** (UPLINE = kamu) — otomatis, tanpa perlu filter manual.
+
+### 10.1 Dashboard Traineer `/app/traineer`
+
+- **Lihat rekrutanmu**: nama, posisi, user, jadwal interview, dan **chip kehadiran** (I · H1 · H2 · H3 · H4) — chip menyala hijau sesuai tahap yang sudah dihadiri.
+- **Filter & cari**: rentang tanggal, UPLINE/User/Status, dan kotak pencarian.
+- **Kartu statistik**: total rekrutan, yang sudah interview, dalam training, lulus, mundur.
+
+> ℹ️ Traineer hanya **melihat** (read-only) — edit, kehadiran, dan PDF dikelola Receptionist.
+
+---
+
+## 11. Untuk Admin — Pengaturan Sistem ⚙️
 
 > **Kamu adalah Admin.** Kamu memegang kunci utama: membuat akun, mengatur nama untuk tanda terima, dan memantau jejak audit.
 
-### 9.1 Manajemen User (Halaman Users)
+### 11.1 Manajemen User (Halaman Users)
 
-- **Membuat akun baru** — pilih peran (Admin, GA, Finance, Marketing, Chief Driver, Driver, OB), isi nama & PIN.
+- **Membuat akun baru** — pilih peran (Admin, GA, Finance, Marketing, Chief Driver, Driver, OB, **Receptionist**, **Traineer**), isi nama & PIN.
 - **Mengganti nama** — misalnya mengganti nama placeholder OB dengan nama asli. Nama ini yang tampil di dokumen (mis. PDF tanda terima air minum).
 - **Reset PIN** — kalau user lupa PIN.
 - **Nonaktifkan/Aktifkan** — akun yang dinonaktifkan **tidak bisa login** (tanpa harus dihapus, supaya jejak datanya tetap aman).
 - **Hapus** — hapus akun (jika memang tidak dipakai).
 
-### 9.2 Pengaturan (Settings)
+### 11.2 Pengaturan (Settings)
 
 - **Manajemen Driver** — tambah/hapus data driver.
 - **Manajemen Armada** — tambah kendaraan (nopol, jenis, dll).
 - **Nama untuk Tanda Terima Air Minum** — set **nama Finance** (yang menyerahkan) & **nama GA** (yang menerima). Nama ini otomatis tercetak di PDF tanda terima air minum.
 - Pengaturan lain sesuai kebutuhan kantor.
 
-### 9.3 Audit Log (Jejak Digital)
+### 11.3 Audit Log (Jejak Digital)
 
 Semua aksi penting tercatat di **Audit Log**: siapa, melakukan apa, kapan. Berguna saat ada selisih atau pertanyaan. Bisa difilter berdasarkan aksi & peran.
 
-### 9.4 Dark Mode 🌙
+### 11.4 Dark Mode 🌙
 
 Suka tampilan gelap? Klik tombol **🌙/☀️** di pojok kanan atas. Pilihanmu tersimpan otomatis.
 
 ---
 
-## 10. Kasbon: Alur Lengkap dari A sampai Z
+## 12. Kasbon: Alur Lengkap dari A sampai Z
 
 Kasbon = uang muka yang diberikan ke driver sebelum berangkat. Alurnya seperti relay — tiap bagian menyentuh sekali:
 
@@ -372,7 +414,7 @@ Angka "receh" yang ditambahkan ke nominal kasbon (mis. Rp 100.023, bukan Rp 100.
 
 ---
 
-## 11. Mengatasi Masalah (Troubleshooting)
+## 13. Mengatasi Masalah (Troubleshooting)
 
 | Masalah | Solusi |
 |---------|--------|
@@ -390,7 +432,7 @@ Angka "receh" yang ditambahkan ke nominal kasbon (mis. Rp 100.023, bukan Rp 100.
 
 ---
 
-## 12. Istilah-istilah Penting
+## 14. Istilah-istilah Penting
 
 | Istilah | Artinya (bahasa sehari-hari) |
 |---------|------------------------------|
@@ -409,6 +451,9 @@ Angka "receh" yang ditambahkan ke nominal kasbon (mis. Rp 100.023, bukan Rp 100.
 | **Audit Log** | Buku catatan digital semua aksi penting di sistem. |
 | **SPBU Rekanan** | SPBU langganan kantor tempat driver mengisi BBM. |
 | **Offline Mode** | Kondisi tanpa internet — data tetap tersimpan di HP dan terkirim otomatis saat online. |
+| **Pelamar Kerja** | Orang yang mendaftar kerja via form publik — datanya dikelola Receptionist. |
+| **UPLINE / Traineer** | Orang yang merekrut pelamar — bisa memantau kehadiran rekrutannya. |
+| **Kehadiran (I · H1–H4)** | Tanda hadir pelamar: Interview, lalu Training Hari 1 sampai 4. |
 
 ---
 
@@ -416,4 +461,4 @@ Angka "receh" yang ditambahkan ke nominal kasbon (mis. Rp 100.023, bukan Rp 100.
 
 Ada pertanyaan atau kendala? Hubungi **Admin** atau **tim IT** — mereka bisa melihat riwayat sistem (Audit Log) untuk membantu menyelesaikan masalahmu dengan cepat.
 
-*Terakhir diperbarui: v2.15 — ditambah jam kunjungan (Marketing) & rute otomatis hemat BBM (Chief Driver).*
+*Terakhir diperbarui: v2.16 — ditambah Sistem Pelamar Kerja (form publik → Receptionist → Traineer).*

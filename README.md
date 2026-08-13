@@ -1,4 +1,4 @@
-# ⛽ BPF Fleet & BBM System v2.15.0 (SPA Vue 3 penuh — 100% Vue)
+# ⛽ BPF Fleet & BBM System v2.16.0 (SPA Vue 3 penuh — 100% Vue)
 
 **Sistem Manajemen Armada, Klaim BBM, Kasbon, Log Perjalanan, Appointment & Air Minum**  
 **PT. Bestprofit Futures - Surabaya**
@@ -6,6 +6,19 @@
 ---
 
 Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pengarsipan klaim BBM, **pengajuan kasbon dengan kode unik**, dan log perjalanan harian (logsheet) dengan workflow GA → Finance → Archive. Dilengkapi **sistem appointment canggih** (Marketing → Chief Driver → Log Perjalanan), deteksi anomali Machine Learning, GPS tracking, **watermark foto otomatis**, PIN security, **session-based login & role-based access**, **CSRF protection**, **notifikasi real-time**, import Excel, audit trail, Chart.js visualization, **PWA offline-first**, dan **WebSocket real-time**.
+
+---
+
+## 🆕 Fitur Terbaru v2.16.0 — Sistem Pelamar Kerja (menggantikan Google Form)
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **📝 Form publik `/app/apply`** | Pelamar kerja mengisi Nama Lengkap, Pendidikan, No. HP, UPLINE, User, Posisi — **tanggal & jam interview otomatis dari timestamp submit** + No. Registrasi `PLM-*` (tanpa login, anti-spam per IP) |
+| **🪪 Receptionist `/app/receptionist`** | Verifikator & pengelola data: **filter tanggal/UPLINE/User/status + search**, **✏️ edit** kesalahan input, ✅ verifikasi, 🗑 hapus, **kehadiran interview + 4 hari training** (I·H1–H4), **🚪 mengundurkan diri dengan alasan WAJIB** (bila sudah pernah hadir), 🏁 lulus / ✕ tolak |
+| **📄 Laporan PDF resmi berlogo BPF** | Per tahap (interview / training H1–H4) + rentang tanggal + filter UPLINE/User + TTD Receptionist |
+| **🎯 Traineer `/app/traineer`** | Pantau kehadiran orang yang direkrutnya — **scope UPLINE sendiri** otomatis (nama/username), search + filter, chip kehadiran, statistik rekrutan |
+| **🔐 Keamanan** | Role baru `receptionist`/`traineer`, kontrol akses per endpoint (403), audit trail lengkap, CSRF aktif |
+| **🧪 Test** | 148 pytest (7 baru: `test_applicants.py`) + verifikasi browser 9/9 konsol bersih |
 
 ---
 
@@ -366,6 +379,9 @@ Aplikasi diakses publik melalui **domain permanen** `nasbpfsby.duckdns.org` (HTT
 | **Login (semua role)** | `https://nasbpfsby.duckdns.org:5000/app/login` |
 | **📣 Marketing Hub** | `https://nasbpfsby.duckdns.org:5000/app/marketing` |
 | **🚛 Chief Driver** | `https://nasbpfsby.duckdns.org:5000/app/chief-driver` |
+| **📝 Form Pelamar (publik)** | `https://nasbpfsby.duckdns.org:5000/app/apply` |
+| **🪪 Receptionist** | `https://nasbpfsby.duckdns.org:5000/app/receptionist` |
+| **🎯 Traineer** | `https://nasbpfsby.duckdns.org:5000/app/traineer` |
 | **📱 Driver PWA** | `https://nasbpfsby.duckdns.org:5000/app/driver` |
 | Dashboard Admin | `https://nasbpfsby.duckdns.org:5000/app/dashboard` |
 | GA Assignments | `https://nasbpfsby.duckdns.org:5000/app/assignments` |
@@ -385,6 +401,9 @@ Aplikasi diakses publik melalui **domain permanen** `nasbpfsby.duckdns.org` (HTT
 | Driver PWA | http://localhost:5001/app/driver | Driver (wajib login PIN) |
 | **Marketing Hub** | http://localhost:5001/app/marketing | Marketing |
 | **Chief Driver** | http://localhost:5001/app/chief-driver | Chief Driver, GA |
+| **Form Pelamar (publik)** | http://localhost:5001/app/apply | Tanpa login |
+| **Pelamar Kerja (Receptionist)** | http://localhost:5001/app/receptionist | Receptionist, Admin |
+| **Rekrutan Saya (Traineer)** | http://localhost:5001/app/traineer | Traineer |
 | Dashboard | http://localhost:5001/app/dashboard | GA, Finance, Admin |
 | GA Assignments | http://localhost:5001/app/assignments | GA |
 | Rekap | http://localhost:5001/app/rekap | Finance, Admin |
@@ -406,6 +425,8 @@ Default Credentials
 | Marketing (buat via Users) | mis. icang | 123456 (set via Users) |
 | Chief Driver (buat via Users) | mis. chief_driver | 123456 (set via Users) |
 | Driver (buat via Users, role Driver) | mis. rivan | 123456 (**reset massal** via `/app/settings`) |
+| Receptionist (buat via Users) | mis. receptionis | 123456 (set via Users) |
+| Traineer / Upline (buat via Users) | mis. traineer_a | 123456 (set via Users) |
 
 ---
 
@@ -536,6 +557,8 @@ docker exec bbm_mariadb mysql -uroot -ppassword_db bpf_asset_system \
 | GA Officer | Approve, reject, trip review, serah terima kendaraan, kasbon, chief driver board | 123456 |
 | Finance Officer | Payout, Archive, ZIP, Export, ODO Edit, kasbon | 123456 |
 | Chief Driver | Command center penugasan driver appointment | 123456 |
+| Receptionist | Form pelamar → verifikasi, edit, kehadiran interview & 4 hari training, status, laporan PDF | 123456 |
+| Traineer / Upline | Pantau kehadiran rekrutan upline sendiri (read-only) | 123456 |
 | Marketing | Input & kelola appointment prospek nasabah (1 akun bisa untuk banyak anggota tim) | 123456 |
 | Driver | Submit BBM, Trip Log, Kasbon, Self-analytics, notifikasi — **wajib login PIN** (anti impersonasi) | 123456 (via Users / reset massal) |
 

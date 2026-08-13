@@ -6,6 +6,32 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.16.0] - 2026-08-13
+
+### 🪪 Sistem Pelamar Kerja (menggantikan Google Form + Google Sheet)
+
+Pelamar kerja yang datang ke kantor **PT Bestprofit Futures Surabaya** kini mengisi form di server internal (bukan lagi tautan Google Form/Spreadsheet). Data dikelola penuh oleh Receptionist; Traineer/Upline memantau rekrutannya.
+
+- **📝 Form publik `/app/apply` (tanpa login)**: Nama Lengkap, Pendidikan Terakhir, Nomor HP, UPLINE, User, Posisi Yang Dilamar. **Tanggal & jam interview diambil otomatis dari timestamp submit** (ditampilkan ke pelamar bersama No. Registrasi `PLM-*`). Rate limit anti-spam per IP (10 submit/10 menit).
+- **🪪 Dashboard Receptionist `/app/receptionist`** (role baru):
+  - **Filter by tanggal (dari/sampai), UPLINE, User, status + fungsi search** (nama/HP/posisi) + statistik (total, hari ini, interview, dalam training, lulus, mundur).
+  - **✏️ Edit** perbaiki kesalahan input pelamar, **✅ Verifikasi** data, **🗑 Hapus** (beserta riwayat kehadiran), semua tercatat audit.
+  - **🎯 Manajemen kehadiran**: interview + **4 hari training** (I · H1 · H2 · H3 · H4) — pelamar bisa berhenti di tahap mana pun.
+  - **🚪 Mengundurkan diri: alasan WAJIB bila pelamar sudah pernah hadir** (jejak resmi). Juga **🏁 Lulus** & **✕ Tolak** (alasan opsional).
+  - **📄 Laporan PDF resmi berlogo BPF per tahap** (interview / training H1–H4): rentang tanggal + filter UPLINE/User, tabel kehadiran, ringkasan, TTD Receptionist — kombinasi fitur yang biasa dipakai resepsionis.
+- **🎯 Dashboard Traineer `/app/traineer`** (role baru): pantau kehadiran orang yang direkrutnya — **scope otomatis UPLINE sendiri** (cocok parsial case-insensitive: pelamar bebas menulis nama lengkap/username), search + filter tanggal/UPLINE/User/status, chip kehadiran I/H1–H4, statistik rekrutan. Tanpa akses edit/PDF (read-only).
+- **🔐 Keamanan**: role `receptionist`/`traineer` di `users.role` (migrasi otomatis), `ROLE_META` + route + menu per peran, kontrol akses per endpoint (403 untuk yang tidak berhak), audit log lengkap (`applicant_*`), CSRF tetap aktif.
+- **🗄️ Skema DB** (migrasi otomatis di startup + perbaikan urutan `cursor.close()`): tabel `applicants` + `applicant_attendance` (UNIQUE per pelamar+tahap, FK cascade).
+
+### 🧪 Pengujian & Verifikasi
+
+- **pytest +7 → total 148 hijau** (`tests/test_applicants.py`): label tahap/status, `home_for_role` receptionist/traineer, PDF berlogo (kosong & berisi — teks diekstrak via parser ToUnicode), scope traineer. Plus perbaikan test lama.
+- **Verifikasi browser nyata** (`frontend/scripts/verify_applicants_ui.mjs`, Chrome headless): **9/9 lulus, konsol bersih** — form publik 6 field + sukses + jam otomatis, dashboard Receptionist (tabel, search, aksi lengkap, tombol PDF), dashboard Traineer (rekrutan upline sendiri + chip kehadiran).
+- **E2E produksi (port 5001)**: submit publik → PLM-* + timestamp ✓ · verify/edit ✓ · kehadiran interview & training H1 ✓ (status naik otomatis) · resign tanpa alasan → 400, dengan alasan → sukses ✓ · PDF report valid (1 halaman) ✓ · scope traineer hanya rekrutan upline sendiri ✓ · traineer tidak bisa edit/PDF (403) ✓ · data test dibersihkan ✓.
+- **🐛 Perbaikan hasil E2E**: (1) migrasi `applicants` gagal karena `cursor.close()` dipanggil sebelum CREATE — kini urutan benar + retry startup; (2) `Unread result found` di `/api/applicants/meta` (dua query satu cursor) — diperbaiki; (3) audit log pelamar gagal FK `activity_logs.transaction_id` — kini log pakai `transaction_id=NULL`; (4) scope traineer duplikat klausa `upline LIKE` — diperbaiki; (5) route `/app/apply` belum terdaftar di router SPA — ditambahkan.
+
+---
+
 ## [2.15.2] - 2026-08-13
 
 ### 💚 Estimasi Penghematan BBM + Backfill Koordinat + Verifikasi Browser Nyata

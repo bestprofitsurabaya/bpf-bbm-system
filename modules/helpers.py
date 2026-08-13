@@ -605,12 +605,49 @@ ROLE_HOME = {
     'ob': '/app/water',
     'finance': '/app/finance',   # v2.7: dashboard khusus Finance (rekap air minum + kasbon)
     'ga': '/app/ga',             # v2.8: dashboard khusus GA (antrean klaim + kasbon + trip)
+    'receptionist': '/app/receptionist',  # v2.16: sistem pelamar kerja (verifikasi & kehadiran)
+    'traineer': '/app/traineer',          # v2.16: pantau rekrutan (upline)
 }
 
 
 def home_for_role(role):
     """Halaman awal sesuai role user setelah login (SPA /app/*)."""
     return ROLE_HOME.get(role, '/app/dashboard')
+
+
+# ============================================================
+# PELAMAR KERJA (v2.16) — tahapan interview + 4 hari training
+# ============================================================
+APPLICANT_STAGES = ('interview', 'training_1', 'training_2', 'training_3', 'training_4')
+APPLICANT_STATUSES = ('interview', 'training_1', 'training_2', 'training_3', 'training_4',
+                      'lulus', 'resigned', 'rejected')
+
+APPLICANT_STAGE_LABELS = {
+    'interview': 'Interview',
+    'training_1': 'Training Hari 1',
+    'training_2': 'Training Hari 2',
+    'training_3': 'Training Hari 3',
+    'training_4': 'Training Hari 4',
+}
+
+APPLICANT_STATUS_LABELS = {
+    'interview': '📅 Interview',
+    'training_1': '📘 Training H1',
+    'training_2': '📗 Training H2',
+    'training_3': '📙 Training H3',
+    'training_4': '📕 Training H4',
+    'lulus': '🎓 Lulus',
+    'resigned': '🚪 Mengundurkan Diri',
+    'rejected': '✕ Ditolak',
+}
+
+
+def applicant_stage_label(stage):
+    return APPLICANT_STAGE_LABELS.get(str(stage), str(stage))
+
+
+def applicant_status_label(status):
+    return APPLICANT_STATUS_LABELS.get(str(status), str(status))
 
 
 def session_driver_name():

@@ -4,6 +4,8 @@ import { useAuthStore, ROLE_META } from '../stores/auth'
 const routes = [
   { path: '/login', name: 'login', component: () => import('../views/LoginView.vue'), meta: { public: true } },
   { path: '/403', name: 'forbidden', component: () => import('../views/ForbiddenView.vue'), meta: { public: true } },
+  // Form publik pelamar kerja (v2.16) — tanpa login
+  { path: '/apply', name: 'apply', component: () => import('../views/ApplyView.vue'), meta: { public: true } },
   // Driver PWA (v2.4): layout mobile mandiri, wajib login PIN driver
   { path: '/driver', name: 'driver', component: () => import('../views/driver/DriverView.vue'), meta: { roles: ['driver'] } },
   {
@@ -25,6 +27,8 @@ const routes = [
       { path: 'settings', name: 'settings', component: () => import('../views/SettingsView.vue'), meta: { roles: ['admin'] } },
       { path: 'logs', name: 'logs', component: () => import('../views/LogsView.vue'), meta: { roles: ['admin'] } },
       { path: 'water', name: 'water', component: () => import('../views/WaterView.vue'), meta: { roles: ['ob', 'finance', 'admin'] } },
+      { path: 'receptionist', name: 'receptionist', component: () => import('../views/dashboard/ReceptionistView.vue'), meta: { roles: ['receptionist', 'admin'] } },
+      { path: 'traineer', name: 'traineer', component: () => import('../views/dashboard/TraineerView.vue'), meta: { roles: ['traineer'] } },
     ],
   },
   { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('../views/NotFoundView.vue'), meta: { public: true } },

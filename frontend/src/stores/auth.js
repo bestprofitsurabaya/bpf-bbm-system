@@ -10,6 +10,8 @@ export const ROLE_META = {
   chief_driver: { label: 'Chief Driver', home: '/chief-driver', color: '#7c3aed', icon: '🚛' },
   driver:       { label: 'Driver',       home: '/driver',       color: '#16a34a', icon: '🚛' },
   ob:           { label: 'OB',           home: '/water',        color: '#0d9488', icon: '🚰' },
+  receptionist: { label: 'Receptionist', home: '/receptionist', color: '#db2777', icon: '🪪' },
+  traineer:     { label: 'Traineer',     home: '/traineer',     color: '#b45309', icon: '🎯' },
 }
 
 export const useAuthStore = defineStore('auth', {

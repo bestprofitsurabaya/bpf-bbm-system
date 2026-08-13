@@ -24,6 +24,8 @@ Sebelumnya, pencatatan BBM, kasbon, dan pembelian air minum dilakukan manual —
 | **Finance** | Verifikasi & cairkan klaim, verifikasi pembelian air minum, rekap per OB |
 | **OB** | Ajukan pembelian air minum (galon/botol/gelas) lengkap dengan foto sebelum & sesudah |
 | **Marketing** | Catat jadwal kunjungan nasabah, pantau realisasi tim |
+| **Receptionist** | Verifikasi & kelola data pelamar kerja: kehadiran interview + 4 hari training, laporan PDF resmi |
+| **Traineer / Upline** | Pantau kehadiran orang yang direkrutnya |
 | **Admin** | Kelola akun & nama penanda tangan (GA/Finance), lihat analytics |
 
 **Setiap peran hanya melihat halaman sesuai wewenangnya** (prinsip *least privilege*).
@@ -37,6 +39,7 @@ Sebelumnya, pencatatan BBM, kasbon, dan pembelian air minum dilakukan manual —
 - **Pembelian air minum** — OB mengisi tanggal, jumlah, foto *before/after*; Finance verifikasi → dokumen PDF tanda tangan GA & Finance.
 - **Jadwal kunjungan marketing** — input jadwal + **jam kunjungan**, penugasan ke driver, hasil kunjungan terekam.
 - **Rute otomatis hemat BBM** — Chief Driver sekali klik membagi kunjungan **per area & urut jam** (rute searah), lengkap dengan estimasi jarak/BBM dan angka penghematan.
+- **Sistem pelamar kerja** — pelamar mengisi form publik, **jam interview otomatis** dari timestamp; Receptionist mencatat kehadiran interview & training H1–H4 (alasan wajib bila mundur), membuat **laporan PDF berlogo**; Traineer memantau rekrutannya.
 - **Notifikasi realtime** — driver langsung tahu klaimnya sudah diverifikasi atau ada jadwal baru.
 - **Bisa dipakai offline** — koneksi tersambung kembali, data otomatis tersinkron.
 - **Laporan PDF & Excel** — logsheet, rekap, dan dokumen tanda terima siap diunduh.
@@ -57,7 +60,8 @@ Sebelumnya, pencatatan BBM, kasbon, dan pembelian air minum dilakukan manual —
 1. **Driver** mengajukan klaim BBM dari HP → **GA** menyetujui → **Finance** memverifikasi.
 2. **OB** mengajukan pembelian air minum dengan foto → **Finance** verifikasi → PDF tanda terima.
 3. **Marketing** membuat jadwal kunjungan → **Chief Driver** menugaskan → hasil kunjungan tercatat.
-4. Dashboard **Admin**: analytics, pengguna, dan pantauan realtime.
+4. **Pelamar** mengisi form → **Receptionist** memverifikasi & mencatat kehadiran → **Traineer** melihat rekrutannya.
+5. Dashboard **Admin**: analytics, pengguna, dan pantauan realtime.
 
 ---
 

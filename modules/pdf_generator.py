@@ -603,3 +603,107 @@ class BBMReportPDF(BPFBasePDF):
             self.ln()
             fill = not fill
         self.ln(4)
+
+
+# ============================================================
+# LAPORAN KEHADIRAN PELAMAR KERJA (v2.16)
+# Interview + Training Hari 1-4 — laporan resmi berlogo BPF
+# ============================================================
+class ApplicantReportPDF(BPFBasePDF):
+    """Laporan kehadiran pelamar kerja (per tahap) dengan kop resmi & logo.
+
+    Dipakai Receptionist: satu laporan per tahap (interview / training H1-H4)
+    dalam rentang tanggal, opsional difilter upline/user — lalu TTD Receptionist.
+    """
+
+    def __init__(self, title='LAPORAN KEHADIRAN PELAMAR KERJA'):
+        super().__init__(orientation='L', unit='mm', format='A4')
+        self._title = title
+        self.set_auto_page_break(auto=True, margin=15)
+
+    def header(self):
+        super().header()
+        self.set_font(self._font(), 'B', 11)
+        self.set_text_color(37, 99, 235)
+        self.cell(0, 6, self.clean_text(self._title), align='C', new_x='LMARGIN', new_y='NEXT')
+        self.set_text_color(0, 0, 0)
+        self.ln(2)
+
+    def generate(self, rows, stage_label='', date_label='', filters=None, generated_by=''):
+        self.add_page()  # halaman pertama (header/kop resmi otomatis via add_page)
+        # Info laporan
+        self.set_font(self._font(), 'B', 8)
+        self.set_text_color(30, 41, 59)
+        self.cell(0, 5, f'Tahap: {self.clean_text(stage_label or "-")}', new_x='LMARGIN', new_y='NEXT')
+        self.cell(0, 5, f'Periode: {self.clean_text(date_label or "-")}', new_x='LMARGIN', new_y='NEXT')
+        if filters:
+            for k, v in filters.items():
+                if v:
+                    self.set_font(self._font(), '', 7)
+                    self.set_text_color(100, 116, 139)
+                    self.cell(0, 4.5, f'{k}: {self.clean_text(str(v))}', new_x='LMARGIN', new_y='NEXT')
+        self.ln(2)
+        self.set_text_color(0, 0, 0)
+
+        self._draw_table(rows)
+
+        # Ringkasan + TTD
+        if self.get_y() + 40 > self.h - 25:
+            self.add_page()
+        self.ln(4)
+        self.set_font(self._font(), '', 8)
+        self.set_text_color(51, 65, 85)
+        self.cell(0, 5, f'Total pelamar pada laporan ini: {len(rows)} orang', new_x='LMARGIN', new_y='NEXT')
+        self.ln(10)
+        col_w = 70
+        x_ttd = self.w - self.r_margin - col_w
+        self.set_xy(x_ttd, self.get_y())
+        self.set_font(self._font(), '', 8)
+        self.set_text_color(71, 85, 105)
+        self.cell(col_w, 5, 'Mengetahui,', align='C')
+        self.ln(16)
+        self.set_draw_color(100, 116, 139)
+        self.set_line_width(0.3)
+        self.set_xy(x_ttd + 8, self.get_y())
+        self.line(x_ttd + 8, self.get_y(), self.w - self.r_margin - 8, self.get_y())
+        self.ln(2)
+        self.set_font(self._font(), 'B', 9)
+        self.set_text_color(30, 41, 59)
+        self.set_xy(x_ttd + 8, self.get_y())
+        self.cell(col_w - 16, 5, self.clean_text(str(generated_by or 'RECEPTIONIST')).upper(), align='C')
+        self.ln(5)
+        self.set_font(self._font(), 'I', 7)
+        self.set_text_color(100, 116, 139)
+        self.set_xy(x_ttd + 8, self.get_y())
+        self.cell(col_w - 16, 4, 'Receptionist', align='C')
+        self.set_text_color(0, 0, 0)
+
+    def _draw_table(self, rows):
+        if not rows:
+            self.set_font(self._font(), 'I', 10)
+            self.cell(0, 8, 'Tidak ada data pada periode ini.', align='C', new_x='LMARGIN', new_y='NEXT')
+            return
+        headers = ['NO', 'NAMA LENGKAP', 'NO. HP', 'POSISI', 'UPLINE', 'USER', 'WAKTU KEHADIRAN']
+        widths = [8, 55, 32, 40, 40, 32, 42]
+        self.set_font(self._font(), 'B', 7)
+        self.set_fill_color(37, 99, 235)
+        self.set_text_color(255, 255, 255)
+        for i, h in enumerate(headers):
+            self.cell(widths[i], 7, h, border=1, align='C', fill=True)
+        self.set_text_color(0, 0, 0)
+        self.ln()
+        self.set_font(self._font(), '', 7)
+        fill = False
+        for idx, r in enumerate(rows, 1):
+            self.set_fill_color(241, 245, 249) if fill else self.set_fill_color(255, 255, 255)
+            self.cell(widths[0], 6, str(idx), border=1, align='C', fill=True)
+            self.cell(widths[1], 6, self.clean_text(str(r.get('nama_lengkap', '-'))), border=1, fill=True)
+            self.cell(widths[2], 6, self.clean_text(str(r.get('no_hp', '-'))), border=1, align='C', fill=True)
+            self.cell(widths[3], 6, self.clean_text(str(r.get('posisi', '-'))), border=1, fill=True)
+            self.cell(widths[4], 6, self.clean_text(str(r.get('upline', '-'))), border=1, fill=True)
+            self.cell(widths[5], 6, self.clean_text(str(r.get('user_field', '-'))), border=1, fill=True)
+            at = r.get('attended_at')
+            self.cell(widths[6], 6, at.strftime('%d-%m-%Y %H:%M') if hasattr(at, 'strftime') else self.clean_text(str(at or '-')), border=1, align='C', fill=True)
+            self.ln()
+            fill = not fill
+        self.ln(3)

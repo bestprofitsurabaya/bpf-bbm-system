@@ -51,9 +51,15 @@ init_pool()
 from modules.notifications import ensure_notifications_table
 ensure_notifications_table()
 
-# Ensure appointment system tables/columns (safe on every startup)
+# Ensure appointment system tables/columns (safe on every startup).
+# Retry bila koneksi pertama gagal (DB masih warming up / pool belum siap).
 from modules.appointments_schema import ensure_appointments_schema
-ensure_appointments_schema()
+import time as _time
+for _attempt in range(5):
+    _ok = ensure_appointments_schema()
+    if _ok:
+        break
+    _time.sleep(3)
 
 # Register all route modules
 from modules.routes_driver import register_driver_routes
@@ -68,6 +74,7 @@ from modules.routes_notifications import register_notification_routes
 from modules.routes_auth import register_auth_routes
 from modules.routes_appointments import register_appointment_routes
 from modules.routes_water import register_water_routes
+from modules.routes_applicants import register_applicant_routes
 from modules.routes_spa import register_spa_routes
 
 register_driver_routes(app, socketio)
@@ -82,6 +89,7 @@ register_settings_routes(app)
 register_notification_routes(app)
 register_appointment_routes(app)
 register_water_routes(app)
+register_applicant_routes(app)
 register_spa_routes(app)
 
 # ================================================================

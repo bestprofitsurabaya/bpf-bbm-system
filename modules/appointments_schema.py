@@ -81,10 +81,11 @@ def ensure_appointments_schema():
         """, cursor, "appointments")
 
         # --- users: extend role enum (v2.4: role 'driver' untuk login PIN PWA driver;
-        # v2.6: role 'ob' untuk Office Boy — pengajuan pembelian air minum) ---
+        # v2.6: role 'ob' untuk Office Boy — pengajuan pembelian air minum;
+        # v2.16: role 'receptionist' & 'traineer' — sistem pelamar kerja) ---
         _run("""
             ALTER TABLE users
-            MODIFY role ENUM('admin','ga','finance','marketing','chief_driver','driver','ob') NOT NULL DEFAULT 'ga'
+            MODIFY role ENUM('admin','ga','finance','marketing','chief_driver','driver','ob','receptionist','traineer') NOT NULL DEFAULT 'ga'
         """, cursor, "users.role enum")
 
         # --- users: team_name column ---
@@ -213,7 +214,53 @@ def ensure_appointments_schema():
         """, cursor, "water_purchase_items.satuan")
 
         conn.commit()
-        cursor.close()
+
+        # ============================================================
+        # PELAMAR KERJA (v2.16) — form pelamar -> resepsionis (verifikasi,
+        # kehadiran interview + 4 hari training, PDF) -> traineer (pantau)
+        # ============================================================
+
+        # --- applicants: data pelamar dari form publik ---
+        _run("""
+            CREATE TABLE IF NOT EXISTS applicants (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                display_id VARCHAR(30) NOT NULL UNIQUE,
+                nama_lengkap VARCHAR(150) NOT NULL,
+                pendidikan VARCHAR(100) DEFAULT '',
+                no_hp VARCHAR(30) DEFAULT '',
+                upline VARCHAR(100) DEFAULT '',
+                user_field VARCHAR(100) DEFAULT '',
+                posisi VARCHAR(100) DEFAULT '',
+                interview_at DATETIME NOT NULL,
+                status ENUM('interview','training_1','training_2','training_3','training_4','lulus','resigned','rejected') DEFAULT 'interview',
+                resign_reason VARCHAR(500) DEFAULT '',
+                rejected_reason VARCHAR(500) DEFAULT '',
+                verified_by VARCHAR(100) DEFAULT '',
+                verified_at DATETIME NULL,
+                notes VARCHAR(500) DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_status (status),
+                INDEX idx_upline (upline),
+                INDEX idx_interview_at (interview_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """, cursor, "applicants")
+
+        # --- applicant_attendance: kehadiran interview + training hari 1-4 ---
+        _run("""
+            CREATE TABLE IF NOT EXISTS applicant_attendance (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                applicant_id INT NOT NULL,
+                stage ENUM('interview','training_1','training_2','training_3','training_4') NOT NULL,
+                attended_at DATETIME NOT NULL,
+                marked_by VARCHAR(100) DEFAULT '',
+                note VARCHAR(255) DEFAULT '',
+                UNIQUE KEY uq_applicant_stage (applicant_id, stage),
+                CONSTRAINT fk_att_applicant FOREIGN KEY (applicant_id)
+                    REFERENCES applicants(id) ON DELETE CASCADE,
+                INDEX idx_stage (stage)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """, cursor, "applicant_attendance")
 
         # --- geocode_cache (v2.15): cache geocoding alamat -> koordinat ---
         try:
@@ -222,9 +269,12 @@ def ensure_appointments_schema():
         except Exception as e:
             print(f"[appointments-schema] geocode schema error: {e}")
 
+        cursor.close()
         print("✔ Appointment & Air Minum schema ready")
+        return True
     except Exception as e:
         print(f"[appointments-schema] error: {e}")
+        return False
     finally:
         if conn:
             try:
