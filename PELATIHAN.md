@@ -67,7 +67,7 @@
 | # | Langkah | Hasil yang diharapkan |
 |---|---------|------------------------|
 | 1 | Login akun Marketing (`Yusie`) | Masuk **Marketing Hub** |
-| 2 | Buat appointment baru (tanggal, driver, alamat) | Tersimpan, muncul di papan |
+| 2 | Buat appointment baru (tanggal, sesi, **jam kunjungan**, alamat) | Tersimpan, muncul di papan; jam tampil di board Chief Driver |
 | 3 | Lihat jadwal hari ini | Appointment demo (APPT-DEMO-01/02) tampil |
 | 4 | (Opsional) edit/batal | Status berubah, notifikasi keluar |
 
@@ -79,8 +79,10 @@
 |---|---------|------------------------|
 | 1 | Login akun Chief Driver | Masuk **board Chief Driver** |
 | 2 | Lihat "Belum Ditugaskan" | Appointment tanpa driver tampil di board |
-| 3 | Tugaskan ke driver | Muncul di panel "Tugas Per Driver" |
-| 4 | Unduh rekap harian | File Excel terunduh |
+| 3 | Klik **⚡ Atur Rute Otomatis** | Modal saran rute per driver: urutan jam + area searah + estimasi km/BBM + **angka hemat %** |
+| 4 | Klik **✅ Terapkan Rute** | Driver otomatis ditugaskan + notifikasi 🗺️; panel "Tugas Per Driver" terisi |
+| 5 | Tugaskan manual (opsional) | Muncul di panel "Tugas Per Driver" |
+| 6 | Unduh rekap harian | File Excel terunduh |
 
 ---
 

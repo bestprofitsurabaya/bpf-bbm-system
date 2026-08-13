@@ -110,6 +110,23 @@ def ensure_appointments_schema():
             ALTER TABLE appointments ADD COLUMN visit_note VARCHAR(255) DEFAULT ''
         """, cursor, "appointments.visit_note")
 
+        # --- appointments: rute canggih (v2.15) ---
+        # visit_time: jam kunjungan bebas dalam rentang sesi (HH:MM)
+        # lat/lng: koordinat hasil geocoding alamat (untuk optimasi rute)
+        # route_order: urutan kunjungan dalam rute driver (dari Atur Rute Otomatis)
+        _run("""
+            ALTER TABLE appointments ADD COLUMN visit_time TIME NULL
+        """, cursor, "appointments.visit_time")
+        _run("""
+            ALTER TABLE appointments ADD COLUMN lat DOUBLE NULL
+        """, cursor, "appointments.lat")
+        _run("""
+            ALTER TABLE appointments ADD COLUMN lng DOUBLE NULL
+        """, cursor, "appointments.lng")
+        _run("""
+            ALTER TABLE appointments ADD COLUMN route_order INT NULL
+        """, cursor, "appointments.route_order")
+
         # --- trip_masters: display_id (gap init.sql lama; upgrade DB lama) ---
         _run("""
             ALTER TABLE trip_masters ADD COLUMN display_id VARCHAR(30) DEFAULT NULL
@@ -197,6 +214,14 @@ def ensure_appointments_schema():
 
         conn.commit()
         cursor.close()
+
+        # --- geocode_cache (v2.15): cache geocoding alamat -> koordinat ---
+        try:
+            from modules.geocode import ensure_geocode_schema
+            ensure_geocode_schema()
+        except Exception as e:
+            print(f"[appointments-schema] geocode schema error: {e}")
+
         print("✔ Appointment & Air Minum schema ready")
     except Exception as e:
         print(f"[appointments-schema] error: {e}")

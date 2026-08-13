@@ -43,6 +43,10 @@ services:
       - DB_POOL_SIZE=15
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY wajib di .env}
       - REDIS_URL=redis://redis:6379/0
+      # Titik awal rute appointment (kantor): PT Bestprofit Futures Cab. Surabaya
+      # Gedung Graha Bukopin, Jl. Panglima Besar Sudirman 10-18, Surabaya
+      - DEPOT_LAT=-7.2656732
+      - DEPOT_LNG=112.7449129
     depends_on:
       db:
         condition: service_healthy

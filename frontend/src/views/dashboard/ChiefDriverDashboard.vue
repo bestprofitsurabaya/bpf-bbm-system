@@ -26,7 +26,15 @@ const visitAppt = ref(null)
 const visitForm = ref({ result: '', note: '' })
 const savingVisit = ref(false)
 
+// Modal Atur Rute Otomatis (v2.15)
+const showPlan = ref(false)
+const plan = ref(null)
+const planLoading = ref(false)
+const planErr = ref('')
+const applying = ref(false)
+
 const VISIT_LABELS = { ditemui: '😊 Ditemui', prospek: '🤝 Prospek', gagal: '❌ Gagal' }
+const jam = (a) => (a.visit_time || (a.sesi === '2' ? '14:30' : '08:30')).slice(0, 5)
 
 async function load() {
   loading.value = true; err.value = ''
@@ -172,6 +180,26 @@ function applyMemberFilter(name) {
   load()
 }
 
+async function genPlan() {
+  planErr.value = ''; plan.value = null; planLoading.value = true; showPlan.value = true
+  try {
+    plan.value = await api('/api/appointments/route-plan', { params: { date: date.value } })
+  } catch (e) { planErr.value = e.message }
+  finally { planLoading.value = false }
+}
+
+async function applyPlan() {
+  if (!plan.value) return
+  applying.value = true; msg.value = ''
+  try {
+    const r = await api('/api/appointments/route-plan/apply', { method: 'POST', body: { date: date.value } })
+    msg.value = '✅ ' + (r.msg || 'Rute diterapkan')
+    showPlan.value = false
+    load()
+  } catch (e) { msg.value = '❌ ' + e.message }
+  finally { applying.value = false }
+}
+
 function visitBadge(a) { return a.visit_result ? (VISIT_LABELS[a.visit_result] || a.visit_result) : '' }
 
 const STATUS = { scheduled: 'badge-amber', assigned: 'badge-blue', completed: 'badge-green', cancelled: 'badge-gray' }
@@ -194,6 +222,7 @@ onMounted(load)
         </div>
         <span v-if="msg" class="alert" :class="msg.startsWith('✅') ? 'alert-success' : 'alert-error'" style="margin:0;">{{ msg }}</span>
         <div class="spacer"></div>
+        <button class="btn btn-primary" title="Bagi appointment ke driver: rute searah + urut jam kunjungan (hemat BBM)" @click="genPlan">⚡ Atur Rute Otomatis</button>
         <a class="btn" :href="`/api/appointments/export?date=${date}${member ? '&member=' + encodeURIComponent(member) : ''}`" target="_blank">📥 Unduh Rekap Excel</a>
       </div>
     </div>
@@ -250,7 +279,7 @@ onMounted(load)
             <tbody>
               <tr v-for="a in scheduledRows" :key="a.id">
                 <td><b>{{ a.nasabah_name }}</b><div class="muted" style="font-size:11px;">{{ a.alamat }}</div></td>
-                <td>{{ a.sesi === '2' ? '🌆 14.30' : '🌅 08.30' }}</td>
+                <td>{{ a.sesi === '2' ? '🌆' : '🌅' }} {{ jam(a) }}</td>
                 <td>
                   {{ a.area }}
                   <button class="btn-icon" style="margin-left:4px;" title="Ubah area manual (override deteksi otomatis)" @click="doArea(a)">🌍</button>
@@ -283,9 +312,9 @@ onMounted(load)
               <thead><tr><th>Nasabah</th><th>Alamat</th><th>Sesi</th><th>Status</th><th>Hasil</th><th>Aksi</th></tr></thead>
               <tbody>
                 <tr v-for="a in apps" :key="a.id">
-                  <td><b>{{ a.nasabah_name }}</b><div class="muted" style="font-size:11px;">{{ a.display_id }} · {{ a.marketing_member }}</div></td>
+                  <td><b>{{ a.route_order ? '#' + a.route_order + ' ' : '' }}{{ a.nasabah_name }}</b><div class="muted" style="font-size:11px;">{{ a.display_id }} · {{ a.marketing_member }}</div></td>
                   <td class="muted">{{ a.alamat }}</td>
-                  <td>{{ a.sesi === '2' ? '🌆 14.30' : '🌅 08.30' }}</td>
+                  <td>{{ a.sesi === '2' ? '🌆' : '🌅' }} {{ jam(a) }}</td>
                   <td><span class="badge" :class="STATUS[a.status] || 'badge-gray'">{{ a.status }}</span></td>
                   <td><span v-if="visitBadge(a)" class="badge badge-green">{{ visitBadge(a) }}</span><span v-else class="muted">—</span></td>
                   <td style="white-space:nowrap;">
@@ -309,6 +338,54 @@ onMounted(load)
         <div v-if="!byDriver.length" class="empty">Belum ada penugasan.</div>
       </div>
     </template>
+
+    <!-- Modal Atur Rute Otomatis -->
+    <Modal v-if="showPlan" title="⚡ Atur Rute Otomatis" wide @close="showPlan = false">
+      <div v-if="planLoading" class="empty skeleton">⏳ Menghitung rute terbaik…</div>
+      <div v-else-if="planErr" class="alert alert-error">{{ planErr }}</div>
+      <template v-else-if="plan">
+        <div class="alert alert-info" style="font-size:12px;">
+          Algoritma membagi appointment per sesi: rute <b>searah</b> secara geografis, urut sesuai <b>jam kunjungan</b>,
+          beban antar driver merata. Penugasan manual yang sudah ada tetap dihormati (bisa diubah manual setelahnya 🌍).
+        </div>
+        <div class="stat-grid" style="margin:12px 0;">
+          <StatCard icon="🗺️" label="Kunjungan Terbagi" :value="plan.totals.assigned" color="#2563eb" />
+          <StatCard icon="📏" label="Total Jarak" :value="plan.totals.km + ' km'" color="#0891b2" />
+          <StatCard icon="⛽" label="Estimasi BBM" :value="plan.totals.bbm_liter + ' L'" color="#d97706" />
+          <StatCard icon="💰" label="Estimasi Biaya" :value="'Rp ' + plan.totals.bbm_cost.toLocaleString('id-ID')" color="#059669" />
+          <StatCard icon="⚠️" label="Belum Terpetakan" :value="plan.totals.unassigned" color="#dc2626" />
+        </div>
+        <div v-if="plan.totals.savings_percent > 0" class="alert alert-success" style="margin-bottom:12px;">
+          💚 <b>Hemat {{ plan.totals.savings_percent }}% jarak</b> — {{ plan.totals.savings_km }} km, ±{{ plan.totals.savings_bbm_liter }} L
+          (≈ Rp {{ plan.totals.savings_bbm_cost.toLocaleString('id-ID') }}) dibanding penugasan tanpa optimasi ({{ plan.totals.baseline_km }} km).
+        </div>
+        <div v-for="d in plan.drivers" :key="d.driver" style="margin-bottom:14px;">
+          <div class="role-chip" style="background:#7c3aed;">
+            {{ d.driver }} · {{ d.visits.length }} kunjungan · {{ d.total_km }} km · ±{{ d.est_bbm_liter }} L
+            (Rp {{ d.est_bbm_cost.toLocaleString('id-ID') }})
+          </div>
+          <ol class="route-list" style="margin:6px 0 0 20px;padding:0;">
+            <li v-for="v in d.visits" :key="v.id" style="margin-bottom:4px;">
+              <b>{{ jam(v) }}</b> — {{ v.nasabah_name }}
+              <span class="muted" style="font-size:11px;">{{ v.display_id }} · {{ v.area }}</span>
+            </li>
+          </ol>
+        </div>
+        <div v-if="plan.unassigned.length" class="alert alert-error">
+          ⚠️ {{ plan.unassigned.length }} appointment belum terpetakan (alamat belum punya koordinat):
+          {{ plan.unassigned.map(u => u.display_id).join(', ') }} — perbaiki/deteksi ulang alamatnya.
+        </div>
+        <div class="muted" style="font-size:11px;">
+          Titik awal (kantor): lat {{ plan.depot.lat }}, lng {{ plan.depot.lng }} — sesuaikan env DEPOT_LAT/DEPOT_LNG bila perlu.
+        </div>
+        <div class="row" style="justify-content:flex-end;gap:6px;margin-top:12px;">
+          <button class="btn" @click="showPlan = false">Tutup</button>
+          <button class="btn btn-primary" :disabled="applying || !plan.drivers.length" @click="applyPlan">
+            {{ applying ? '⏳ Menerapkan…' : '✅ Terapkan Rute' }}
+          </button>
+        </div>
+      </template>
+    </Modal>
 
     <!-- Modal Hasil Kunjungan -->
     <Modal v-if="visitAppt" :title="visitAppt.status === 'assigned' ? '✅ Selesaikan ' + visitAppt.display_id : '🎯 Hasil Kunjungan — ' + visitAppt.display_id" @close="visitAppt = null">

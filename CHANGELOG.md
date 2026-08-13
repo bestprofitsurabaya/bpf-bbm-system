@@ -6,6 +6,50 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.15.2] - 2026-08-13
+
+### 💚 Estimasi Penghematan BBM + Backfill Koordinat + Verifikasi Browser Nyata
+
+- **💚 Angka penghematan rute otomatis**: `route-plan` kini menghitung **baseline** (berapa km/BBM kalau kunjungan dibagi tanpa optimasi — round-robin urut daftar) lalu menampilkan `savings_percent`/`savings_km`/`savings_bbm_liter`/`savings_bbm_cost`. Modal Chief Driver menampilkan banner hijau, mis. *"💚 Hemat 38,3% jarak — 13,5 km, ±1,12 L (≈ Rp 11.248) dibanding penugasan tanpa optimasi"* — bukti efisiensi untuk manajemen.
+- **🗺️ Backfill koordinat data lama**: `scripts/backfill_geocode.py` (idempotent) mengisi `lat/lng` untuk appointment lama yang belum ter-geocode — dijalankan di produksi: **2 appointment demo terisi**.
+- **🧪 Verifikasi UI browser nyata** (`frontend/scripts/verify_route_ui.mjs`, Chrome headless + puppeteer-core, context incognito per peran): **8/8 lulus, konsol bersih** — label & input Jam Kunjungan di Marketing Hub, tombol ⚡ Atur Rute Otomatis di board Chief Driver, modal rute per driver + banner penghematan (38,3%), statistik total, tutup Esc.
+- **🧹 Struktur .md dirapikan**: README — fitur lama dipindah ke bagian **📜 Riwayat Versi Sebelumnya** (heading `###`), fitur terbaru paling atas; USER_GUIDE — langkah jam kunjungan (Marketing §7.1), bagian **8.2 Atur Rute Otomatis ⚡** (Chief Driver), glosarium & footer v2.15; ONEPAGER, PELATIHAN, PRESENTASI disesuaikan.
+- **🧪 Test: total 141 pytest hijau** (+2: penghematan vs baseline & tanpa penghematan satu driver).
+
+---
+
+## [2.15.1] - 2026-08-13
+
+### 🚀 Terdeploy + Perbaikan Hasil E2E Produksi (Rute Canggih v2.15.0)
+
+- **🚀 Deploy ke server**: `DEPOT_LAT=-7.2656732` / `DEPOT_LNG=112.7449129` di-set di `docker-compose.yml` (titik awal rute = **PT Bestprofit Futures Cab. Surabaya, Gedung Graha Bukopin, Jl. Panglima Besar Sudirman 10-18** — hasil geocoding persis), image di-rebuild (`docker compose up -d --build web`), migrasi skema otomatis jalan, kolom `visit_time/lat/lng/route_order` + tabel `geocode_cache` terverifikasi di DB produksi.
+- **🐛 Fix geocoding — alamat "Jl. ... No ..." tidak ditemukan Nominatim**: uji E2E nyata menunjukkan query seperti `Jl. Rungkut Industri Raya No 12, Surabaya` mengembalikan kosong. `modules/geocode.py` kini mencoba **varian query berurutan** (alamat asli → tanpa token `jl./jalan/no./nomor/rt/rw` → tanpa nomor rumah) + **cache negatif ber-TTL 24 jam** (alamat yang diperbaiki marketing bisa di-query ulang, tanpa membebani Nominatim) + kolom `found` di `geocode_cache`. Terverifikasi: 4 alamat test di-geocode dengan benar.
+- **🐛 Fix format jam "9:00:"**: `_clean` meng-slice `str(timedelta)` (9:00:00 → "9:00:") sehingga jam satu digit tampil rusak. Kini `_fmt_visit_time` mengonversi timedelta/string dengan benar → `09:00`.
+- **🧪 E2E produksi penuh (data test dibersihkan)**: marketing input 4 appointment (2 Rungkut + 2 Wiyung, jam 09:00–10:30) → geocoding terisi ✓ → Chief Driver `route-plan` = **ABIEM: 2 kunjungan Rungkut (09:00→09:30, 8,7 km) · AHMAD: 2 kunjungan Wiyung (10:00→10:30, 13,0 km)** — rute searah, urut jam, total 21,8 km / ±1,81 L / Rp 18.136 ✓ → `route-plan/apply` menulis driver+route_order+assigned ✓ → notifikasi 🗺️ terkirim per driver ✓.
+- **🧪 Test: total 139 pytest hijau** (+8 baru: `tests/test_geocode.py` — varian query geocoding & format visit_time).
+
+---
+
+## [2.15.0] - 2026-08-13
+
+### 🗺️ Rute Canggih + Jam Kunjungan (masukan Marketing → Chief Driver)
+
+**Tujuan: pembagian driver supaya tiap driver mendapat beberapa appointment searah (hemat BBM), dan chief driver langsung tahu rute siapa siapa.**
+
+- **⏰ Jam kunjungan per appointment (tetap 2 sesi)**: Marketing tetap memilih Sesi 1 (08.30) / Sesi 2 (14.30), lalu bisa menentukan **jam bebas** di dalam rentang sesi (Sesi 1: 08:00–12:59, Sesi 2: 13:00–17:59). Kosongkan = otomatis jam mulai sesi. Divalidasi di `validate_appointment_input` (baru: `normalize_visit_time`), tersimpan di kolom `appointments.visit_time`.
+- **📍 Geocoding alamat → koordinat** (`modules/geocode.py`): tiap alamat di-resolve ke lat/lng via **Nominatim/OpenStreetMap gratis** dengan **cache DB** (`geocode_cache`) + throttle 1 req/detik + env `GEOCODE_ENABLED=0` untuk menonaktifkan. Tanpa koordinat, appointment tetap tersimpan tapi belum ikut dioptimasi rute (terdaftar sebagai "belum terpetakan").
+- **⚡ Algoritma Atur Rute Otomatis** (`modules/route_optimizer.py`): heuristic VRPTW — *greedy insertion urut jam* + *load balancing* + cek kelayakan waktu tempuh antar kunjungan. Hasilnya: rute **searah secara geografis**, urut sesuai jam kunjungan, beban antar driver merata, dan **penugasan manual yang sudah ada tetap dihormati** (seed rute). Estimasi jarak (Haversine), liter & biaya BBM ikut dihitung.
+- **Tombol "⚡ Atur Rute Otomatis" di board Chief Driver**: preview rute per driver (urutan kunjungan + jam, km, estimasi BBM & biaya, total, daftar yang belum terpetakan) → **"✅ Terapkan Rute"** menulis `driver_name` + `route_order` + status assigned + notifikasi ringkas ke tiap driver (audit trail + event realtime). Titik awal perjalanan (kantor) bisa diset via env `DEPOT_LAT`/`DEPOT_LNG` (default pusat Surabaya).
+- **Tampilan**: board Chief Driver & daftar Marketing menampilkan jam kunjungan; nomor urut rute (#1, #2…) di tabel tugas per driver; PWA driver mendapat notifikasi rute baru.
+- **Skema DB** (migrasi otomatis di startup): `appointments.visit_time` (TIME), `lat`/`lng` (DOUBLE), `route_order` (INT) + tabel `geocode_cache`.
+
+### 🧪 Cakupan Pengujian
+
+- **pytest +25 → total 131 hijau**: `tests/test_route_optimizer.py` (19 test: haversine, waktu tempuh, time-window feasibility, BBM estimate, klaster searah per driver, urutan sesuai jam, penugasan manual dihormati, load balance, tanpa koordinat → unassigned, total km termasuk ke kantor, konsistensi area antar sesi) + `TestVisitTime` di `test_appointments.py` (6 test: default jam mulai sesi, valid, format salah, di luar rentang, ikut validasi input, dinormalisasi).
+- SPA di-build ulang (`npm run build`), bundle disalin ke `static/app/` (bind-mount → langsung live).
+
+---
+
 ## [2.14.2] - 2026-08-12
 
 ### 🔒 Perubahan Backend Terkunci di Image Docker + Uji Ketahanan DB

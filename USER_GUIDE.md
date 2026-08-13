@@ -261,13 +261,17 @@ Lihat [Bagian 10](#10-kasbon-alur-lengkap-dari-a-sampai-z) — peranmu ada di la
 ### 7.1 Membuat Appointment Baru
 
 1. Buka **Marketing Hub**.
-2. Pilih **tanggal, driver, dan lokasi kunjungan**.
-3. Simpan. Driver akan menerima jadwalnya di aplikasi.
+2. Pilih **tanggal** kunjungan dan **sesi** (Sesi 1 pagi / Sesi 2 sore).
+3. Isi **Jam Kunjungan** (opsional) — jam spesifik di dalam rentang sesi (mis. 09:15). Kosongkan untuk memakai jam awal sesi otomatis.
+4. Isi **nama calon nasabah, nama marketing, dan alamat lengkap**.
+5. Simpan. Driver akan menerima jadwalnya di aplikasi.
+
+> 💡 **Jam kunjungan penting!** Chief Driver memakai jam ini untuk menyusun **rute otomatis** — appointment diurutkan sesuai jam dan dibagi per area, sehingga driver tidak bolak-balik.
 
 ### 7.2 Memantau & Mengedit
 
 - Semua jadwal tampil di papan **realtime** — perubahan langsung terlihat semua orang yang berhak.
-- Bisa **mengedit** atau **membatalkan** jadwal; statusnya langsung diperbarui (mis. "Selesai dikunjungi").
+- Bisa **mengedit** (termasuk jam kunjungan) atau **membatalkan** jadwal; statusnya langsung diperbarui (mis. "Selesai dikunjungi").
 
 ### 7.3 Hasil Kunjungan = Data Konversimu
 
@@ -282,18 +286,30 @@ Setelah driver mengunjungi lokasi, driver mengisi **hasil kunjungan**. Data ini 
 ### 8.1 Dashboard Chief Driver
 
 - **Ringkasan harian** — gambaran tugas hari ini.
-- **Board "Belum Ditugaskan"** — kendaraan/tugas yang belum ada drivernya.
+- **Board "Belum Ditugaskan"** — kunjungan yang belum ada drivernya.
 - **Panel "Tugas Per Driver"** — melihat beban tiap driver sekaligus.
 
-### 8.2 Menugaskan Driver
+### 8.2 Atur Rute Otomatis ⚡ (Hemat BBM)
 
-Dari board "Belum Ditugaskan", pilih kendaraan lalu tentukan drivernya. Tugas langsung muncul di aplikasi driver yang bersangkutan.
+Ini fitur andalan untuk membagi kunjungan:
 
-### 8.3 Unduh Rekap Harian
+1. Pastikan marketing sudah mengisi **jam kunjungan** tiap appointment.
+2. Klik tombol **⚡ Atur Rute Otomatis** di board.
+3. Sistem menampilkan **saran rute per driver**: urutan kunjungan sesuai jam, dikelompokkan per area (searah), plus estimasi **jarak, liter, dan biaya BBM**.
+4. Ada angka **hemat berapa persen** dibanding penugasan biasa — bukti efisiensi untuk manajemen.
+5. Klik **✅ Terapkan Rute** — tiap driver otomatis mendapat jadwal + urutan kunjungan + notifikasi 🗺️.
+
+Penugasan manual yang sudah dibuat tetap dihormati — rute otomatis hanya melengkapi yang belum ditugaskan.
+
+### 8.3 Menugaskan Driver (Manual)
+
+Dari board "Belum Ditugaskan", pilih driver untuk tiap kunjungan lalu klik **Tugaskan**. Tugas langsung muncul di aplikasi driver yang bersangkutan. Bisa juga **🔄 ganti** driver, **↩️ batalkan tugas**, atau **🌍 ubah area** kunjungan.
+
+### 8.4 Unduh Rekap Harian
 
 Ada tombol **📥 unduh rekap** untuk laporan harian (Excel).
 
-### 8.4 Real-Time ⚡
+### 8.5 Real-Time ⚡
 
 Semua perubahan papan berjalan realtime — saat driver menyelesaikan tugas, statusnya langsung berubah tanpa muat ulang.
 
@@ -386,6 +402,8 @@ Angka "receh" yang ditambahkan ke nominal kasbon (mis. Rp 100.023, bukan Rp 100.
 | **Kode Unik** | Angka receh tambahan pada nominal kasbon supaya pembayaran mudah dicocokkan. |
 | **Anomali** | Kejanggalan pada klaim (tanda ⚠️) — perlu pemeriksaan ekstra oleh GA. |
 | **Appointment** | Jadwal kunjungan yang dibuat Marketing untuk driver. |
+| **Jam Kunjungan** | Jam spesifik kunjungan dalam sesi (mis. 09:15) — dipakai untuk menyusun urutan rute. |
+| **Rute Otomatis** | Fitur Chief Driver membagi kunjungan per area & urut jam → driver searah, hemat BBM. |
 | **Trip / Log Perjalanan** | Catatan perjalanan driver (dari mana, ke mana, KM berapa). |
 | **Tanda Terima (PDF)** | Dokumen resmi — misalnya bukti pembelian air minum, ditandatangani Finance & GA. |
 | **Audit Log** | Buku catatan digital semua aksi penting di sistem. |
@@ -398,4 +416,4 @@ Angka "receh" yang ditambahkan ke nominal kasbon (mis. Rp 100.023, bukan Rp 100.
 
 Ada pertanyaan atau kendala? Hubungi **Admin** atau **tim IT** — mereka bisa melihat riwayat sistem (Audit Log) untuk membantu menyelesaikan masalahmu dengan cepat.
 
-*Terakhir diperbarui: v2.9 — panduan disesuaikan dengan dashboard & peran terbaru (GA, Finance, OB).*
+*Terakhir diperbarui: v2.15 — ditambah jam kunjungan (Marketing) & rute otomatis hemat BBM (Chief Driver).*

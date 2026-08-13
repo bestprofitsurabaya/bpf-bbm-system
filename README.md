@@ -1,4 +1,4 @@
-# ⛽ BPF Fleet & BBM System v2.9.0 (SPA Vue 3 penuh — 100% Vue)
+# ⛽ BPF Fleet & BBM System v2.15.0 (SPA Vue 3 penuh — 100% Vue)
 
 **Sistem Manajemen Armada, Klaim BBM, Kasbon, Log Perjalanan, Appointment & Air Minum**  
 **PT. Bestprofit Futures - Surabaya**
@@ -9,7 +9,26 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 
 ---
 
-## 🆕 Fitur Terbaru v2.9.0 — Bersih-Bersih Kode, Panduan Baru, Server Efisien
+## 🆕 Fitur Terbaru v2.15.0 — Rute Canggih + Jam Kunjungan (masukan Marketing)
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **⏰ Jam kunjungan bebas** | Marketing tetap memilih Sesi 1/2, lalu menentukan jam spesifik kunjungan dalam rentang sesi (Sesi 1: 08.00–12.59, Sesi 2: 13.00–17.59) — default jam mulai sesi |
+| **📍 Geocoding gratis** | Alamat di-resolve ke koordinat (lat/lng) via Nominatim/OpenStreetMap dengan cache DB — tanpa API key, aman rate-limit |
+| **⚡ Atur Rute Otomatis** | Tombol di board Chief Driver: algoritma membagi appointment supaya tiap driver mendapat rute **searah** & **urut sesuai jam** (VRPTW heuristic: greedy insertion + load balance + cek waktu tempuh) — estimasi jarak, liter & biaya BBM ikut dihitung |
+| **✅ Terapkan Rute** | Preview rute per driver (urutan + jam + km + estimasi BBM) → terapkan: assignment + nomor urut kunjungan + notifikasi ringkas ke driver; penugasan manual tetap dihormati |
+| **🗺️ Output** | Board Chief Driver & daftar Marketing menampilkan jam kunjungan; nomor urut rute (#1, #2…) per driver; PWA driver menerima notifikasi rute baru |
+| **🧪 Test** | 139 pytest (33 baru: `test_route_optimizer.py`, `test_geocode.py`, validasi jam) — semua hijau |
+
+> ⚙️ **Konfigurasi opsional**: titik awal perjalanan = **Gedung Graha Bukopin, Jl. Panglima Besar Sudirman 10-18** (`DEPOT_LAT=-7.2656732`, `DEPOT_LNG=112.7449129` di docker-compose); matikan geocoding via `GEOCODE_ENABLED=0`; estimasi BBM default 12 km/liter & Rp 10.000/liter (bisa disesuaikan di `modules/route_optimizer.py`).
+
+---
+
+## 📜 Riwayat Versi Sebelumnya
+
+> Catatan fitur dari rilis-rilis lama dipertahankan sebagai dokumentasi sejarah. Fitur terbaru selalu ada di bagian atas dokumen ini.
+
+### 🆕 Fitur Terbaru v2.9.0 — Bersih-Bersih Kode, Panduan Baru, Server Efisien
 
 | Fitur | Deskripsi |
 |-------|-----------|
@@ -22,7 +41,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 
 ---
 
-## 🆕 Fitur Terbaru v2.8.0 — Dashboard Khusus GA + Nama OB Asli
+### 🆕 Fitur Terbaru v2.8.0 — Dashboard Khusus GA + Nama OB Asli
 
 | Fitur | Deskripsi |
 |-------|-----------|
@@ -35,7 +54,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 
 ---
 
-## 🆕 Fitur Terbaru v2.7.0 — Dashboard Khusus Finance + Rekap Air Minum
+### 🆕 Fitur Terbaru v2.7.0 — Dashboard Khusus Finance + Rekap Air Minum
 
 | Fitur | Deskripsi |
 |-------|-----------|
@@ -48,7 +67,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 
 ---
 
-## 🆕 Fitur Terbaru v2.6.0 — Tanda Terima Pembelian Air Minum
+### 🆕 Fitur Terbaru v2.6.0 — Tanda Terima Pembelian Air Minum
 
 | Fitur | Deskripsi |
 |-------|-----------|
@@ -61,7 +80,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 
 ---
 
-## 🆕 Fitur Terbaru v2.5.0 — Pensiun Total Antarmuka Klasik
+### 🆕 Fitur Terbaru v2.5.0 — Pensiun Total Antarmuka Klasik
 
 | Fitur | Deskripsi |
 |-------|-----------|
@@ -76,7 +95,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 
 ---
 
-## 🆕 Fitur Terbaru v2.4.0 — Paritas SPA Lengkap (Fase 1 Migrasi Vue)
+### 🆕 Fitur Terbaru v2.4.0 — Paritas SPA Lengkap (Fase 1 Migrasi Vue)
 
 | Fitur | Deskripsi |
 |-------|-----------|
@@ -86,7 +105,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 | **🚫 Tautan klasik dihapus** | SPA tidak lagi menaut ke halaman klasik back-office (admin/ga/trips/rekap/analytics) — semuanya selesai dari SPA |
 | **🧪 56 Vitest** | AdminDashboard +2, ChiefDriver 8 test (board lengkap), Marketing +2 |
 
-## 🆕 Fitur Terbaru v2.4.0 (Fase 2) — Driver PWA di Vue + Login PIN
+### 🆕 Fitur Terbaru v2.4.0 (Fase 2) — Driver PWA di Vue + Login PIN
 
 | Fitur | Deskripsi |
 |-------|-----------|
@@ -100,7 +119,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 
 ---
 
-## 🆕 Fitur Terbaru v2.2.3 — Audit Keamanan & Verifikasi Mendalam
+### 🆕 Fitur Terbaru v2.2.3 — Audit Keamanan & Verifikasi Mendalam
 
 | Fitur | Deskripsi |
 |-------|-----------|
@@ -108,7 +127,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 | **🔍 Modal Detail Transaksi** | 👁 Detail di antrean: foto bukti, cross-check (health score, flag, budget), riwayat + aksi unverify/delete |
 | **🧪 47 Vitest + 77 pytest** | Test keamanan upload (9) + anti-spoofing IP (5) + rate limit Redis (7) + aksi verify/edit |
 
-## 🆕 Fitur Terbaru v2.2.2 — Antrean Kerja di SPA
+### 🆕 Fitur Terbaru v2.2.2 — Antrean Kerja di SPA
 
 | Fitur | Deskripsi |
 |-------|-----------|
@@ -116,7 +135,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 | **🧪 39 test Vitest** | +8 test dashboard (AdminDashboard antrean & peran, MarketingDashboard form) → total 39 |
 | **✅ CI hijau** | GitHub Actions lulus otomatis di setiap push |
 
-## 🆕 Fitur Terbaru v2.2 — SPA Back-Office Lengkap
+### 🆕 Fitur Terbaru v2.2 — SPA Back-Office Lengkap
 
 | Fitur | Deskripsi |
 |-------|-----------|
@@ -127,7 +146,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 | **👥 Users lengkap** | Nonaktifkan/aktifkan & hapus user di `/app/users` — selain edit & reset PIN |
 | **✅ CI hijau** | GitHub Actions lulus otomatis (build SPA + Vitest + pytest) |
 
-## 🆕 Fitur Terbaru v2.1 — Kasbon di SPA, Notifikasi, PWA & CI/CD
+### 🆕 Fitur Terbaru v2.1 — Kasbon di SPA, Notifikasi, PWA & CI/CD
 
 | Fitur | Deskripsi |
 |-------|-----------|
@@ -137,7 +156,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 | **🤖 CI/CD** | GitHub Actions: build SPA + `npm test` (Vitest, 47 test) + `pytest tests/` (77 test) otomatis tiap push/PR |
 | **🧪 Unit test frontend** | Vitest: guard router per role + auth store (login/bootstrap/logout + CSRF) |
 
-## 🆕 Fitur v2.0 — SPA Vue 3 & Dashboard per Role
+### 🆕 Fitur v2.0 — SPA Vue 3 & Dashboard per Role
 
 | Fitur | Deskripsi |
 |-------|-----------|
@@ -153,7 +172,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 
 ---
 
-## 🆕 Fitur Terbaru v1.2 — Sistem Appointment
+### 🆕 Fitur Terbaru v1.2 — Sistem Appointment
 
 ### 📣 Marketing Hub (`/marketing`)
 | Fitur | Deskripsi |
@@ -183,7 +202,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 
 ---
 
-## 🆕 Fitur Terbaru v1.1
+### 🆕 Fitur Terbaru v1.1
 
 ### 🔐 Autentikasi & Keamanan (Baru)
 | Fitur | Deskripsi |

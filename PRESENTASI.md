@@ -161,11 +161,11 @@
 ## 7️⃣ Demo Pendukung — Marketing & Chief Driver (2 menit) 📣
 
 **Poin yang dibicarakan (cukup 1–2 layar):**
-- **Marketing**: input jadwal kunjungan (appointment) untuk driver, pantau status, lihat hasil kunjungan — data penjualan tersaji otomatis.
-- **Chief Driver**: papan pembagian tugas — kendaraan yang belum ditugaskan, beban tiap driver, dan **unduh rekap harian Excel**.
+- **Marketing**: input jadwal kunjungan + **jam kunjungan** untuk driver, pantau status, lihat hasil kunjungan — data penjualan tersaji otomatis.
+- **Chief Driver**: tombol **⚡ Atur Rute Otomatis** — kunjungan dibagi **per area & urut jam** (rute searah), lengkap dengan estimasi jarak/BBM dan **angka penghematan**; lalu **unduh rekap harian Excel**.
 
 **Satu kalimat kunci:**
-> *"Bukan hanya BBM — penjadwalan kunjungan dan pembagian sopir juga satu pintu."*
+> *"Bukan hanya BBM — penjadwalan kunjungan, pembagian sopir, dan rute hemat BBM juga satu pintu."*
 
 ---
 

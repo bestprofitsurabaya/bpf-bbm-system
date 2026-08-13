@@ -17,6 +17,8 @@ from modules.helpers import (
     detect_area,
     sesi_info,
     sesi_time,
+    normalize_visit_time,
+    SESI_TIME_RANGE,
     validate_appointment_input,
     generate_appointment_display_id,
     VALID_SESI,
@@ -152,6 +154,76 @@ class TestValidasiInput:
         assert norm['nasabah_name'] == 'Andi'
         assert norm['marketing_member'] == 'Icang'
         assert norm['alamat'] == 'Jl. Rungkut'
+
+
+# ================================================================
+# TEST 3b: Jam Kunjungan Bebas dalam Rentang Sesi (v2.15)
+# ================================================================
+class TestVisitTime:
+    def test_default_ke_jam_mulai_sesi(self):
+        t, err = normalize_visit_time('', '1')
+        assert err is None
+        assert t == '08:30'
+        t, err = normalize_visit_time('', '2')
+        assert err is None
+        assert t == '14:30'
+
+    def test_valid_dalam_rentang(self):
+        assert normalize_visit_time('09:15', '1') == ('09:15', None)
+        assert normalize_visit_time('16:00', '2') == ('16:00', None)
+
+    def test_format_salah(self):
+        t, err = normalize_visit_time('09-30', '1')
+        assert err is not None
+        assert 'HH:MM' in err
+        t, err = normalize_visit_time('25:00', '1')
+        assert err is not None
+        t, err = normalize_visit_time('09:75', '1')
+        assert err is not None
+        t, err = normalize_visit_time('', '3')
+        assert err is not None
+
+    def test_jam_satu_digit_dinormalisasi(self):
+        # '9:30' diterima & dinormalisasi ke '09:30' (mudah bagi user)
+        t, err = normalize_visit_time('9:30', '1')
+        assert err is None
+        assert t == '09:30'
+
+    def test_diluar_rentang_sesi(self):
+        lo, hi = SESI_TIME_RANGE['1']
+        t, err = normalize_visit_time('13:00', '1')  # sudah masuk Sesi 2
+        assert err is not None
+        assert 'rentang' in err
+        t, err = normalize_visit_time(hi, '1')
+        assert err is None
+        t, err = normalize_visit_time(lo, '1')
+        assert err is None
+        t, err = normalize_visit_time('12:59', '2')
+        assert err is not None
+
+    def test_visit_time_ikut_tervalidasi_input(self):
+        ok, errs, norm = validate_appointment_input({
+            'nasabah_name': 'Budi', 'marketing_member': 'Icang', 'alamat': 'Jl. Darmo 1',
+            'sesi': '1', 'appointment_date': '2026-08-08', 'visit_time': '10:00',
+        })
+        assert ok, errs
+        assert norm['visit_time'] == '10:00'
+
+    def test_visit_time_invalid_ditolak(self):
+        ok, errs, _ = validate_appointment_input({
+            'nasabah_name': 'Budi', 'marketing_member': 'Icang', 'alamat': 'Jl. Darmo 1',
+            'sesi': '1', 'appointment_date': '2026-08-08', 'visit_time': '15:00',
+        })
+        assert not ok
+        assert 'visit_time' in errs
+
+    def test_visit_time_kosong_default_sesi(self):
+        ok, errs, norm = validate_appointment_input({
+            'nasabah_name': 'Budi', 'marketing_member': 'Icang', 'alamat': 'Jl. Darmo 1',
+            'sesi': '2', 'appointment_date': '2026-08-08', 'visit_time': '',
+        })
+        assert ok, errs
+        assert norm['visit_time'] == '14:30'
 
 
 # ================================================================

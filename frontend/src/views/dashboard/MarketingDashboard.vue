@@ -10,16 +10,20 @@ const stats = ref(null)
 const loading = ref(true)
 const err = ref('')
 
-const form = ref({ appointment_date: today, sesi: '1', nasabah_name: '', nasabah_phone: '', alamat: '', marketing_member: '', notes: '' })
+const form = ref({ appointment_date: today, sesi: '1', visit_time: '', nasabah_name: '', nasabah_phone: '', alamat: '', marketing_member: '', notes: '' })
 const saving = ref(false)
 const msg = ref('')
 
 const members = ref([]) // saran nama marketing anggota (datalist)
 const areaPreview = ref('') // hasil deteksi area otomatis dari alamat
 
+// Rentang jam kunjungan per sesi (sinkron dengan SESI_TIME_RANGE backend)
+const SESI_RANGES = { 1: ['08:00', '12:59'], 2: ['13:00', '17:59'] }
+const rangeLabel = (s) => { const r = SESI_RANGES[s] || []; return r.length ? ` (${r[0]}–${r[1]})` : '' }
+
 // Modal edit appointment (hanya milik sendiri & status scheduled)
 const editAppt = ref(null)
-const editForm = ref({ nasabah_name: '', nasabah_phone: '', alamat: '', sesi: '1', marketing_member: '', notes: '' })
+const editForm = ref({ nasabah_name: '', nasabah_phone: '', alamat: '', sesi: '1', visit_time: '', marketing_member: '', notes: '' })
 const savingEdit = ref(false)
 const editMsg = ref('')
 
@@ -59,7 +63,7 @@ async function submit() {
   try {
     const d = await api('/api/appointments', { method: 'POST', body: [form.value] })
     msg.value = '✅ ' + (d.message || d.msg || 'Appointment tersimpan')
-    form.value = { appointment_date: today, sesi: '1', nasabah_name: '', nasabah_phone: '', alamat: '', marketing_member: '', notes: '' }
+    form.value = { appointment_date: today, sesi: '1', visit_time: '', nasabah_name: '', nasabah_phone: '', alamat: '', marketing_member: '', notes: '' }
     areaPreview.value = ''
     load()
   } catch (e) { msg.value = '❌ ' + e.message }
@@ -74,6 +78,7 @@ function openEdit(a) {
     nasabah_phone: a.nasabah_phone || '',
     alamat: a.alamat || '',
     sesi: a.sesi || '1',
+    visit_time: (a.visit_time || '').slice(0, 5),
     marketing_member: a.marketing_member || '',
     notes: a.notes || '',
   }
@@ -128,6 +133,10 @@ onMounted(() => { load(); loadMembers() })
               <option value="2">🌆 Sesi 2 (14.30)</option>
             </select>
           </div>
+          <div class="field"><label>Jam Kunjungan{{ rangeLabel(form.sesi) }}</label>
+            <input class="input" type="time" v-model="form.visit_time" step="60" />
+            <div class="muted" style="font-size:11px;">Kosongkan = otomatis jam mulai sesi ({{ form.sesi === '2' ? '14:30' : '08:30' }})</div>
+          </div>
           <div class="field"><label>Nama Calon Nasabah <span class="req">*</span></label><input class="input" v-model="form.nasabah_name" placeholder="Nama nasabah" required /></div>
           <div class="field"><label>Nama Marketing (prospek) <span class="req">*</span></label>
             <input class="input" v-model="form.marketing_member" list="mk-members-list" placeholder="Anggota tim yang memprospek" required />
@@ -168,7 +177,7 @@ onMounted(() => { load(); loadMembers() })
                 <td><b>{{ a.nasabah_name }}</b><div class="muted" style="font-size:11px;">{{ a.display_id }}</div></td>
                 <td>{{ a.marketing_member }}</td>
                 <td>{{ a.nasabah_phone || '—' }}</td>
-                <td>{{ a.sesi === '2' ? '🌆 14.30' : '🌅 08.30' }}</td>
+                <td>{{ a.sesi === '2' ? '🌆' : '🌅' }} {{ (a.visit_time || (a.sesi === '2' ? '14:30' : '08:30')).slice(0, 5) }}</td>
                 <td>{{ a.area }}</td>
                 <td><span class="badge" :class="(STATUS[a.status] || STATUS.scheduled)[1]">{{ (STATUS[a.status] || STATUS.scheduled)[0] }}</span></td>
                 <td><span v-if="visitBadge(a)" class="badge badge-green">{{ visitBadge(a) }}</span><span v-else class="muted">—</span></td>
@@ -199,6 +208,10 @@ onMounted(() => { load(); loadMembers() })
               <option value="1">🌅 Sesi 1 (08.30)</option>
               <option value="2">🌆 Sesi 2 (14.30)</option>
             </select>
+          </div>
+          <div class="field"><label>Jam Kunjungan{{ rangeLabel(editForm.sesi) }}</label>
+            <input class="input" type="time" v-model="editForm.visit_time" step="60" />
+            <div class="muted" style="font-size:11px;">Kosongkan = otomatis jam mulai sesi</div>
           </div>
           <div class="field" style="grid-column:1/-1;"><label>Alamat lengkap <span class="req">*</span></label><textarea class="textarea" v-model="editForm.alamat" rows="2" required></textarea></div>
           <div class="field" style="grid-column:1/-1;"><label>Catatan</label><textarea class="textarea" v-model="editForm.notes" rows="2"></textarea></div>

@@ -382,6 +382,14 @@ SESI_INFO = {
 VALID_SESI = ('1', '2')
 APPOINTMENT_STATUSES = ('scheduled', 'assigned', 'completed', 'cancelled')
 
+# Rentang jam kunjungan bebas per sesi (v2.15 — masukan Marketing).
+# Marketing tetap memilih sesi, lalu bisa menentukan jam spesifik kunjungan
+# di dalam rentang sesi tersebut (default: jam mulai sesi).
+SESI_TIME_RANGE = {
+    '1': ('08:00', '12:59'),
+    '2': ('13:00', '17:59'),
+}
+
 
 def sesi_info(sesi):
     """Return dict sesi (label, waktu mulai, display) atau None jika tidak valid."""
@@ -392,6 +400,35 @@ def sesi_time(sesi):
     """Jam mulai sesi sebagai string HH:MM ('08:30' / '14:30')."""
     info = SESI_INFO.get(str(sesi))
     return info['time'] if info else None
+
+
+def normalize_visit_time(value, sesi):
+    """Normalisasi jam kunjungan appointment (HH:MM) dalam rentang sesi.
+
+    - Kosong -> jam mulai sesi (default 08:30 / 14:30).
+    - Format HH:MM (24 jam) wajib; di luar rentang sesi ditolak.
+
+    Return (normalized_time_str | None, error_msg | None).
+    """
+    sesi = str(sesi or '').strip()
+    if sesi not in VALID_SESI:
+        return None, 'Pilih sesi yang valid terlebih dahulu'
+    raw = str(value or '').strip()
+    if not raw:
+        return sesi_time(sesi), None
+    try:
+        hh, mm = raw.split(':')[:2]
+        hh, mm = int(hh), int(mm)
+        if not (0 <= hh <= 23 and 0 <= mm <= 59):
+            return None, 'Format jam harus HH:MM (contoh 09:30)'
+    except (ValueError, AttributeError):
+        return None, 'Format jam harus HH:MM (contoh 09:30)'
+    t = f'{hh:02d}:{mm:02d}'
+    lo, hi = SESI_TIME_RANGE.get(sesi, ('00:00', '23:59'))
+    if t < lo or t > hi:
+        label = SESI_INFO.get(sesi, {}).get('label', sesi)
+        return None, f'Jam kunjungan harus dalam rentang {label} ({lo}–{hi})'
+    return t, None
 
 
 # Pemetaan kata kunci area -> zona (digunakan untuk membantu Chief Driver
@@ -521,6 +558,11 @@ def validate_appointment_input(item):
     notes = str(item.get('notes', '') or '').strip()
     member = str(item.get('marketing_member', '') or '').strip()
 
+    # Jam kunjungan: bebas dalam rentang sesi (default = jam mulai sesi)
+    visit_time, vt_err = normalize_visit_time(item.get('visit_time'), sesi)
+    if vt_err:
+        errors['visit_time'] = vt_err
+
     if not nasabah:
         errors['nasabah_name'] = 'Nama calon nasabah wajib diisi'
     if not alamat:
@@ -546,6 +588,7 @@ def validate_appointment_input(item):
         'alamat': alamat,
         'sesi': sesi,
         'appointment_date': tanggal,
+        'visit_time': visit_time,
         'notes': notes[:500],
         'marketing_member': member,
     }

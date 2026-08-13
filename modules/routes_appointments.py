@@ -7,7 +7,8 @@ Alur bisnis:
   -> Appointment selesai (completed) otomatis tersedia di form Log Perjalanan
      driver (trip PWA) untuk diisi rute & di-submit.
 """
-from datetime import date, datetime
+import os
+from datetime import date, datetime, timedelta
 
 from flask import (redirect, request, jsonify, session, make_response)
 from modules.config import get_db_connection
@@ -18,6 +19,13 @@ from modules.helpers import (role_required, log_activity_async,
                              get_team_members, session_driver_name,
                              resolve_driver_scope)
 from modules.realtime import emit_event
+from modules.geocode import geocode_address
+from modules.route_optimizer import plan_routes
+
+# Titik awal perjalanan (kantor) untuk optimasi rute — default: pusat kota
+# Surabaya (Tunjungan). Sesuaikan via env DEPOT_LAT/DEPOT_LNG bila perlu.
+DEPOT_LAT = float(os.environ.get('DEPOT_LAT', '-7.2566'))
+DEPOT_LNG = float(os.environ.get('DEPOT_LNG', '112.7424'))
 
 # Hasil kunjungan yang dicatat driver / chief driver saat menandai selesai.
 # Data ini menjadi sumber statistik konversi marketing.
@@ -33,6 +41,26 @@ def _visit_result_label(value):
     return VISIT_RESULT_LABELS.get(value or '', value or '')
 
 
+def _fmt_visit_time(vt):
+    """Konversi nilai TIME DB -> string 'HH:MM' (aman untuk jam satu digit).
+
+    mysql-connector mengembalikan TIME sebagai datetime.timedelta
+    (str-nya '9:00:00' — slicing [:5] salah jadi '9:00:').
+    """
+    if vt is None:
+        return None
+    if isinstance(vt, timedelta):
+        total = int(vt.total_seconds())
+        return f'{total // 3600:02d}:{(total % 3600) // 60:02d}'
+    parts = str(vt).split(':')
+    if len(parts) >= 2:
+        try:
+            return f'{int(parts[0]):02d}:{int(parts[1]):02d}'
+        except (TypeError, ValueError):
+            pass
+    return str(vt)[:5]
+
+
 def _clean(row):
     """Normalisasi satu baris appointment DB -> dict JSON-safe."""
     if not row:
@@ -41,6 +69,7 @@ def _clean(row):
     for k in ('appointment_date',):
         if row.get(k) is not None and not isinstance(row[k], str):
             row[k] = str(row[k])
+    row['visit_time'] = _fmt_visit_time(row.get('visit_time'))
     return row
 
 
@@ -186,7 +215,7 @@ def register_appointment_routes(app):
 
             cursor.execute(
                 "SELECT * FROM appointments WHERE " + " AND ".join(where) +
-                " ORDER BY sesi ASC, created_at ASC", params)
+                " ORDER BY sesi ASC, visit_time ASC, created_at ASC", params)
             rows = [_clean(r) for r in cursor.fetchall()]
 
             # Stats ringkas untuk tanggal tersebut (selalu untuk scope user + filter member)
@@ -237,6 +266,131 @@ def register_appointment_routes(app):
             return jsonify({'error': str(e)}), 500
 
     # ================================================================
+    # RUTE OTOMATIS (v2.15) — penugasan + urutan kunjungan per driver
+    # Algoritma: greedy insertion urut-jam + load balancing (lihat
+    # modules/route_optimizer.py). Endpoint read-only: preview saran rute.
+    # ================================================================
+    def _load_plannable_appointments(target_date):
+        """Appointment yang bisa dioptimasi (scheduled + assigned) untuk satu tanggal."""
+        conn = get_db_connection()
+        if not conn:
+            return None, 'DB error'
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            """SELECT id, display_id, nasabah_name, alamat, area, sesi, visit_time,
+                      appointment_date, status, driver_name, lat, lng
+               FROM appointments
+               WHERE appointment_date=%s AND status IN ('scheduled','assigned')
+               ORDER BY sesi ASC, visit_time ASC, created_at ASC""",
+            (target_date,))
+        rows = [_clean(r) for r in cursor.fetchall()]
+        cursor.close()
+        conn.close()
+        # plan_routes membaca kunci 'driver' untuk appointment yang sudah
+        # ditugaskan manual (fixed) — petakan dari driver_name.
+        for r in rows:
+            r['driver'] = r.get('driver_name')
+        return rows, None
+
+    @app.route('/api/appointments/route-plan')
+    @role_required(['chief_driver', 'ga', 'admin'])
+    def api_route_plan():
+        try:
+            target_date = request.args.get('date', '').strip() or date.today().isoformat()
+            rows, err = _load_plannable_appointments(target_date)
+            if err:
+                return jsonify({'error': err}), 500
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'error': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT name FROM drivers WHERE is_active=TRUE ORDER BY name")
+            drivers = [r['name'] for r in cursor.fetchall()]
+            cursor.close()
+            conn.close()
+            plan = plan_routes(rows, drivers, depot={'lat': DEPOT_LAT, 'lng': DEPOT_LNG})
+            plan['date'] = target_date
+            plan['depot'] = {'lat': DEPOT_LAT, 'lng': DEPOT_LNG}
+            return jsonify(plan)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    # ================================================================
+    # TERAPKAN RUTE OTOMATIS — tulis hasil optimasi ke DB
+    # (driver_name + route_order + status assigned) + notifikasi driver.
+    # ================================================================
+    @app.route('/api/appointments/route-plan/apply', methods=['POST'])
+    @role_required(['chief_driver', 'ga', 'admin'])
+    def api_route_plan_apply():
+        try:
+            data = request.get_json(silent=True) or {}
+            target_date = str(data.get('date', '') or '').strip() or date.today().isoformat()
+            # Sumber kebenaran dihitung ulang di server (klien hanya preview),
+            # sehingga hasil tidak bisa dipalsukan klien.
+            rows, err = _load_plannable_appointments(target_date)
+            if err:
+                return jsonify({'status': 'error', 'msg': err}), 500
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'status': 'error', 'msg': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT name FROM drivers WHERE is_active=TRUE ORDER BY name")
+            drivers = [r['name'] for r in cursor.fetchall()]
+            plan = plan_routes(rows, drivers, depot={'lat': DEPOT_LAT, 'lng': DEPOT_LNG})
+
+            per_driver = {d['driver']: d['visits'] for d in plan['drivers']}
+            total_assigned = 0
+            for dname, visits in per_driver.items():
+                for v in visits:
+                    cursor.execute(
+                        """UPDATE appointments SET driver_name=%s, route_order=%s,
+                           status='assigned', updated_at=NOW()
+                           WHERE id=%s AND status IN ('scheduled','assigned')""",
+                        (dname, v['order'], v['id']))
+                    if cursor.rowcount:
+                        total_assigned += 1
+            conn.commit()
+            user = _current_user()
+            log_activity_async(0, 'appointment_route_plan_apply', user['role'],
+                               user['full_name'],
+                               new_data={'date': target_date, 'assigned': total_assigned,
+                                         'km': plan['totals']['km']},
+                               ip=request.remote_addr)
+            cursor.close()
+            conn.close()
+
+            # Notifikasi per driver: ringkasan rute (urutan jam kunjungan)
+            from modules.notifications import push_driver_notification
+            for dname, visits in per_driver.items():
+                if not visits:
+                    continue
+                times = [v.get('visit_time') or '?' for v in visits]
+                first, last = times[0], times[-1]
+                push_driver_notification(
+                    dname, 'appointment', 'route',
+                    f'🗺️ Rute baru {target_date}: {len(visits)} kunjungan '
+                    f'({first}–{last}) — cek urutan kunjungan Anda di aplikasi.',
+                    None)
+
+            emit_event('appointment_update',
+                       {'action': 'route_planned', 'date': target_date,
+                        'assigned': total_assigned, 'km': plan['totals']['km']},
+                       room='appointments_board')
+            return jsonify({
+                'status': 'success',
+                'msg': f'Rute diterapkan: {total_assigned} kunjungan ditugaskan '
+                       f'ke {len(per_driver)} driver ({plan["totals"]["km"]} km, '
+                       f'±{plan["totals"]["bbm_liter"]} liter BBM)',
+                'assigned': total_assigned,
+                'drivers': len(per_driver),
+                'km': plan['totals']['km'],
+                'bbm_liter': plan['totals']['bbm_liter'],
+                'unassigned': plan['totals']['unassigned'],
+            })
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    # ================================================================
     # CREATE (marketing; support multi-append dalam satu submit)
     # ================================================================
     @app.route('/api/appointments', methods=['POST'])
@@ -278,22 +432,27 @@ def register_appointment_routes(app):
                     errors.append(errs)
                     continue
                 area = detect_area(norm['alamat'])
+                # Geocoding best-effort: tanpa koordinat appointment tetap tersimpan
+                # (tapi tidak akan ikut dioptimasi rute sampai alamat di-resolve).
+                lat, lng = geocode_address(norm['alamat'])
                 register_marketing_member(team_name, norm['marketing_member'])
                 display_id = generate_appointment_display_id(conn)
                 cursor.execute(
                     """INSERT INTO appointments
                        (display_id, marketing_username, marketing_name, marketing_member,
-                        team_name, nasabah_name, nasabah_phone, alamat, area,
-                        appointment_date, sesi, status, notes)
-                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'scheduled',%s)""",
+                        team_name, nasabah_name, nasabah_phone, alamat, area, visit_time,
+                        lat, lng, appointment_date, sesi, status, notes)
+                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'scheduled',%s)""",
                     (display_id, user['username'], user['full_name'], norm['marketing_member'],
                      team_name, norm['nasabah_name'], norm['nasabah_phone'], norm['alamat'], area,
+                     norm['visit_time'], lat, lng,
                      norm['appointment_date'], norm['sesi'], norm['notes']))
                 created.append({
                     'id': cursor.lastrowid,
                     'display_id': display_id,
                     'area': area,
                     'sesi': norm['sesi'],
+                    'visit_time': norm['visit_time'],
                     'appointment_date': norm['appointment_date'],
                 })
 
@@ -350,9 +509,9 @@ def register_appointment_routes(app):
 
                 # Bangun data gabungan (existing + perubahan) lalu validasi ulang
                 candidate = {k: (row[k] or '') for k in
-                             ('nasabah_name', 'nasabah_phone', 'alamat', 'sesi',
+                             ('nasabah_name', 'nasabah_phone', 'alamat', 'sesi', 'visit_time',
                               'appointment_date', 'notes', 'marketing_member')}
-                for field in ('nasabah_name', 'nasabah_phone', 'alamat', 'sesi',
+                for field in ('nasabah_name', 'nasabah_phone', 'alamat', 'sesi', 'visit_time',
                               'appointment_date', 'notes', 'marketing_member'):
                     if field in data:
                         candidate[field] = str(data[field]).strip()
@@ -364,7 +523,7 @@ def register_appointment_routes(app):
 
                 fields = []
                 params = []
-                for field in ('nasabah_name', 'nasabah_phone', 'alamat', 'sesi',
+                for field in ('nasabah_name', 'nasabah_phone', 'alamat', 'sesi', 'visit_time',
                               'appointment_date', 'notes', 'marketing_member'):
                     if field in data:
                         fields.append(f"{field} = %s")
@@ -374,6 +533,12 @@ def register_appointment_routes(app):
                 if 'alamat' in data:
                     fields.append("area = %s")
                     params.append(detect_area(norm['alamat']))
+                    # Alamat berubah -> koordinat ikut diperbarui (geocoding ulang)
+                    lat, lng = geocode_address(norm['alamat'])
+                    fields.append("lat = %s")
+                    params.append(lat)
+                    fields.append("lng = %s")
+                    params.append(lng)
                 if not fields:
                     cursor.close(); conn.close()
                     return jsonify({'status': 'error', 'msg': 'Tidak ada field yang diubah'}), 400
@@ -861,7 +1026,7 @@ def register_appointment_routes(app):
                 where += " AND marketing_member LIKE %s"
                 params.append(f"%{member}%")
             cursor.execute(
-                "SELECT * FROM appointments WHERE " + where + " ORDER BY sesi ASC, created_at ASC",
+                "SELECT * FROM appointments WHERE " + where + " ORDER BY sesi ASC, visit_time ASC, created_at ASC",
                 params)
             rows = [_clean(r) for r in cursor.fetchall()]
             cursor.close(); conn.close()
