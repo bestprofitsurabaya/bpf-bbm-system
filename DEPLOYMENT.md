@@ -1,4 +1,4 @@
-# 🚀 Panduan Deployment — BPF Fleet & BBM System v2.0
+# 🚀 Panduan Deployment — BPF WorkHub v2.0
 
 **PT. Bestprofit Futures — Surabaya** · Dokumen untuk Tim IT
 
@@ -470,4 +470,4 @@ ulang di sisi klien (guard router + menu terfilter). Lihat `SECURITY.md` untuk p
 ---
 
 **PT. Bestprofit Futures — Surabaya**  
-BPF Fleet & BBM System v2.0 · Dikembangkan oleh **Tim IT BPF Surabaya**
+BPF WorkHub v2.0 · Dikembangkan oleh **Tim IT BPF Surabaya**

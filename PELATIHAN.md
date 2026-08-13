@@ -1,4 +1,4 @@
-# 🎯 Lembar Latihan per Peran — BPF Fleet & BBM System
+# 🎯 Lembar Latihan per Peran — BPF WorkHub
 
 > Latihan singkat (±5–10 menit per peran) untuk gladi resik sebelum demo/meeting.
 > Tiap latihan: **langkah** → **hasil yang harus terlihat**. Kalau hasilnya tidak sesuai, berarti ada yang perlu diperiksa.

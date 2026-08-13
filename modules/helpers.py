@@ -1,4 +1,4 @@
-"""Helper functions for BPF BBM System"""
+"""Helper functions for BPF WorkHub"""
 import os
 import json
 import ipaddress

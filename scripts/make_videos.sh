@@ -157,7 +157,7 @@ for role in admin ob finance ga marketing chief driver; do
 done
 
 # Outro
-title_card "$WORK_ABS/99-outro.mp4" "Terima Kasih" "BPF Fleet & BBM System — PT Bestprofit Futures Surabaya"
+title_card "$WORK_ABS/99-outro.mp4" "Terima Kasih" "BPF WorkHub — PT Bestprofit Futures Surabaya"
 echo "file '$WORK_ABS/99-outro.mp4'" >> "$LIST_ALL"
 
 ffmpeg -y -loglevel error -f concat -safe 0 -i "$LIST_ALL" -c copy "$DEST/walkthrough-all.mp4"

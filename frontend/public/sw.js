@@ -1,4 +1,4 @@
-/* BPF Fleet SPA — Service Worker (scope /app/) */
+/* BPF WorkHub SPA — Service Worker (scope /app/) */
 const CACHE = 'bpf-spa-20260811c';
 const SHELL = ['/app/', '/app/index.html'];
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-# BPF Fleet & BBM System — GitHub Release Creator
+# BPF WorkHub — GitHub Release Creator
 # ------------------------------------------------------------
 # Cara pakai:
 #   1) Install gh CLI  ->  https://cli.github.com

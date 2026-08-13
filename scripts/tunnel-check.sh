@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-# BPF Fleet & BBM System — Periksa Status URL Public (Tunnel)
+# BPF WorkHub — Periksa Status URL Public (Tunnel)
 # ------------------------------------------------------------
 # Memeriksa apakah Cloudflare Tunnel masih hidup dan aplikasi
 # dapat diakses publik. Menampilkan URL aktif + hasil health check.

@@ -1,6 +1,6 @@
 """
 Unit Tests untuk generate_trip_logsheet (modules/excel_generator.py)
-BPF BBM System
+BPF WorkHub
 
 Jalankan:
     docker exec bbm_web python3 -m pytest tests/test_excel_generator.py -v

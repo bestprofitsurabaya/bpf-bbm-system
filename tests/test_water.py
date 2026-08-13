@@ -1,6 +1,6 @@
 """
 Unit Tests — Tanda Terima Pembelian Air Minum (v2.6)
-BPF BBM System
+BPF WorkHub
 
 - WaterReceiptPDF: dokumen PDF untuk status verified / rejected.
 - _get_ttd_names: nama TTD Finance/GA dari system_config (mock DB).

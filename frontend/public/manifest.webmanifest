@@ -1,6 +1,6 @@
 {
-  "name": "BPF Fleet & BBM System",
-  "short_name": "BPF Fleet",
+  "name": "BPF WorkHub",
+  "short_name": "BPF WorkHub",
   "description": "Dashboard manajemen armada & BBM — PT Bestprofit Futures Surabaya",
   "start_url": "/app/",
   "scope": "/app/",

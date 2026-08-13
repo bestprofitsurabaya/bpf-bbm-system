@@ -42,7 +42,7 @@ async function submit() {
     <div class="login-card">
       <div class="login-brand">
         <img :src="brandIcon" alt="BPF" />
-        <h1>BPF Fleet &amp; BBM System</h1>
+        <h1>BPF WorkHub</h1>
         <p>PT Bestprofit Futures · Surabaya</p>
       </div>
 

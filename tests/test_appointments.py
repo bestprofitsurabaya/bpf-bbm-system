@@ -1,6 +1,6 @@
 """
 Unit Tests untuk Sistem Appointment (Marketing -> Chief Driver -> Log Perjalanan)
-BPF BBM System v1.2
+BPF WorkHub v1.2
 
 Jalankan:
     python3 -m pytest tests/test_appointments.py -v

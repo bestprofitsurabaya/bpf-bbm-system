@@ -1,4 +1,4 @@
-"""PDF Generation Classes - BPF Fleet & BBM System v1.1"""
+"""PDF Generation Classes - BPF WorkHub"""
 import os
 import re
 import io
@@ -9,8 +9,8 @@ from fpdf import FPDF
 # CONSTANTS
 # ============================================================
 COMPANY_NAME = 'PT BESTPROFIT FUTURES'
-COMPANY_SUBTITLE = 'Fleet & BBM Management System | Surabaya'
-SYSTEM_VERSION = 'BPF Fleet & BBM System v1.1'
+COMPANY_SUBTITLE = 'Sistem Operasional Kantor | Surabaya'
+SYSTEM_VERSION = 'BPF WorkHub v2.16'
 LOGO_FILENAMES = ['icon-512.png', 'icon-192.png']
 PHOTO_FIELDS = [
     ('foto_odo_sebelum', 'ODO Sebelum'),

@@ -88,7 +88,7 @@ onBeforeUnmount(() => { unwatchRt?.(); rt.disconnect() })
       <div class="brand">
         <img :src="brandIcon" alt="BPF" />
         <div>
-          <b>BPF Fleet System</b>
+          <b>BPF WorkHub</b>
           <span>PT Bestprofit Futures</span>
         </div>
       </div>

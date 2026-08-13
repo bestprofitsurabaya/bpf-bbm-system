@@ -3,7 +3,7 @@
 
 Cara pakai:
     python3 scripts/make_pptx.py
-Hasil: presentasi/BPF_Fleet_BBM_System_Presentasi.pptx
+Hasil: presentasi/BPF_WorkHub_Presentasi.pptx
 """
 from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
@@ -167,7 +167,7 @@ box(s, 0, 0, SW, Inches(0.12), fill=BLUE)
 kicker(s, "Materi Presentasi · Demo Aplikasi")
 logo(s, size=Inches(1.7), x=Inches(10.9), y=Inches(0.35))  # badge besar kanan atas
 text(s, Inches(0.9), Inches(1.6), Inches(11.5), Inches(1.9),
-     ["BPF Fleet & BBM System"], size=48, color=DARK, bold=True)
+     ["BPF WorkHub"], size=48, color=DARK, bold=True)
 text(s, Inches(0.9), Inches(2.8), Inches(11.5), Inches(0.6),
      "Satu aplikasi untuk semua urusan armada, BBM, kasbon, log perjalanan, appointment, dan air minum.",
      size=20, color=GRAY)
@@ -365,6 +365,6 @@ bullets(s, [
 keybox(s, "🙏  Terima kasih. Siap menjawab pertanyaan dan mendampingi penerapan.")
 footer(s, 12, 12)
 
-OUT = "presentasi/BPF_Fleet_BBM_System_Presentasi.pptx"
+OUT = "presentasi/BPF_WorkHub_Presentasi.pptx"
 prs.save(OUT)
 print(f"OK — {len(prs.slides.__iter__.__self__._sldIdLst)} slide → {OUT}")

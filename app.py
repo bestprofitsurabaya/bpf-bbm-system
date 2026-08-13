@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-BPF BBM System v1.0 - Main Application
+BPF WorkHub - Main Application
 PT. Bestprofit Surabaya
 """
 import warnings, os

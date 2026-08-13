@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-# BPF Fleet & BBM System — Tampilkan URL public Cloudflare Tunnel
+# BPF WorkHub — Tampilkan URL public Cloudflare Tunnel
 # ------------------------------------------------------------
 # Quick tunnel (trycloudflare) menghasilkan URL acak yang bisa
 # berubah tiap kali container cloudflared di-restart.

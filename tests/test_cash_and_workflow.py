@@ -1,6 +1,6 @@
 """
 Unit Tests untuk Alur Kasbon, LPJ, dan Validasi
-BPF BBM System V1.1
+BPF WorkHub V1.1
 
 Jalankan:
     docker exec bbm_web python3 -m pytest tests/test_cash_and_workflow.py -v

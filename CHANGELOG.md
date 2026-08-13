@@ -1,8 +1,18 @@
 # 📋 Changelog
 
-Semua perubahan penting pada **BPF Fleet & BBM System**.
+Semua perubahan penting pada **BPF WorkHub**.
 
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan versi mengikuti [Semantic Versioning](https://semver.org/lang/id/).
+
+---
+
+## [2.16.1] - 2026-08-13
+
+### 🏢 Ganti Nama Aplikasi → **BPF WorkHub**
+
+- Nama aplikasi berubah dari "BPF Fleet & BBM System" menjadi **BPF WorkHub** — mencerminkan cakupan yang lebih luas (BBM, kasbon, trip, air minum, appointment & rute, pelamar kerja). Nama tampil di: judul SPA & tab browser, halaman login, brand sidebar, manifest PWA, kop & footer PDF, slide presentasi (HTML/PPTX/PDF), materi presentasi, panduan & dokumen. Nama perusahaan **PT Bestprofit Futures** tidak berubah.
+- File presentasi baru: `presentasi/BPF_WorkHub_Presentasi.pptx` (12 slide) & `.pdf` (12 halaman A4 landscape) — yang lama dihapus.
+- Referensi infra (`bpf-bbm-system`: repo, folder, cron, docker) sengaja dibiarkan agar tidak merusak deployment.
 
 ---
 
