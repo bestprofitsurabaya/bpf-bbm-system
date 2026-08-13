@@ -3,6 +3,7 @@ import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore, ROLE_META } from '../stores/auth'
 import { useRealtimeStore } from '../stores/realtime'
+import { identity } from '../stores/identity'
 import NotificationBell from '../components/NotificationBell.vue'
 import ToastStack from '../components/ToastStack.vue'
 
@@ -89,8 +90,8 @@ onBeforeUnmount(() => { unwatchRt?.(); rt.disconnect() })
       <div class="brand">
         <img :src="brandIcon" alt="BPF" />
         <div>
-          <b>BPF WorkHub</b>
-          <span>PT Bestprofit Futures</span>
+          <b>{{ identity.system_name }}</b>
+          <span>{{ identity.company_name }}</span>
         </div>
       </div>
 
@@ -107,6 +108,7 @@ onBeforeUnmount(() => { unwatchRt?.(); rt.disconnect() })
           <div class="u-name">{{ auth.user?.full_name || auth.user?.user_name }}</div>
           <div class="u-role">
             <span class="role-chip" :style="{ background: auth.meta?.color }">{{ auth.meta?.icon }} {{ auth.meta?.label }}</span>
+            <span v-if="auth.user?.branch_name" class="branch-chip">🏢 {{ auth.user.branch_name }}</span>
           </div>
         </div>
         <button class="btn-icon" title="Keluar" aria-label="Keluar" @click="doLogout">🚪</button>

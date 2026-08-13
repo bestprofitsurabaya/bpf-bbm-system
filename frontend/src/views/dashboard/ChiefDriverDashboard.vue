@@ -200,6 +200,55 @@ async function applyPlan() {
   finally { applying.value = false }
 }
 
+// Modal Atur Rute Manual (v2.19) — keputusan sepenuhnya di tangan Chief Driver:
+// pilih driver + urutan kunjungan sendiri, tanpa menjalankan algoritma.
+const showManual = ref(false)
+const manualRows = ref([])
+const manualBusy = ref(false)
+const manualErr = ref('')
+
+function openManual() {
+  manualErr.value = ''
+  const orderMap = {} // urutan default per sesi (1,2,3…)
+  manualRows.value = list.value
+    .filter((a) => a.status === 'scheduled' || a.status === 'assigned')
+    .sort((x, y) => (x.sesi === y.sesi
+      ? String(x.visit_time || '').localeCompare(String(y.visit_time || ''))
+      : String(x.sesi).localeCompare(String(y.sesi))))
+    .map((a) => {
+      orderMap[a.sesi] = (orderMap[a.sesi] || 0) + 1
+      return {
+        id: a.id,
+        display_id: a.display_id,
+        nasabah_name: a.nasabah_name,
+        alamat: a.alamat,
+        area: a.area,
+        sesi: a.sesi,
+        visit_time: a.visit_time,
+        driver: a.driver_name || sug.value[a.sesi] || '',
+        order: a.route_order || orderMap[a.sesi],
+      }
+    })
+  showManual.value = true
+}
+
+async function applyManual() {
+  const assignments = manualRows.value
+    .filter((r) => r.driver)
+    .map((r) => ({ id: r.id, driver_name: r.driver, order: r.order }))
+  if (!assignments.length) { manualErr.value = 'Pilih minimal 1 driver untuk diterapkan.'; return }
+  manualBusy.value = true; manualErr.value = ''; msg.value = ''
+  try {
+    const r = await api('/api/appointments/route-manual/apply', {
+      method: 'POST', body: { date: date.value, assignments },
+    })
+    msg.value = '✅ ' + (r.msg || 'Rute manual diterapkan')
+    showManual.value = false
+    load()
+  } catch (e) { manualErr.value = '❌ ' + e.message }
+  finally { manualBusy.value = false }
+}
+
 function visitBadge(a) { return a.visit_result ? (VISIT_LABELS[a.visit_result] || a.visit_result) : '' }
 
 const STATUS = { scheduled: 'badge-amber', assigned: 'badge-blue', completed: 'badge-green', cancelled: 'badge-gray' }
@@ -223,6 +272,7 @@ onMounted(load)
         <span v-if="msg" class="alert" :class="msg.startsWith('✅') ? 'alert-success' : 'alert-error'" style="margin:0;">{{ msg }}</span>
         <div class="spacer"></div>
         <button class="btn btn-primary" title="Bagi appointment ke driver: rute searah + urut jam kunjungan (hemat BBM)" @click="genPlan">⚡ Atur Rute Otomatis</button>
+        <button class="btn" title="Tentukan sendiri driver + urutan kunjungan per appointment (tanpa algoritma)" @click="openManual">🖐️ Atur Rute Manual</button>
         <a class="btn" :href="`/api/appointments/export?date=${date}${member ? '&member=' + encodeURIComponent(member) : ''}`" target="_blank">📥 Unduh Rekap Excel</a>
       </div>
     </div>
@@ -385,6 +435,41 @@ onMounted(load)
           </button>
         </div>
       </template>
+    </Modal>
+
+    <!-- Modal Atur Rute Manual -->
+    <Modal v-if="showManual" title="🖐️ Atur Rute Manual" wide @close="showManual = false">
+      <div class="alert alert-info" style="font-size:12px;">
+        Tentukan sendiri <b>driver</b> dan <b>urutan kunjungan</b> per appointment pada tanggal
+        <b>{{ date }}</b>. Baris tanpa driver dilewati (appointment tetap seperti sebelumnya).
+      </div>
+      <div v-if="manualErr" class="alert alert-error" style="font-size:12px;">{{ manualErr }}</div>
+      <div class="table-wrap" style="max-height:52vh;overflow-y:auto;">
+        <table class="tbl">
+          <thead><tr><th>Urutan</th><th>Nasabah / Alamat</th><th>Sesi</th><th>Driver</th><th>No. Urut Kunjungan</th></tr></thead>
+          <tbody>
+            <tr v-for="r in manualRows" :key="r.id">
+              <td>{{ r.order }}</td>
+              <td><b>{{ r.nasabah_name }}</b><div class="muted" style="font-size:11px;">{{ r.display_id }} · {{ r.alamat }} · {{ r.area }}</div></td>
+              <td>{{ r.sesi === '2' ? '🌆' : '🌅' }} {{ jam(r) }}</td>
+              <td>
+                <select class="select" v-model="r.driver" style="min-width:130px;">
+                  <option value="">— Pilih driver —</option>
+                  <option v-for="dr in drivers.filter((x) => x.is_active)" :key="dr.name" :value="dr.name">{{ dr.name }}</option>
+                </select>
+              </td>
+              <td><input class="input" type="number" min="1" style="width:80px;" v-model.number="r.order" /></td>
+            </tr>
+            <tr v-if="!manualRows.length"><td colspan="5" class="empty">Tidak ada appointment (scheduled/assigned) pada tanggal ini.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="row" style="justify-content:flex-end;gap:6px;margin-top:12px;">
+        <button class="btn" @click="showManual = false">Tutup</button>
+        <button class="btn btn-primary" :disabled="manualBusy || !manualRows.length" @click="applyManual">
+          {{ manualBusy ? '⏳ Menerapkan…' : '✅ Terapkan Rute Manual' }}
+        </button>
+      </div>
     </Modal>
 
     <!-- Modal Hasil Kunjungan -->

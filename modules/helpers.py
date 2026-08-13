@@ -158,21 +158,38 @@ def secrets_rand(n=6):
     import secrets as _s
     return _s.token_hex(n // 2 + 1)[:n]
 
-def log_activity_async(tx_id, action, user_type, user_name, old_data=None, new_data=None, ip=None, ua=None):
-    """Log activity asynchronously"""
+def log_activity_async(tx_id, action, user_type, user_name, old_data=None, new_data=None, ip=None, ua=None, branch_code=None):
+    """Log activity asynchronously.
+
+    Cabang aktif (session['branch_code']) ditangkap di thread pemanggil lalu
+    dicatat ke activity_logs.branch_code — jejak audit lintas cabang (v2.20.0).
+    Caller dapat menimpa dengan `branch_code` eksplisit (mis. aksi yang menyasar
+    cabang lain, seperti seed-demo per cabang).
+    """
     from modules.config import get_db_connection
+    # Sesi Flask hanya valid di thread pemanggil — tangkap di sini, bukan di _log.
+    if branch_code is None:
+        try:
+            from flask import session as _s
+            branch_code = _s.get('branch_code')
+        except Exception:
+            pass
     def _log():
         conn = None
         try:
             conn = get_db_connection()
             if not conn: return
             cursor = conn.cursor()
+            # tx_id 0/'0' dipakai banyak caller untuk aksi tanpa transaksi terkait;
+            # activity_logs.transaction_id ber-FK ke transactions(id) sehingga
+            # 0 ditolak DB (1452) dan membanjiri log error. NULL = tanpa referensi.
+            log_tx_id = tx_id if isinstance(tx_id, int) and tx_id > 0 else None
             cursor.execute("""
-                INSERT INTO activity_logs (transaction_id, action, user_type, user_name, old_data, new_data, ip_address, user_agent)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            """, (tx_id, action, user_type, user_name,
+                INSERT INTO activity_logs (transaction_id, action, user_type, user_name, old_data, new_data, ip_address, user_agent, branch_code)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (log_tx_id, action, user_type, user_name,
                   json.dumps(old_data) if old_data else None,
-                  json.dumps(new_data) if new_data else None, ip, ua))
+                  json.dumps(new_data) if new_data else None, ip, ua, branch_code))
             conn.commit()
             cursor.close()
         except Exception as e:

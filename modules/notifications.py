@@ -9,10 +9,16 @@ from modules.config import get_db_connection
 from modules.realtime import emit_driver
 
 
-def ensure_notifications_table():
-    """CREATE TABLE IF NOT EXISTS - safe to run at every startup."""
+def ensure_notifications_table(conn=None):
+    """CREATE TABLE IF NOT EXISTS - safe to run at every startup.
+
+    conn opsional: bila diberikan, dipakai langsung (mis. untuk DB cabang)
+    dan tidak ditutup di sini.
+    """
+    own = conn is None
     try:
-        conn = get_db_connection()
+        if conn is None:
+            conn = get_db_connection()
         if not conn:
             return
         cursor = conn.cursor()
@@ -38,7 +44,8 @@ def ensure_notifications_table():
         except Exception as pe:
             print(f"[notifications] prune error: {pe}")
         cursor.close()
-        conn.close()
+        if own and conn:
+            conn.close()
     except Exception as e:
         print(f"[notifications] ensure table error: {e}")
 

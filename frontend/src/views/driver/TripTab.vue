@@ -167,6 +167,9 @@ onMounted(() => { addRow() })
 </script>
 
 <template>
+  <!-- Satu root element (bukan fragment) — wajib agar v-show tab di DriverView
+       bisa menyembunyikan tab ini saat bukan tab aktif. Sebelumnya fragment
+       (2 root) membuat v-show tidak bekerja: konten Trip selalu tampil di tab lain. -->
   <div class="tab-page">
     <div class="row" style="gap:8px;">
       <div class="field"><label>Tanggal</label><input class="input" type="date" v-model="tripDate" /></div>
@@ -233,30 +236,30 @@ onMounted(() => { addRow() })
     <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;margin-top:10px;" :disabled="saving">
       {{ saving ? '⏳ Mengirim…' : '📤 Kirim Log Perjalanan' }}
     </button>
-  </div>
 
-  <!-- Modal Hasil Kunjungan -->
-  <div v-if="visitAppt" class="modal-overlay" role="dialog" aria-modal="true" :aria-label="'Hasil kunjungan ' + visitAppt.display_id" @click.self="visitAppt = null" @keydown.esc="visitAppt = null">
-    <div class="modal-box" tabindex="-1">
-      <div class="row" style="justify-content:space-between;margin-bottom:10px;">
-        <h3 style="margin:0;">🏁 {{ visitAppt.display_id }}</h3>
-        <button class="btn-icon" aria-label="Tutup" title="Tutup (Esc)" @click="visitAppt = null">✕</button>
-      </div>
-      <p class="muted" style="font-size:12px;margin-bottom:10px;">{{ visitAppt.nasabah_name }} · {{ visitAppt.alamat }}</p>
-      <div class="field"><label>Hasil kunjungan <span class="req">*</span></label>
-        <select class="select" v-model="visitForm.result">
-          <option value="">— Pilih hasil —</option>
-          <option value="ditemui">😊 Ditemui</option>
-          <option value="prospek">🤝 Prospek</option>
-          <option value="gagal">❌ Gagal</option>
-        </select>
-      </div>
-      <div class="field" style="margin-top:8px;"><label>Alasan / catatan (opsional)</label>
-        <textarea class="textarea" v-model="visitForm.note" rows="2" placeholder="Catatan…"></textarea>
-      </div>
-      <div class="row" style="justify-content:flex-end;gap:6px;margin-top:10px;">
-        <button class="btn" @click="visitAppt = null">Batal</button>
-        <button class="btn btn-primary" :disabled="savingVisit" @click="submitVisit">✅ Kirim Hasil</button>
+    <!-- Modal Hasil Kunjungan -->
+    <div v-if="visitAppt" class="modal-overlay" role="dialog" aria-modal="true" :aria-label="'Hasil kunjungan ' + visitAppt.display_id" @click.self="visitAppt = null" @keydown.esc="visitAppt = null">
+      <div class="modal-box" tabindex="-1">
+        <div class="row" style="justify-content:space-between;margin-bottom:10px;">
+          <h3 style="margin:0;">🏁 {{ visitAppt.display_id }}</h3>
+          <button class="btn-icon" aria-label="Tutup" title="Tutup (Esc)" @click="visitAppt = null">✕</button>
+        </div>
+        <p class="muted" style="font-size:12px;margin-bottom:10px;">{{ visitAppt.nasabah_name }} · {{ visitAppt.alamat }}</p>
+        <div class="field"><label>Hasil kunjungan <span class="req">*</span></label>
+          <select class="select" v-model="visitForm.result">
+            <option value="">— Pilih hasil —</option>
+            <option value="ditemui">😊 Ditemui</option>
+            <option value="prospek">🤝 Prospek</option>
+            <option value="gagal">❌ Gagal</option>
+          </select>
+        </div>
+        <div class="field" style="margin-top:8px;"><label>Alasan / catatan (opsional)</label>
+          <textarea class="textarea" v-model="visitForm.note" rows="2" placeholder="Catatan…"></textarea>
+        </div>
+        <div class="row" style="justify-content:flex-end;gap:6px;margin-top:10px;">
+          <button class="btn" @click="visitAppt = null">Batal</button>
+          <button class="btn btn-primary" :disabled="savingVisit" @click="submitVisit">✅ Kirim Hasil</button>
+        </div>
       </div>
     </div>
   </div>

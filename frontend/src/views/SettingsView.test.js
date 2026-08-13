@@ -84,7 +84,10 @@ describe('SettingsView', () => {
     const w = await mountView()
     await w.findAll('button').find((b) => b.text().includes('Tambah Driver')).trigger('click')
     await flushPromises()
-    const opts = w.findAll('select')[0].findAll('option').map((o) => o.text())
+    // select pertama bisa jadi switcher cabang (v2.19.2) — pilih select yang
+    // berisi opsi kendaraan (modal Tambah Driver)
+    const vehSelect = w.findAll('select').find((s) => s.findAll('option').some((o) => o.text() === 'AVANZA'))
+    const opts = vehSelect.findAll('option').map((o) => o.text())
     expect(opts.filter((t) => t === 'AVANZA').length).toBe(1)
   })
 })

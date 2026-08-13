@@ -7,6 +7,26 @@ const loading = ref(true)
 const err = ref('')
 const fAction = ref('all')
 const fRole = ref('all')
+const branches = ref([])
+const fBranch = ref('current')
+const branchLoading = ref(false)
+
+async function loadBranches() {
+  try {
+    const d = await api('/api/branches/current')
+    branches.value = (d && d.branches) || []
+  } catch { branches.value = [] }
+}
+
+async function loadLogs() {
+  loading.value = true; err.value = ''
+  try {
+    logs.value = await api('/api/audit-logs', {
+      params: fBranch.value === 'current' ? {} : { branch: fBranch.value },
+    }) || []
+  } catch (e) { err.value = e.message }
+  finally { loading.value = false }
+}
 
 const actions = computed(() => ['all', ...[...new Set(logs.value.map((l) => l.action).filter(Boolean))].sort()])
 const roles = computed(() => ['all', ...[...new Set(logs.value.map((l) => l.user_type).filter(Boolean))].sort()])
@@ -20,9 +40,8 @@ const todayCount = computed(() =>
 const actionLabel = (a) => (a || '—').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 
 onMounted(async () => {
-  try { logs.value = await api('/api/audit-logs') || [] }
-  catch (e) { err.value = e.message }
-  finally { loading.value = false }
+  loadBranches()
+  loadLogs()
 })
 </script>
 
@@ -43,6 +62,13 @@ onMounted(async () => {
       <div class="card card-pad" style="margin-bottom:16px;">
         <div class="row">
           <div class="field" style="margin:0;flex:1;">
+            <label>Filter Cabang</label>
+            <select class="select" v-model="fBranch" @change="loadLogs">
+              <option value="current">Cabang aktif</option>
+              <option v-for="b in branches" :key="b.code" :value="b.code">{{ b.name }} ({{ b.code }})</option>
+            </select>
+          </div>
+          <div class="field" style="margin:0;flex:1;">
             <label>Filter Aksi</label>
             <select class="select" v-model="fAction">
               <option v-for="a in actions" :key="a" :value="a">{{ a === 'all' ? 'Semua Aksi' : actionLabel(a) }}</option>
@@ -60,7 +86,7 @@ onMounted(async () => {
       <div class="card">
         <div class="table-wrap">
           <table class="tbl">
-            <thead><tr><th>Waktu</th><th>User</th><th>Tipe</th><th>Aksi</th><th>Ref</th><th>IP</th></tr></thead>
+            <thead><tr><th>Waktu</th><th>User</th><th>Tipe</th><th>Aksi</th><th>Ref</th><th>Cabang</th><th>IP</th></tr></thead>
             <tbody>
               <tr v-for="l in filtered" :key="l.id">
                 <td class="muted">{{ l.created_at }}</td>
@@ -68,9 +94,10 @@ onMounted(async () => {
                 <td><span class="badge badge-gray">{{ l.user_type }}</span></td>
                 <td>{{ actionLabel(l.action) }}</td>
                 <td>{{ l.transaction_id || '—' }}</td>
+                <td><span v-if="l.branch_code" class="branch-chip">🏢 {{ l.branch_code }}</span><span v-else class="muted">—</span></td>
                 <td class="muted">{{ l.ip_address || '—' }}</td>
               </tr>
-              <tr v-if="!filtered.length"><td colspan="6" class="empty">Tidak ada data dengan filter ini.</td></tr>
+              <tr v-if="!filtered.length"><td colspan="7" class="empty">Tidak ada data dengan filter ini.</td></tr>
             </tbody>
           </table>
         </div>

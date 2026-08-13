@@ -15,10 +15,16 @@ def _run(sql, cursor, label):
         return False
 
 
-def ensure_appointments_schema():
-    conn = None
+def ensure_appointments_schema(conn=None):
+    """Migrasi skema appointment & air minum (idempoten).
+
+    conn opsional: bila diberikan dipakai langsung (mis. DB cabang) dan
+    tidak ditutup di sini.
+    """
+    own = conn is None
     try:
-        conn = get_db_connection()
+        if conn is None:
+            conn = get_db_connection()
         if not conn:
             print("[appointments-schema] DB unavailable, skip migration")
             return
@@ -79,6 +85,14 @@ def ensure_appointments_schema():
                 INDEX idx_marketing (marketing_username)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """, cursor, "appointments")
+
+        # --- activity_logs: branch_code (v2.20.0 — audit bertanda cabang) ---
+        _run("""
+            ALTER TABLE activity_logs ADD COLUMN branch_code VARCHAR(20) DEFAULT NULL
+        """, cursor, "activity_logs.branch_code")
+        _run("""
+            CREATE INDEX idx_activity_branch ON activity_logs (branch_code)
+        """, cursor, "activity_logs.branch_code index")
 
         # --- users: extend role enum (v2.4: role 'driver' untuk login PIN PWA driver;
         # v2.6: role 'ob' untuk Office Boy — pengajuan pembelian air minum;
@@ -455,7 +469,7 @@ def ensure_appointments_schema():
         print(f"[appointments-schema] error: {e}")
         return False
     finally:
-        if conn:
+        if own and conn:
             try:
                 conn.close()
             except Exception:

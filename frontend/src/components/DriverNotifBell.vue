@@ -45,7 +45,9 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onDocKey))
     </button>
 
     <div v-if="open" class="notif-backdrop" @click="open = false"></div>
-    <div class="notif-panel" :class="{ open }" role="dialog" aria-modal="true" aria-label="Notifikasi driver">
+    <!-- v-if wajib: sebelumnya panel dirender tanpa syarat sehingga jendela
+         notifikasi SELALU menutupi layar dan tombol ✕ tidak berpengaruh. -->
+    <div v-if="open" class="notif-panel" role="dialog" aria-modal="true" aria-label="Notifikasi driver">
       <div class="notif-head">
         <b>🔔 Notifikasi</b>
         <span class="notif-count">{{ store.notifications.length }} notifikasi</span>

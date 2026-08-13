@@ -2,11 +2,13 @@
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
+import { loadIdentity } from './stores/identity'
 
 const router = useRouter()
 const auth = useAuthStore()
 
 onMounted(() => {
+  loadIdentity()
   window.addEventListener('bpf:unauthorized', () => {
     auth.user = null
     localStorage.removeItem('bpf_csrf')

@@ -4,13 +4,14 @@ import re
 import io
 from datetime import datetime, date
 from fpdf import FPDF
+from modules.company_identity import get_company_identity
 
 # ============================================================
-# CONSTANTS
+# CONSTANTS (fallback bila identitas belum diset di system_config)
 # ============================================================
 COMPANY_NAME = 'PT BESTPROFIT FUTURES'
 COMPANY_SUBTITLE = 'Sistem Operasional Kantor | Surabaya'
-SYSTEM_VERSION = 'BPF WorkHub v2.16'
+SYSTEM_VERSION = 'BPF WorkHub v2.20.2'
 LOGO_FILENAMES = ['icon-512.png', 'icon-192.png']
 PHOTO_FIELDS = [
     ('foto_odo_sebelum', 'ODO Sebelum'),
@@ -21,8 +22,21 @@ PHOTO_FIELDS = [
 HEALTH_BENCHMARK = 14  # KM/L ideal
 MAX_IMAGE_WIDTH = 800
 JPEG_QUALITY = 85
-GRID_CELL_HEIGHT = 60
-GRID_GAP = 4
+GRID_CELL_HEIGHT = 52
+GRID_GAP = 3
+
+# ============================================================
+# PALETTE DOKUMEN RESMI (compact — minimal warna: hitam/abu/putih)
+# Sesuai standar surat/dokumen resmi: teks hitam, garis tegas, tanpa blok warna.
+# ============================================================
+INK = (15, 23, 42)               # teks utama (hampir hitam)
+INK_SOFT = (51, 65, 85)          # teks isi narasi
+GRAY_LABEL = (100, 116, 139)     # label / keterangan
+GRAY_MUTED = (148, 163, 184)     # teks redup (footer / placeholder)
+BORDER = (203, 213, 225)         # garis tabel / kotak
+HEADER_FILL = (241, 245, 249)    # isian header tabel & kotak selesai
+ZEBRA_FILL = (248, 250, 252)     # strip zebra sangat tipis
+RULE = (71, 85, 105)             # garis kop surat / underlining
 
 # ============================================================
 # BASE PDF CLASS
@@ -33,6 +47,20 @@ class BPFBasePDF(FPDF):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._register_fonts()
+        self._identity = None
+
+    def _company_identity(self):
+        """Identitas perusahaan/cabang dari system_config (cache per PDF).
+
+        Aman tanpa DB: bila DB tidak tersedia (mis. saat tes) mengembalikan
+        nilai default konstan.
+        """
+        if self._identity is None:
+            try:
+                self._identity = get_company_identity()
+            except Exception:
+                self._identity = {}
+        return self._identity
 
     # ---- Font Setup ----
     def _register_fonts(self):
@@ -54,36 +82,49 @@ class BPFBasePDF(FPDF):
 
     # ---- Letterhead ----
     def header(self):
+        # Kop surat resmi: logo kecil + nama hitam + garis tegas (tanpa warna)
+        # Nama perusahaan & subjudul mengikuti identitas system_config (multi-cabang).
+        identity = self._company_identity()
+        company = identity.get('company_name') or COMPANY_NAME
+        subtitle = identity.get('company_subtitle') or COMPANY_SUBTITLE
+        address = identity.get('company_address') or ''
+        phone = identity.get('company_phone') or ''
         logo = self._find_logo()
         if logo:
             try:
-                self.image(logo, x=self.l_margin, y=5, w=13)
+                self.image(logo, x=self.l_margin, y=5, w=11)
             except Exception:
                 pass
-        self.set_x(self.l_margin + 16)
+        self.set_x(self.l_margin + 14)
         self.set_font(self._font(), 'B', 13)
-        self.set_text_color(30, 64, 175)
-        self.cell(0, 6, COMPANY_NAME, align="C", new_x="LMARGIN", new_y="NEXT")
+        self.set_text_color(*INK)
+        self.cell(0, 6, company, align="C", new_x="LMARGIN", new_y="NEXT")
         self.set_font(self._font(), '', 8)
-        self.set_text_color(71, 85, 105)
-        self.cell(0, 4, COMPANY_SUBTITLE, align="C", new_x="LMARGIN", new_y="NEXT")
-        self.set_draw_color(37, 99, 235)
-        self.set_line_width(0.5)
+        self.set_text_color(*GRAY_LABEL)
+        self.cell(0, 4, subtitle, align="C", new_x="LMARGIN", new_y="NEXT")
+        if address or phone:
+            contact = ' | '.join(x for x in (address, 'Telp: ' + phone if phone else '') if x)
+            self.cell(0, 3.6, self.clean_text(contact)[:110], align="C", new_x="LMARGIN", new_y="NEXT")
+        self.set_draw_color(*RULE)
+        self.set_line_width(0.4)
         self.line(self.l_margin, self.get_y() + 2, self.w - self.r_margin, self.get_y() + 2)
-        self.ln(6)
-        self.set_text_color(0, 0, 0)
+        self.ln(5)
+        self.set_text_color(*INK)
 
     def footer(self):
+        identity = self._company_identity()
+        sys_name = identity.get('system_name') or 'BPF WorkHub'
+        sys_version = identity.get('system_version') or 'v1'
         self.set_y(-16)
-        self.set_draw_color(203, 213, 225)
+        self.set_draw_color(*BORDER)
         self.set_line_width(0.3)
         self.line(self.l_margin, self.get_y(), self.w - self.r_margin, self.get_y())
         self.set_y(-13)
         self.set_font(self._font(), 'I', 6)
-        self.set_text_color(148, 163, 184)
+        self.set_text_color(*GRAY_MUTED)
         now = datetime.now().strftime("%d-%m-%Y %H:%M")
-        self.cell(0, 4, f'{SYSTEM_VERSION} | Generated: {now} | Page {self.page_no()}/{{nb}}', align="C")
-        self.set_text_color(0, 0, 0)
+        self.cell(0, 4, f'{sys_name} {sys_version} | Generated: {now} | Page {self.page_no()}/{{nb}}', align="C")
+        self.set_text_color(*INK)
 
     def _find_logo(self):
         for name in LOGO_FILENAMES:
@@ -95,32 +136,81 @@ class BPFBasePDF(FPDF):
 
     # ---- UI Helpers ----
     def section_title(self, title):
+        # Sub-judul resmi: teks tebal hitam + garis bawah tipis (bukan blok berwarna)
         self.set_font(self._font(), 'B', 9)
-        self.set_fill_color(37, 99, 235)
-        self.set_text_color(255, 255, 255)
-        self.cell(0, 6, '  ' + title, fill=True, new_x="LMARGIN", new_y="NEXT")
-        self.set_text_color(0, 0, 0)
-        self.ln(3)
+        self.set_text_color(*INK)
+        self.cell(0, 5, '  ' + title, new_x="LMARGIN", new_y="NEXT")
+        self.set_draw_color(*RULE)
+        self.set_line_width(0.3)
+        self.line(self.l_margin, self.get_y() + 0.4, self.w - self.r_margin, self.get_y() + 0.4)
+        self.ln(2.6)
 
     def info_row(self, label, value, x, y, w_label=30, w_value=50):
         self.set_xy(x, y)
-        self.set_font(self._font(), '', 8)
-        self.set_text_color(100, 116, 139)
-        self.cell(w_label, 5, label + ':', align="R")
-        self.set_text_color(30, 41, 59)
-        self.set_font(self._font(), 'B', 8)
-        self.cell(w_value, 5, str(value) if value is not None else '-')
-        self.set_text_color(0, 0, 0)
+        self.set_font(self._font(), '', 7.5)
+        self.set_text_color(*GRAY_LABEL)
+        self.cell(w_label, 4.6, label + ':', align="R")
+        self.set_text_color(*INK)
+        self.set_font(self._font(), 'B', 7.5)
+        self.cell(w_value, 4.6, str(value) if value is not None else '-')
+        self.set_text_color(*INK)
 
     def _empty_cell(self, x, y, w, h, text=''):
-        self.set_draw_color(226, 232, 240)
+        self.set_draw_color(*BORDER)
+        self.set_line_width(0.25)
         self.rect(x, y, w, h)
         # Label di tengah
         self.set_xy(x, y + h/2 - 4)
         self.set_font(self._font(), 'I', 7)
-        self.set_text_color(148, 163, 184)
+        self.set_text_color(*GRAY_MUTED)
         self.cell(w, 5, text, align='C')
-        self.set_text_color(0, 0, 0)
+        self.set_text_color(*INK)
+
+    # ---- Tabel generik (header hitam + zebra tipis) ----
+    def _table_header(self, headers, widths, font_size=7, row_h=7):
+        """Baris header tabel resmi: blok hitam pekat + teks putih."""
+        self.set_font(self._font(), 'B', font_size)
+        self.set_fill_color(*INK)
+        self.set_text_color(255, 255, 255)
+        for i, h in enumerate(headers):
+            self.cell(widths[i], row_h, h, border=1, align='C', fill=True)
+        self.ln()
+        self.set_font(self._font(), '', font_size)
+        self.set_text_color(*INK)
+
+    def _table_row(self, values, widths, aligns=None, row_h=6, fill=False):
+        """Satu baris data dengan zebra ultra-tipis (fill dipakai bergantian)."""
+        aligns = aligns or ['L'] * len(values)
+        self.set_fill_color(*(ZEBRA_FILL if fill else (255, 255, 255)))
+        for i, v in enumerate(values):
+            self.cell(widths[i], row_h, self.clean_text(str(v)), border=1, fill=True, align=aligns[i])
+        self.ln()
+
+    def _signature_block(self, generated_by, role_label='Administrator', role=None):
+        """Blok TTD kanan-bawah: 'Mengetahui,' + garis + nama + jabatan."""
+        if self.get_y() + 35 > self.h - 25:
+            self.add_page()
+        col_w = 70
+        x_ttd = self.w - self.r_margin - col_w
+        self.set_xy(x_ttd, self.get_y())
+        self.set_font(self._font(), '', 8)
+        self.set_text_color(*RULE)
+        self.cell(col_w, 5, 'Mengetahui,', align='C')
+        self.ln(16)
+        self.set_draw_color(*GRAY_LABEL)
+        self.set_line_width(0.3)
+        self.set_xy(x_ttd + 8, self.get_y())
+        self.line(x_ttd + 8, self.get_y(), self.w - self.r_margin - 8, self.get_y())
+        self.ln(2)
+        self.set_font(self._font(), 'B', 9)
+        self.set_text_color(*INK)
+        self.set_xy(x_ttd + 8, self.get_y())
+        self.cell(col_w - 16, 5, self.clean_text(str(generated_by or role or role_label)).upper(), align='C')
+        self.ln(5)
+        self.set_font(self._font(), 'I', 7)
+        self.set_text_color(*GRAY_LABEL)
+        self.set_xy(x_ttd + 8, self.get_y())
+        self.cell(col_w - 16, 4, role_label, align='C')
 
     # ---- Photo Grid 2x2 ----
     def add_photo_grid(self, photos, upload_folder='uploads'):
@@ -151,7 +241,7 @@ class BPFBasePDF(FPDF):
                 x = margin + col * (cell_w + GRID_GAP)
                 y = y_start + row * (cell_h + 12)
 
-            self.set_draw_color(200, 200, 200)
+            self.set_draw_color(*BORDER)
             self.set_line_width(0.3)
             self.rect(x, y, cell_w, cell_h)
 
@@ -162,9 +252,9 @@ class BPFBasePDF(FPDF):
 
             self.set_xy(x, y + cell_h + 1)
             self.set_font(self._font(), 'B', 6)
-            self.set_text_color(71, 85, 105)
+            self.set_text_color(*GRAY_LABEL)
             self.cell(cell_w, 4, photo.get('label', ''), align='C')
-            self.set_text_color(0, 0, 0)
+            self.set_text_color(*INK)
 
             if y + cell_h > max_y:
                 max_y = y + cell_h + 12
@@ -191,7 +281,7 @@ class BPFBasePDF(FPDF):
                 buf.seek(0)
                 self.image(buf, x=img_x, y=img_y, w=new_w, h=new_h)
         except Exception:
-            self.set_draw_color(226, 232, 240)
+            self.set_draw_color(*BORDER)
             self.rect(x, y, cell_w, cell_h)
             try:
                 self.image(filepath, x=x + 2, y=y + 2, w=cell_w - 4, h=cell_h - 4)
@@ -217,8 +307,8 @@ class PDFReportCompact(BPFBasePDF):
 
     def __init__(self):
         super().__init__(orientation='P', unit='mm', format='A4')
-        self.set_auto_page_break(auto=True, margin=8)
-        self.set_margins(8, 8, 8)
+        self.set_auto_page_break(auto=True, margin=7)
+        self.set_margins(7, 7, 7)
 
     def generate_compact_report(self, tx, upload_folder='uploads'):
         self._draw_transaction_header(tx)
@@ -233,9 +323,9 @@ class PDFReportCompact(BPFBasePDF):
         nopol = self.clean_text(str(tx.get('nopol', '-')).upper())
         display_id = tx.get('display_id', f'#{tx["id"]}')
         self.set_font(self._font(), 'B', 11)
-        self.set_text_color(15, 23, 42)
+        self.set_text_color(*INK)
         self.cell(0, 7, f'TRANSAKSI {display_id} | {nopol}', align="L", new_x="LMARGIN", new_y="NEXT")
-        self.ln(2)
+        self.ln(1.5)
 
     def _draw_info_grid(self, tx):
         self.section_title('INFORMASI TRANSAKSI')
@@ -263,10 +353,10 @@ class PDFReportCompact(BPFBasePDF):
         col1_x, col2_x = self.l_margin, self.w / 2 + 5
         y_start = self.get_y()
         for i, row in enumerate(rows):
-            y = y_start + (i * 5.5)
+            y = y_start + (i * 5.1)
             self.info_row(row[0][0], row[0][1], col1_x, y)
             self.info_row(row[1][0], row[1][1], col2_x, y)
-        self.set_y(y_start + len(rows) * 5.5 + 2)
+        self.set_y(y_start + len(rows) * 5.1 + 1.5)
 
     def _draw_narrative(self, tx):
         self.section_title('KRONOLOGIS VERIFIKASI')
@@ -293,10 +383,10 @@ class PDFReportCompact(BPFBasePDF):
         if fin: narrative += f'Dana dicairkan Finance: {fin}. '
         if arc: narrative += f'Diarsipkan: {arc}. '
         narrative += 'Klaim dinyatakan SAH sesuai prosedur PT. Bestprofit Surabaya.'
-        self.set_font(self._font(), '', 7)
-        self.set_text_color(51, 65, 85)
-        self.multi_cell(0, 4, narrative, align='J')
-        self.ln(2)
+        self.set_font(self._font(), '', 6.8)
+        self.set_text_color(*INK_SOFT)
+        self.multi_cell(0, 3.8, narrative, align='J')
+        self.ln(1.5)
 
     def _draw_cross_check(self, tx):
         self.section_title('CROSS-CHECK VERIFIKASI')
@@ -321,28 +411,32 @@ class PDFReportCompact(BPFBasePDF):
             y = self.get_y()
             self.set_xy(self.l_margin, y)
             self.set_font(self._font(), 'B', 7)
+            self.set_text_color(*INK)
             self.cell(col_w, 5, f'Health Score: {health_score}/100')
-            self.set_xy(self.l_margin, y + 5)
+            self.set_xy(self.l_margin, y + 4.4)
             self.set_font(self._font(), '', 6)
+            self.set_text_color(*GRAY_LABEL)
             self.cell(col_w, 4, f'Rata-rata KM/L: {avg_kml:.1f} ({health["cnt"]} tx)' if health else 'N/A')
             if prev:
                 odo_diff = int(tx['odo_km']) - int(prev['odo_km'])
-                self.set_xy(self.l_margin, y + 9)
+                self.set_xy(self.l_margin, y + 8.4)
                 self.set_font(self._font(), '', 6)
                 self.cell(col_w, 4, f'ODO Sebelumnya: {int(prev["odo_km"]):,} km (selisih {odo_diff:+d} km)')
             self.set_xy(self.l_margin + col_w, y)
             self.set_font(self._font(), 'B', 7)
+            self.set_text_color(*INK)
             self.cell(col_w, 5, 'Budget Bulanan')
-            self.set_xy(self.l_margin + col_w, y + 5)
+            self.set_xy(self.l_margin + col_w, y + 4.4)
             self.set_font(self._font(), '', 6)
+            self.set_text_color(*GRAY_LABEL)
             self.cell(col_w, 4, f'Rp {float(monthly["total"]):,.0f}' if monthly else 'N/A')
             if notes and notes['driver_notes']:
-                self.set_xy(self.l_margin, y + 14)
+                self.set_xy(self.l_margin, y + 12.4)
                 self.set_font(self._font(), 'I', 6)
-                self.set_text_color(217, 119, 6)
+                self.set_text_color(*INK_SOFT)
                 self.cell(0, 4, 'Catatan GA: ' + notes['driver_notes'])
-            self.set_text_color(51, 65, 85)
-            self.ln(20)
+            self.set_text_color(*INK_SOFT)
+            self.ln(15)
         except Exception:
             self.ln(5)
             self.set_font(self._font(), 'I', 6)
@@ -362,21 +456,27 @@ class PDFReportCompact(BPFBasePDF):
         ]
         bar_w = (self.w - self.l_margin - self.r_margin - 12) / 4
         x, y = self.l_margin, self.get_y() + 2
+        self.set_draw_color(*BORDER)
+        self.set_line_width(0.25)
         for label, who in statuses:
-            color = (34, 197, 94) if who else (226, 232, 240)
-            text_color = (255, 255, 255) if who else (148, 163, 184)
-            self.set_fill_color(*color)
-            self.set_text_color(*text_color)
+            done = bool(who)
             self.set_xy(x, y)
-            self.set_font(self._font(), 'B', 5)
-            self.cell(bar_w, 4, label, fill=True, align='C')
+            self.set_font(self._font(), 'B', 5.5)
+            if done:
+                self.set_fill_color(*HEADER_FILL)
+                self.set_text_color(*INK)
+                self.cell(bar_w, 4.5, '✓ ' + label, border=1, fill=True, align='C')
+            else:
+                self.set_text_color(*GRAY_MUTED)
+                self.cell(bar_w, 4.5, label, border=1, align='C')
             if who:
-                self.set_xy(x, y + 5)
-                self.set_font(self._font(), '', 4)
-                self.set_text_color(100, 116, 139)
+                self.set_xy(x, y + 5.2)
+                self.set_font(self._font(), '', 4.5)
+                self.set_text_color(*GRAY_LABEL)
                 self.cell(bar_w, 3, who, align='C')
             x += bar_w + 4
-        self.set_y(y + 12)
+        self.set_text_color(*INK)
+        self.set_y(y + 10.5)
 
     def _draw_photos(self, tx, upload_folder):
         photos = self.extract_photos(tx)
@@ -386,9 +486,6 @@ class PDFReportCompact(BPFBasePDF):
 
 
 # ============================================================
-# MULTI-TRANSACTION REKAP PDF
-# ============================================================
-# ============================================================
 # TANDA TERIMA PEMBELIAN AIR MINUM (v2.6)
 # Diisi OB -> diverifikasi Finance -> PDF TTD Finance (penyerah) & GA (penerima)
 # ============================================================
@@ -397,8 +494,8 @@ class WaterReceiptPDF(BPFBasePDF):
 
     def __init__(self):
         super().__init__(orientation='P', unit='mm', format='A4')
-        self.set_auto_page_break(auto=True, margin=8)
-        self.set_margins(12, 8, 12)
+        self.set_auto_page_break(auto=True, margin=7)
+        self.set_margins(10, 7, 10)
 
     def generate(self, p, items, ga_name='', finance_name=''):
         """p = dict pengajuan; items = list rincian; nama TTD dari system_config."""
@@ -411,14 +508,14 @@ class WaterReceiptPDF(BPFBasePDF):
 
     # ---- Judul ----
     def _draw_title(self, p):
-        self.set_font(self._font(), 'B', 13)
-        self.set_text_color(15, 23, 42)
+        self.set_font(self._font(), 'B', 12.5)
+        self.set_text_color(*INK)
         self.cell(0, 7, 'TANDA TERIMA SERAH TERIMA AIR MINUM', align='C', new_x="LMARGIN", new_y="NEXT")
         self.set_font(self._font(), '', 8)
-        self.set_text_color(100, 116, 139)
+        self.set_text_color(*GRAY_LABEL)
         self.cell(0, 4, f'No. {p.get("display_id", "-")}', align='C', new_x="LMARGIN", new_y="NEXT")
-        self.ln(4)
-        self.set_text_color(0, 0, 0)
+        self.ln(3)
+        self.set_text_color(*INK)
 
     # ---- Info pengajuan ----
     def _draw_info(self, p):
@@ -432,34 +529,25 @@ class WaterReceiptPDF(BPFBasePDF):
         col1_x, col2_x = self.l_margin, self.w / 2 + 5
         y_start = self.get_y()
         for i, (label, val) in enumerate(rows):
-            y = y_start + (i * 5.5)
+            y = y_start + (i * 5.1)
             self.info_row(label, val, col1_x, y)
-        self.set_y(y_start + len(rows) * 5.5 + 2)
+        self.set_y(y_start + len(rows) * 5.1 + 1.5)
 
     # ---- Tabel item ----
     def _draw_items_table(self, items):
         self.section_title('RINCIAN BARANG')
         headers = ['NO', 'JENIS', 'MERK', 'SATUAN', 'KUANTITAS']
         widths = [10, 30, 70, 30, 30]
-        self.set_font(self._font(), 'B', 8)
-        self.set_fill_color(37, 99, 235)
-        self.set_text_color(255, 255, 255)
-        for i, h in enumerate(headers):
-            self.cell(widths[i], 7, h, border=1, align='C', fill=True)
-        self.ln()
-        self.set_text_color(0, 0, 0)
-        self.set_font(self._font(), '', 8)
+        self.set_draw_color(*BORDER)
+        self.set_line_width(0.2)
+        self._table_header(headers, widths, font_size=8, row_h=6.4)
         fill = False
         for idx, it in enumerate(items, 1):
-            self.set_fill_color(241, 245, 249) if fill else self.set_fill_color(255, 255, 255)
-            self.cell(widths[0], 6, str(idx), border=1, align='C', fill=True)
-            self.cell(widths[1], 6, self.clean_text(str(it.get('drink_type', '-'))), border=1, align='C', fill=True)
-            self.cell(widths[2], 6, self.clean_text(str(it.get('brand', '-'))), border=1, fill=True)
-            self.cell(widths[3], 6, self.clean_text(str(it.get('satuan', 'pcs'))), border=1, align='C', fill=True)
-            self.cell(widths[4], 6, str(it.get('quantity', 1)), border=1, align='C', fill=True)
-            self.ln()
+            self._table_row(
+                [idx, it.get('drink_type', '-'), it.get('brand', '-'), it.get('satuan', 'pcs'), it.get('quantity', 1)],
+                widths, aligns=['C', 'C', 'L', 'C', 'C'], row_h=5.6, fill=fill)
             fill = not fill
-        self.ln(4)
+        self.ln(3)
 
     # ---- Hasil verifikasi ----
     def _draw_verification(self, p):
@@ -469,9 +557,8 @@ class WaterReceiptPDF(BPFBasePDF):
             remark = self.clean_text(str(p.get('remark', '') or ''))
             note = self.clean_text(str(p.get('note', '') or ''))
             self.set_font(self._font(), 'B', 8)
-            self.set_text_color(22, 163, 74)
+            self.set_text_color(*INK)
             self.cell(0, 5, '✔ TERVERIFIKASI', new_x="LMARGIN", new_y="NEXT")
-            self.set_text_color(0, 0, 0)
             self.set_font(self._font(), '', 8)
             self.multi_cell(0, 4.5, f'Remark: {remark or "-"}', new_x="LMARGIN", new_y="NEXT")
             if note:
@@ -479,21 +566,19 @@ class WaterReceiptPDF(BPFBasePDF):
             ver = self.clean_text(str(p.get('verified_by', '') or ''))
             if ver:
                 self.set_font(self._font(), 'I', 7)
-                self.set_text_color(100, 116, 139)
+                self.set_text_color(*GRAY_LABEL)
                 self.cell(0, 4.5, f'Diverifikasi oleh: {ver}', new_x="LMARGIN", new_y="NEXT")
-            self.set_text_color(0, 0, 0)
+            self.set_text_color(*INK)
         elif status == 'rejected':
             self.set_font(self._font(), 'B', 8)
-            self.set_text_color(220, 38, 38)
+            self.set_text_color(*INK)
             self.cell(0, 5, '✘ DITOLAK', new_x="LMARGIN", new_y="NEXT")
-            self.set_text_color(0, 0, 0)
             self.set_font(self._font(), '', 8)
             self.multi_cell(0, 4.5, f'Alasan: {self.clean_text(str(p.get("rejection_reason", "-") or "-"))}', new_x="LMARGIN", new_y="NEXT")
         else:
             self.set_font(self._font(), 'I', 8)
-            self.set_text_color(148, 163, 184)
+            self.set_text_color(*GRAY_MUTED)
             self.cell(0, 5, 'Menunggu verifikasi Finance...', new_x="LMARGIN", new_y="NEXT")
-            self.set_text_color(0, 0, 0)
         self.ln(3)
 
     # ---- Tanda tangan ----
@@ -507,13 +592,13 @@ class WaterReceiptPDF(BPFBasePDF):
             self.add_page()
         col_w = (self.w - self.l_margin - self.r_margin) / 2
         self.set_font(self._font(), 'B', 8)
-        self.set_text_color(30, 41, 59)
+        self.set_text_color(*INK)
         self.set_xy(self.l_margin, self.get_y())
         self.cell(col_w, 5, 'Menyerahkan,', align='C')
         self.set_xy(self.l_margin + col_w, self.get_y())
         self.cell(col_w, 5, 'Menerima,', align='C')
         self.ln(26)
-        self.set_draw_color(100, 116, 139)
+        self.set_draw_color(*GRAY_LABEL)
         self.set_line_width(0.3)
         self.set_xy(self.l_margin + 6, self.get_y())
         self.line(self.l_margin + 6, self.get_y(), self.l_margin + col_w - 6, self.get_y())
@@ -521,19 +606,19 @@ class WaterReceiptPDF(BPFBasePDF):
         self.line(self.l_margin + col_w + 6, self.get_y(), self.w - self.r_margin - 6, self.get_y())
         self.ln(2)
         self.set_font(self._font(), 'B', 9)
-        self.set_text_color(30, 41, 59)
+        self.set_text_color(*INK)
         self.set_xy(self.l_margin + 6, self.get_y())
         self.cell(col_w - 12, 5, self.clean_text(str(finance_name or 'FINANCE')).upper(), align='C')
         self.set_xy(self.l_margin + col_w + 6, self.get_y())
         self.cell(col_w - 12, 5, self.clean_text(str(ga_name or 'GA')).upper(), align='C')
         self.ln(5)
         self.set_font(self._font(), 'I', 7)
-        self.set_text_color(100, 116, 139)
+        self.set_text_color(*GRAY_LABEL)
         self.set_xy(self.l_margin + 6, self.get_y())
         self.cell(col_w - 12, 4, 'Finance', align='C')
         self.set_xy(self.l_margin + col_w + 6, self.get_y())
         self.cell(col_w - 12, 4, 'GA Officer', align='C')
-        self.set_text_color(0, 0, 0)
+        self.set_text_color(*INK)
         self.ln(8)
 
     # ---- Lampiran foto ----
@@ -559,9 +644,8 @@ class BBMReportPDF(BPFBasePDF):
     def header(self):
         super().header()
         self.set_font(self._font(), 'B', 11)
-        self.set_text_color(37, 99, 235)
+        self.set_text_color(*INK)
         self.cell(0, 6, self.clean_text(self.title), align="C", new_x="LMARGIN", new_y="NEXT")
-        self.set_text_color(0, 0, 0)
         self.ln(3)
 
     def generate_table(self, data):
@@ -571,38 +655,74 @@ class BBMReportPDF(BPFBasePDF):
             return
         headers = ['NO', 'TANGGAL', 'NO POLISI', 'DRIVER', 'AMOUNT', 'LITER', 'KM ISI BBM', 'KM/L', 'TIPE', 'HEALTH']
         widths = [8, 22, 22, 30, 24, 14, 20, 14, 14, 14]
-        self.set_font(self._font(), 'B', 7)
-        self.set_fill_color(37, 99, 235)
-        self.set_text_color(255, 255, 255)
-        for i, h in enumerate(headers):
-            self.cell(widths[i], 7, h, border=1, align='C', fill=True)
-        self.set_text_color(0, 0, 0)
-        self.ln()
-        self.set_font(self._font(), '', 7)
+        aligns = ['C', 'C', 'C', 'L', 'R', 'C', 'C', 'C', 'C', 'C']
+        self._table_header(headers, widths)
         fill = False
         for idx, tx in enumerate(data, 1):
-            self.set_fill_color(241, 245, 249) if fill else self.set_fill_color(255, 255, 255)
             health = 'N/A'
             try:
                 kml = float(tx.get('km_per_liter', 0) or 0)
                 if kml > 0:
                     health = str(min(100, int((kml / HEALTH_BENCHMARK) * 100)))
             except Exception:
-                pass
-            self.cell(widths[0], 6, str(idx), border=1, align='C', fill=True)
-            self.cell(widths[1], 6, tx['created_at'].strftime('%d/%m/%y %H:%M') if tx.get('created_at') else '-', border=1, align='C', fill=True)
-            self.cell(widths[2], 6, self.clean_text(str(tx['nopol'])), border=1, align='C', fill=True)
-            self.cell(widths[3], 6, self.clean_text(str(tx.get('driver_name', '-')).upper()), border=1, fill=True)
-            self.cell(widths[4], 6, f"Rp {float(tx['nominal']):,.0f}" if tx.get('nominal') else 'Rp 0', border=1, align='R', fill=True)
-            self.cell(widths[5], 6, f"{float(tx.get('liter', 0)):.1f}L", border=1, align='C', fill=True)
-            self.cell(widths[6], 6, f"{int(tx.get('odo_km', 0)):,}", border=1, align='C', fill=True)
-            self.cell(widths[7], 6, f"{kml:.1f}" if tx.get('km_per_liter') else '-', border=1, align='C', fill=True)
+                kml = 0
             tx_type = tx.get('transaction_type', 'CLAIM')
-            self.cell(widths[8], 6, '💰 Kasbon' if tx_type == 'CASH_LPJ' else '-', border=1, align='C', fill=True)
-            self.cell(widths[9], 6, health, border=1, align='C', fill=True)
-            self.ln()
+            self._table_row([
+                idx,
+                tx['created_at'].strftime('%d/%m/%y %H:%M') if tx.get('created_at') else '-',
+                tx['nopol'],
+                str(tx.get('driver_name', '-')).upper(),
+                f"Rp {float(tx['nominal']):,.0f}" if tx.get('nominal') else 'Rp 0',
+                f"{float(tx.get('liter', 0)):.1f}L",
+                f"{int(tx.get('odo_km', 0)):,}",
+                f"{kml:.1f}" if tx.get('km_per_liter') else '-',
+                '💰 Kasbon' if tx_type == 'CASH_LPJ' else '-',
+                health,
+            ], widths, aligns=aligns, fill=fill)
             fill = not fill
         self.ln(4)
+
+
+# ============================================================
+# RINGKASAN CABANG (v2.20.2) — multi-cabang
+# Laporan statistik per cabang: transaksi, kunjungan hari ini, user
+# ============================================================
+class BranchSummaryPDF(BPFBasePDF):
+    """Ringkasan per cabang untuk dashboard Admin (kop & logo resmi)."""
+
+    def __init__(self, title='RINGKASAN CABANG'):
+        super().__init__(orientation='L', unit='mm', format='A4')
+        self._title = title
+        self.set_auto_page_break(auto=True, margin=15)
+
+    def header(self):
+        super().header()
+        self.set_font(self._font(), 'B', 11)
+        self.set_text_color(*INK)
+        self.cell(0, 6, self.clean_text(self._title), align='C', new_x='LMARGIN', new_y='NEXT')
+        self.ln(2)
+
+    def generate(self, stats, generated_by=''):
+        self.cell(0, 4.5, f'Periode: {date.today().isoformat()}', new_x='LMARGIN', new_y='NEXT')
+        self.ln(2)
+        if not stats:
+            self.set_font(self._font(), 'I', 10)
+            self.cell(0, 8, 'Belum ada cabang terdaftar.', align='C', new_x='LMARGIN', new_y='NEXT')
+        else:
+            headers = ['KODE', 'NAMA CABANG', 'DATABASE', 'TRANSAKSI', 'KUNJUNGAN HARI INI', 'USER', 'STATUS']
+            widths = [18, 62, 48, 24, 38, 18, 20]
+            aligns = ['C', 'L', 'L', 'C', 'C', 'C', 'C']
+            self._table_header(headers, widths)
+            fill = False
+            for b in stats:
+                self._table_row([
+                    b.get('code', '-'), b.get('name', '-'), b.get('db_name', '-'),
+                    b.get('transactions', 0), b.get('appointments_today', 0), b.get('users', 0),
+                    'Aktif' if b.get('is_active') else 'Nonaktif',
+                ], widths, aligns=aligns, fill=fill)
+                fill = not fill
+        self.ln(4)
+        self._signature_block(generated_by, 'Administrator', role='ADMIN')
 
 
 # ============================================================
@@ -624,26 +744,25 @@ class ApplicantReportPDF(BPFBasePDF):
     def header(self):
         super().header()
         self.set_font(self._font(), 'B', 11)
-        self.set_text_color(37, 99, 235)
+        self.set_text_color(*INK)
         self.cell(0, 6, self.clean_text(self._title), align='C', new_x='LMARGIN', new_y='NEXT')
-        self.set_text_color(0, 0, 0)
         self.ln(2)
 
     def generate(self, rows, stage_label='', date_label='', filters=None, generated_by=''):
         self.add_page()  # halaman pertama (header/kop resmi otomatis via add_page)
         # Info laporan
         self.set_font(self._font(), 'B', 8)
-        self.set_text_color(30, 41, 59)
+        self.set_text_color(*INK)
         self.cell(0, 5, f'Tahap: {self.clean_text(stage_label or "-")}', new_x='LMARGIN', new_y='NEXT')
         self.cell(0, 5, f'Periode: {self.clean_text(date_label or "-")}', new_x='LMARGIN', new_y='NEXT')
         if filters:
             for k, v in filters.items():
                 if v:
                     self.set_font(self._font(), '', 7)
-                    self.set_text_color(100, 116, 139)
+                    self.set_text_color(*GRAY_LABEL)
                     self.cell(0, 4.5, f'{k}: {self.clean_text(str(v))}', new_x='LMARGIN', new_y='NEXT')
         self.ln(2)
-        self.set_text_color(0, 0, 0)
+        self.set_text_color(*INK)
 
         self._draw_table(rows)
 
@@ -652,31 +771,11 @@ class ApplicantReportPDF(BPFBasePDF):
             self.add_page()
         self.ln(4)
         self.set_font(self._font(), '', 8)
-        self.set_text_color(51, 65, 85)
+        self.set_text_color(*INK_SOFT)
         self.cell(0, 5, f'Total pelamar pada laporan ini: {len(rows)} orang', new_x='LMARGIN', new_y='NEXT')
         self.ln(10)
-        col_w = 70
-        x_ttd = self.w - self.r_margin - col_w
-        self.set_xy(x_ttd, self.get_y())
-        self.set_font(self._font(), '', 8)
-        self.set_text_color(71, 85, 105)
-        self.cell(col_w, 5, 'Mengetahui,', align='C')
-        self.ln(16)
-        self.set_draw_color(100, 116, 139)
-        self.set_line_width(0.3)
-        self.set_xy(x_ttd + 8, self.get_y())
-        self.line(x_ttd + 8, self.get_y(), self.w - self.r_margin - 8, self.get_y())
-        self.ln(2)
-        self.set_font(self._font(), 'B', 9)
-        self.set_text_color(30, 41, 59)
-        self.set_xy(x_ttd + 8, self.get_y())
-        self.cell(col_w - 16, 5, self.clean_text(str(generated_by or 'RECEPTIONIST')).upper(), align='C')
-        self.ln(5)
-        self.set_font(self._font(), 'I', 7)
-        self.set_text_color(100, 116, 139)
-        self.set_xy(x_ttd + 8, self.get_y())
-        self.cell(col_w - 16, 4, 'Receptionist', align='C')
-        self.set_text_color(0, 0, 0)
+        self._signature_block(generated_by, 'Receptionist', role='RECEPTIONIST')
+        self.set_text_color(*INK)
 
     def _draw_table(self, rows):
         if not rows:
@@ -685,26 +784,16 @@ class ApplicantReportPDF(BPFBasePDF):
             return
         headers = ['NO', 'NAMA LENGKAP', 'NO. HP', 'POSISI', 'UPLINE', 'USER', 'WAKTU KEHADIRAN']
         widths = [8, 55, 32, 40, 40, 32, 42]
-        self.set_font(self._font(), 'B', 7)
-        self.set_fill_color(37, 99, 235)
-        self.set_text_color(255, 255, 255)
-        for i, h in enumerate(headers):
-            self.cell(widths[i], 7, h, border=1, align='C', fill=True)
-        self.set_text_color(0, 0, 0)
-        self.ln()
-        self.set_font(self._font(), '', 7)
+        aligns = ['C', 'L', 'C', 'L', 'L', 'L', 'C']
+        self._table_header(headers, widths)
         fill = False
         for idx, r in enumerate(rows, 1):
-            self.set_fill_color(241, 245, 249) if fill else self.set_fill_color(255, 255, 255)
-            self.cell(widths[0], 6, str(idx), border=1, align='C', fill=True)
-            self.cell(widths[1], 6, self.clean_text(str(r.get('nama_lengkap', '-'))), border=1, fill=True)
-            self.cell(widths[2], 6, self.clean_text(str(r.get('no_hp', '-'))), border=1, align='C', fill=True)
-            self.cell(widths[3], 6, self.clean_text(str(r.get('posisi', '-'))), border=1, fill=True)
-            self.cell(widths[4], 6, self.clean_text(str(r.get('upline', '-'))), border=1, fill=True)
-            self.cell(widths[5], 6, self.clean_text(str(r.get('user_field', '-'))), border=1, fill=True)
             at = r.get('attended_at')
-            self.cell(widths[6], 6, at.strftime('%d-%m-%Y %H:%M') if hasattr(at, 'strftime') else self.clean_text(str(at or '-')), border=1, align='C', fill=True)
-            self.ln()
+            self._table_row([
+                idx, r.get('nama_lengkap', '-'), r.get('no_hp', '-'), r.get('posisi', '-'),
+                r.get('upline', '-'), r.get('user_field', '-'),
+                at.strftime('%d-%m-%Y %H:%M') if hasattr(at, 'strftime') else (at or '-'),
+            ], widths, aligns=aligns, fill=fill)
             fill = not fill
         self.ln(3)
 
@@ -725,18 +814,17 @@ class AssetReportPDF(BPFBasePDF):
     def header(self):
         super().header()
         self.set_font(self._font(), 'B', 11)
-        self.set_text_color(37, 99, 235)
+        self.set_text_color(*INK)
         self.cell(0, 6, self.clean_text(self._title), align='C', new_x='LMARGIN', new_y='NEXT')
-        self.set_text_color(0, 0, 0)
         self.ln(2)
 
     def generate(self, rows, generated_by=''):
         self.add_page()
         self.set_font(self._font(), '', 7)
-        self.set_text_color(100, 116, 139)
+        self.set_text_color(*GRAY_LABEL)
         self.cell(0, 4.5, f'Periode laporan: {self.clean_text(str(date.today().isoformat()))}', new_x='LMARGIN', new_y='NEXT')
         self.ln(2)
-        self.set_text_color(0, 0, 0)
+        self.set_text_color(*INK)
         if not rows:
             self.set_font(self._font(), 'I', 10)
             self.cell(0, 8, 'Tidak ada data aset.', align='C', new_x='LMARGIN', new_y='NEXT')
@@ -747,31 +835,11 @@ class AssetReportPDF(BPFBasePDF):
             self.add_page()
         self.ln(4)
         self.set_font(self._font(), '', 8)
-        self.set_text_color(51, 65, 85)
+        self.set_text_color(*INK_SOFT)
         self.cell(0, 5, f'Total aset pada laporan ini: {len(rows)} unit', new_x='LMARGIN', new_y='NEXT')
         self.ln(10)
-        col_w = 70
-        x_ttd = self.w - self.r_margin - col_w
-        self.set_xy(x_ttd, self.get_y())
-        self.set_font(self._font(), '', 8)
-        self.set_text_color(71, 85, 105)
-        self.cell(col_w, 5, 'Mengetahui,', align='C')
-        self.ln(16)
-        self.set_draw_color(100, 116, 139)
-        self.set_line_width(0.3)
-        self.set_xy(x_ttd + 8, self.get_y())
-        self.line(x_ttd + 8, self.get_y(), self.w - self.r_margin - 8, self.get_y())
-        self.ln(2)
-        self.set_font(self._font(), 'B', 9)
-        self.set_text_color(30, 41, 59)
-        self.set_xy(x_ttd + 8, self.get_y())
-        self.cell(col_w - 16, 5, self.clean_text(str(generated_by or 'GA')).upper(), align='C')
-        self.ln(5)
-        self.set_font(self._font(), 'I', 7)
-        self.set_text_color(100, 116, 139)
-        self.set_xy(x_ttd + 8, self.get_y())
-        self.cell(col_w - 16, 4, 'General Affairs (Pemeliharaan Aset)', align='C')
-        self.set_text_color(0, 0, 0)
+        self._signature_block(generated_by, 'General Affairs (Pemeliharaan Aset)', role='GA')
+        self.set_text_color(*INK)
 
     def _draw_assets(self, rows):
         if self._kind == 'ac':
@@ -782,35 +850,25 @@ class AssetReportPDF(BPFBasePDF):
             headers = ['NO', 'NOPOL', 'TIPE', 'MERK', 'TAHUN', 'ODOMETER',
                        'STATUS', 'SERVIS TERAKHIR', 'KOMPONEN', 'BIAYA']
             widths = [8, 35, 30, 25, 20, 30, 25, 32, 40, 30]
-        self.set_font(self._font(), 'B', 7)
-        self.set_fill_color(37, 99, 235)
-        self.set_text_color(255, 255, 255)
-        for i, h in enumerate(headers):
-            self.cell(widths[i], 7, h, border=1, align='C', fill=True)
-        self.set_text_color(0, 0, 0)
-        self.ln()
-        self.set_font(self._font(), '', 7)
+        aligns = ['C'] + ['L'] * (len(widths) - 1)
+        self._table_header(headers, widths)
         fill = False
         for idx, r in enumerate(rows, 1):
-            self.set_fill_color(241, 245, 249) if fill else self.set_fill_color(255, 255, 255)
             if self._kind == 'ac':
                 last = (r.get('logs') or [{}])[0]
-                vals = [str(idx), r.get('asset_id', '-'), r.get('merk', '-'),
+                vals = [idx, r.get('asset_id', '-'), r.get('merk', '-'),
                         r.get('tipe', '-'), r.get('kapasitas', '-'), r.get('lokasi', '-'),
                         r.get('status', '-'), self._fmt_dt(last.get('tanggal')),
                         str(last.get('health_score', '-') if last.get('health_score') is not None else '-'),
                         self._fmt_money(last.get('sparepart_cost'))]
             else:
                 last = (r.get('services') or [{}])[0]
-                vals = [str(idx), r.get('nopol', '-'), r.get('vehicle_type', '-'),
+                vals = [idx, r.get('nopol', '-'), r.get('vehicle_type', '-'),
                         r.get('brand', '-'), str(r.get('year', '-') or '-'),
                         str(r.get('last_odometer', 0) or 0), r.get('status', '-'),
                         self._fmt_dt(last.get('service_date')),
                         last.get('component_name', '-'), self._fmt_money(last.get('cost'))]
-            for i, v in enumerate(vals):
-                self.cell(widths[i], 6, self.clean_text(str(v)), border=1, fill=True,
-                          align='C' if i == 0 else 'L')
-            self.ln()
+            self._table_row(vals, widths, aligns=aligns, fill=fill)
             fill = not fill
         self.ln(3)
 

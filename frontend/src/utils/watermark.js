@@ -1,8 +1,15 @@
 /**
  * Mesin watermark foto (port dari static/js/driver.js).
  * Bar hitam di bawah foto berisi: nama perusahaan, tanggal & jam, lokasi GPS.
+ * Nama perusahaan mengikuti identitas system_config (multi-cabang).
  * Return Blob JPEG yang siap dikirim sebagai file.
  */
+import { identity } from '../stores/identity'
+
+export function watermarkCompany() {
+  return (identity.company_name || 'PT BESTPROFIT FUTURES').slice(0, 30)
+}
+
 export async function applyWatermark(file, gpsText, dateText = null) {
   if (!file || !file.type.startsWith('image/')) return null
   try {
@@ -32,7 +39,7 @@ export async function applyWatermark(file, gpsText, dateText = null) {
 
     ctx.fillStyle = '#FFD700'
     ctx.font = `bold ${fontSize}px Inter, Arial`
-    ctx.fillText('PT BESTPROFIT FUTURES SBY', padding, canvas.height - barH + lineH)
+    ctx.fillText(watermarkCompany(), padding, canvas.height - barH + lineH)
 
     ctx.fillStyle = '#FFFFFF'
     ctx.font = `${fontSize * 0.8}px Inter, Arial`

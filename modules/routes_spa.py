@@ -10,7 +10,7 @@ import secrets
 from flask import jsonify, request, session, send_from_directory
 
 from modules.helpers import role_required, log_activity_async, home_for_role, login_rate_check, login_fail, login_success, client_ip, save_file, safe_float
-from modules.config import get_db_connection
+from modules.config import get_db_connection, get_master_connection
 
 SPA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'app')
 
@@ -44,6 +44,8 @@ def register_spa_routes(app):
                     'role': session.get('user_role'),
                     'user_name': session.get('user_name'),
                     'full_name': session.get('full_name'),
+                    'branch_code': session.get('branch_code'),
+                    'branch_name': session.get('branch_name'),
                 },
                 'csrf_token': session.get('csrf_token'),
                 'home': home_for_role(session.get('user_role')),
@@ -64,7 +66,7 @@ def register_spa_routes(app):
         if not allowed:
             return jsonify({'status': 'error', 'msg': f'Terlalu banyak percobaan. Coba lagi dalam {retry_after // 60} menit.'}), 429
 
-        conn = get_db_connection()
+        conn = get_master_connection()
         if not conn:
             return jsonify({'status': 'error', 'msg': 'Database tidak tersedia'}), 500
         try:
@@ -78,17 +80,29 @@ def register_spa_routes(app):
             login_fail(ip)
             return jsonify({'status': 'error', 'msg': 'Username atau PIN salah'}), 401
 
+        # Multi-cabang: tentukan cabang user; cabang nonaktif → tolak login
+        from modules.branch_manager import get_branch, DEFAULT_BRANCH_CODE
+        branch_code = (user.get('branch_code') or '').strip() or DEFAULT_BRANCH_CODE
+        branch = get_branch(branch_code)
+        if not branch or not branch.get('is_active'):
+            login_fail(ip)
+            return jsonify({'status': 'error',
+                            'msg': 'Cabang tidak aktif atau tidak terdaftar. Hubungi Admin.'}), 403
+
         login_success(ip)
         session.clear()
         session['user_role'] = user['role']
         session['user_name'] = user['username']
         session['full_name'] = user['full_name']
+        session['branch_code'] = branch['code']
+        session['branch_name'] = branch['name']
         session.permanent = True
         csrf = _ensure_csrf()
         log_activity_async(None, 'login', 'user', user['username'], ip=request.remote_addr)
         return jsonify({
             'status': 'success',
-            'user': {'role': user['role'], 'user_name': user['username'], 'full_name': user['full_name']},
+            'user': {'role': user['role'], 'user_name': user['username'], 'full_name': user['full_name'],
+                     'branch_code': branch['code'], 'branch_name': branch['name']},
             'csrf_token': csrf,
             'home': home_for_role(user['role']),
         })

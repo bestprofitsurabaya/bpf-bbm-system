@@ -61,7 +61,7 @@ def register_admin_routes(app):
     @app.route('/admin/trips/export-pdf/<int:trip_id>')
     @role_required(['ga', 'finance', 'admin'])
     def export_trip_pdf(trip_id):
-        from modules.pdf_generator import BPFBasePDF
+        from modules.pdf_generator import BPFBasePDF, INK, BORDER, HEADER_FILL, ZEBRA_FILL
         try:
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
@@ -106,24 +106,26 @@ def register_admin_routes(app):
 
             headers = ['NO', 'LOKASI BERANGKAT', 'PUKUL', 'KM', 'LOKASI TUJUAN', 'PUKUL', 'KM']
             widths = [8, 40, 18, 14, 40, 18, 14]
-            pdf.set_fill_color(37, 99, 235)
+            pdf.set_fill_color(*INK)
             pdf.set_text_color(255, 255, 255)
             pdf.set_font(pdf._font(), 'B', 7)
             for i, h in enumerate(headers):
                 pdf.cell(widths[i], 6, h, border=1, align='C', fill=True)
-            pdf.set_text_color(0, 0, 0)
             pdf.ln()
 
             pdf.set_font(pdf._font(), '', 7)
+            fill = False
             for i, d in enumerate(details, 1):
-                pdf.cell(widths[0], 5, str(i), border=1, align='C')
-                pdf.cell(widths[1], 5, pdf.clean_text(str(d['lokasi_berangkat'])[:30]), border=1)
-                pdf.cell(widths[2], 5, str(d['pukul_berangkat'] or '-'), border=1, align='C')
-                pdf.cell(widths[3], 5, str(d['km_berangkat']), border=1, align='C')
-                pdf.cell(widths[4], 5, pdf.clean_text(str(d['lokasi_tujuan'])[:30]), border=1)
-                pdf.cell(widths[5], 5, str(d['pukul_tujuan'] or '-'), border=1, align='C')
-                pdf.cell(widths[6], 5, str(d['km_tujuan']), border=1, align='C')
+                pdf.set_fill_color(*ZEBRA_FILL) if fill else pdf.set_fill_color(255, 255, 255)
+                pdf.cell(widths[0], 5, str(i), border=1, align='C', fill=True)
+                pdf.cell(widths[1], 5, pdf.clean_text(str(d['lokasi_berangkat'])[:30]), border=1, fill=True)
+                pdf.cell(widths[2], 5, str(d['pukul_berangkat'] or '-'), border=1, align='C', fill=True)
+                pdf.cell(widths[3], 5, str(d['km_berangkat']), border=1, align='C', fill=True)
+                pdf.cell(widths[4], 5, pdf.clean_text(str(d['lokasi_tujuan'])[:30]), border=1, fill=True)
+                pdf.cell(widths[5], 5, str(d['pukul_tujuan'] or '-'), border=1, align='C', fill=True)
+                pdf.cell(widths[6], 5, str(d['km_tujuan']), border=1, align='C', fill=True)
                 pdf.ln()
+                fill = not fill
 
             pdf_raw = pdf.output(dest='S')
             pdf_bytes = pdf_raw.encode('latin-1') if isinstance(pdf_raw, str) else bytes(pdf_raw)

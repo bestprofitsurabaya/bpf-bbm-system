@@ -67,8 +67,8 @@ docker --version && docker compose version
 
 ```bash
 # 1. Clone repo
-git clone https://github.com/bestprofitsurabaya/bpf-bbm-system.git
-cd bpf-bbm-system
+git clone https://github.com/bestprofitsurabaya/bpf-workhub.git
+cd bpf-workhub
 
 # 2. (Opsional tapi disarankan) ganti SECRET_KEY di docker-compose.yml
 #    sebelum pertama kali build!
@@ -126,7 +126,7 @@ python3 -c "import secrets; print(secrets.token_hex(32))"
 ## 5. Update ke Versi Baru
 
 ```bash
-cd bpf-bbm-system
+cd bpf-workhub
 
 # 1. Backup dulu (lihat bagian 6)
 # 2. Tarik kode terbaru
@@ -187,7 +187,7 @@ docker compose start web
 
 > 💡 **Jadwalkan backup otomatis** via cron di server host:
 > ```
-> 30 1 * * * cd /opt/bpf-bbm-system && docker exec bbm_web sh -c 'mysqldump -h db -u bpf_user -pbpf_pass bpf_asset_system --single-transaction' > /backups/bbm_$(date +\%Y\%m\%d).sql && find /backups -name 'bbm_*.sql' -mtime +30 -delete
+> 30 1 * * * cd /opt/bpf-workhub && docker exec bbm_web sh -c 'mysqldump -h db -u bpf_user -pbpf_pass bpf_asset_system --single-transaction' > /backups/bbm_$(date +\%Y\%m\%d).sql && find /backups -name 'bbm_*.sql' -mtime +30 -delete
 > ```
 
 ---

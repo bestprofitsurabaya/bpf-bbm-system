@@ -61,6 +61,20 @@ for _attempt in range(5):
         break
     _time.sleep(3)
 
+# Multi-cabang (v2.19.2): tabel branches + kolom users.branch_code + cabang utama,
+# lalu sinkronkan skema untuk setiap cabang aktif yang punya database sendiri.
+from modules import branch_manager as bm
+bm.ensure_branches_table()
+bm.ensure_users_branch_column()
+bm.seed_main_branch()
+try:
+    for _b in bm.list_branches():
+        if _b.get('is_active') and _b.get('db_name') and _b['db_name'] != os.environ.get('DB_NAME', 'bpf_asset_system'):
+            _ok, _msg = bm.ensure_branch_database(_b['code'])
+            print(f'[branches] {_b["code"]}: {_msg}')
+except Exception as _be:
+    print(f'[branches] startup sync error: {_be}')
+
 # Register all route modules
 from modules.routes_driver import register_driver_routes
 from modules.routes_api_master import register_master_api
@@ -76,6 +90,7 @@ from modules.routes_appointments import register_appointment_routes
 from modules.routes_water import register_water_routes
 from modules.routes_applicants import register_applicant_routes
 from modules.routes_assets import register_asset_routes
+from modules.routes_branches import register_branch_routes
 from modules.routes_spa import register_spa_routes
 
 register_driver_routes(app, socketio)
@@ -92,6 +107,7 @@ register_appointment_routes(app)
 register_water_routes(app)
 register_applicant_routes(app)
 register_asset_routes(app)
+register_branch_routes(app)
 register_spa_routes(app)
 
 # ================================================================

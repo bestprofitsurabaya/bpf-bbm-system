@@ -31,7 +31,7 @@ describe('LogsView', () => {
   it('filter aksi menyaring baris dan memperbarui badge total', async () => {
     const w = mount(LogsView)
     await flushPromises()
-    const select = w.find('select')
+    const select = w.findAll('select')[1] // [0]=Cabang, [1]=Aksi, [2]=Peran
     await select.setValue('approve_ga')
     expect(w.findAll('tbody tr').length).toBe(2)
     expect(w.text()).toContain('Total: 2 / 3')
@@ -41,7 +41,7 @@ describe('LogsView', () => {
     const w = mount(LogsView)
     await flushPromises()
     const selects = w.findAll('select')
-    await selects[1].setValue('finance')
+    await selects[2].setValue('finance')
     expect(w.findAll('tbody tr').length).toBe(1)
     expect(w.text()).toContain('FIN1')
   })

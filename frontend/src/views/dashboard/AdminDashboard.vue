@@ -17,6 +17,7 @@ onMounted(async () => {
   catch (e) { err.value = e.message }
   finally { loading.value = false }
   loadQueue()
+  loadBranchStats()
 })
 
 async function refreshStats() {
@@ -36,6 +37,26 @@ const cards = computed(() => {
   ]
   return c.filter((x) => x.roles.includes(auth.role))
 })
+
+// ============================================================
+// Ringkasan Cabang (v2.20.0) — statistik per cabang (Admin)
+// ============================================================
+const branchStats = ref([])
+const branchStatsLoading = ref(false)
+
+async function loadBranchStats() {
+  if (auth.role !== 'admin') return
+  branchStatsLoading.value = true
+  try {
+    const d = await api('/api/branches/stats')
+    branchStats.value = (d && d.branches) || []
+  } catch { branchStats.value = [] }
+  finally { branchStatsLoading.value = false }
+}
+
+function openBranchReportPdf() {
+  window.open('/api/branches/report-pdf', '_blank')
+}
 
 const quick = computed(() => {
   const m = [
@@ -224,6 +245,35 @@ watch(queueTab, loadQueue)
     <template v-else>
       <div class="stat-grid">
         <StatCard v-for="c in cards" :key="c.label" :icon="c.icon" :label="c.label" :value="c.value" :color="c.color" />
+      </div>
+
+      <!-- Ringkasan Cabang (Admin) -->
+      <div v-if="isAdmin" class="card card-pad" style="margin-top:18px;">
+        <div class="row" style="flex-wrap:wrap;gap:8px;align-items:center;">
+          <h3 style="margin:0;">🏢 Ringkasan Cabang</h3>
+          <span class="muted" style="font-size:11px;">Transaksi, kunjungan hari ini &amp; user per cabang (multi-cabang)</span>
+          <div class="spacer"></div>
+          <button class="btn btn-sm" title="Unduh PDF ringkasan cabang" @click="openBranchReportPdf">📄 PDF</button>
+          <button class="btn btn-sm" :disabled="branchStatsLoading" @click="loadBranchStats">🔄</button>
+        </div>
+        <div v-if="branchStatsLoading" class="empty" style="padding:14px;">⏳ Memuat…</div>
+        <div class="table-wrap" v-else style="margin-top:10px;">
+          <table class="tbl">
+            <thead><tr><th>Kode</th><th>Nama Cabang</th><th>Database</th><th>Transaksi</th><th>Kunjungan Hari Ini</th><th>User</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr v-for="b in branchStats" :key="b.code">
+                <td><b>{{ b.code }}</b></td>
+                <td>{{ b.name }}</td>
+                <td class="muted">{{ b.db_name }}</td>
+                <td>{{ Number(b.transactions || 0).toLocaleString('id-ID') }}</td>
+                <td>{{ b.appointments_today }}</td>
+                <td>{{ b.users }}</td>
+                <td><span class="badge" :class="b.is_active ? 'badge-green' : 'badge-red'">{{ b.is_active ? 'Aktif' : 'Nonaktif' }}</span></td>
+              </tr>
+              <tr v-if="!branchStats.length"><td colspan="7" class="empty">Belum ada cabang terdaftar.</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <!-- Antrean Kerja -->

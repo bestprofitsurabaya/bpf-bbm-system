@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore, ROLE_META } from '../stores/auth'
+import { identity, companyCity } from '../stores/identity'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -42,8 +43,8 @@ async function submit() {
     <div class="login-card">
       <div class="login-brand">
         <img :src="brandIcon" alt="BPF" />
-        <h1>BPF WorkHub</h1>
-        <p>PT Bestprofit Futures · Surabaya</p>
+        <h1>{{ identity.system_name }}</h1>
+        <p>{{ identity.company_name }} · {{ companyCity() }}</p>
       </div>
 
       <div v-if="error" class="alert alert-error">{{ error }}</div>

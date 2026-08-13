@@ -82,9 +82,14 @@ def _current_user():
 
 
 def _user_team_name(username):
-    """Ambil team_name dari tabel users (fallback '' jika gagal)."""
+    """Ambil team_name dari tabel users (fallback '' jika gagal).
+
+    users tinggal di DB MASTER (multi-cabang) — jangan pernah membaca lewat
+    koneksi cabang (tabel users di DB cabang kosong).
+    """
     try:
-        conn = get_db_connection()
+        from modules.config import get_master_connection
+        conn = get_master_connection()
         if not conn:
             return ''
         cursor = conn.cursor(dictionary=True)
@@ -386,6 +391,97 @@ def register_appointment_routes(app):
                 'km': plan['totals']['km'],
                 'bbm_liter': plan['totals']['bbm_liter'],
                 'unassigned': plan['totals']['unassigned'],
+            })
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    # ================================================================
+    # RUTE MANUAL (v2.19) — chief driver menentukan sendiri driver + urutan
+    # kunjungan per appointment (tanpa algoritma). Keputusan 100% manual.
+    # Endpoint khusus role chief_driver ("tinggal chief driver").
+    # ================================================================
+    @app.route('/api/appointments/route-manual/apply', methods=['POST'])
+    @role_required(['chief_driver'])
+    def api_route_manual_apply():
+        try:
+            data = request.get_json(silent=True) or {}
+            target_date = str(data.get('date', '') or '').strip() or date.today().isoformat()
+            assignments = data.get('assignments') if isinstance(data.get('assignments'), list) else []
+            if not assignments:
+                return jsonify({'status': 'error', 'msg': 'Tidak ada penugasan untuk diterapkan'}), 400
+
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'status': 'error', 'msg': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+
+            cursor.execute("SELECT name FROM drivers WHERE is_active=TRUE")
+            valid_drivers = {r['name'] for r in cursor.fetchall()}
+
+            cursor.execute(
+                "SELECT id, display_id, status FROM appointments "
+                "WHERE appointment_date=%s AND status IN ('scheduled','assigned')",
+                (target_date,))
+            appts = {r['id']: r for r in cursor.fetchall()}
+
+            errors = []
+            updates = []  # (driver, order, appt_id, display_id)
+            for i, a in enumerate(assignments):
+                if not isinstance(a, dict):
+                    errors.append({'index': i, 'msg': 'Format penugasan tidak valid'}); continue
+                appt_id = a.get('id')
+                driver = str(a.get('driver_name', '') or '').strip().upper()
+                try:
+                    order = int(a.get('order')) if a.get('order') not in (None, '', 0) else None
+                except (TypeError, ValueError):
+                    order = None
+                if appt_id not in appts:
+                    errors.append({'index': i, 'id': appt_id,
+                                   'msg': 'Appointment tidak ditemukan / bukan pada tanggal ini'}); continue
+                row = appts[appt_id]
+                if not driver or driver not in valid_drivers:
+                    errors.append({'index': i, 'id': appt_id, 'display_id': row['display_id'],
+                                   'msg': f'Driver {driver or "-"} tidak aktif/terdaftar'}); continue
+                updates.append((driver, order, appt_id, row['display_id']))
+
+            total_assigned = 0
+            for driver, order, appt_id, display_id in updates:
+                cursor.execute(
+                    "UPDATE appointments SET driver_name=%s, route_order=%s, status='assigned', "
+                    "updated_at=NOW() WHERE id=%s AND status IN ('scheduled','assigned')",
+                    (driver, order, appt_id))
+                if cursor.rowcount:
+                    total_assigned += 1
+            conn.commit()
+            user = _current_user()
+            log_activity_async(0, 'appointment_route_manual_apply', user['role'],
+                               user['full_name'],
+                               new_data={'date': target_date, 'assigned': total_assigned,
+                                         'errors': len(errors)},
+                               ip=request.remote_addr)
+            cursor.close()
+            conn.close()
+
+            # Notifikasi per driver + realtime board
+            from modules.notifications import push_driver_notification
+            notified = {}
+            for driver, order, appt_id, display_id in updates:
+                notified.setdefault(driver, []).append(display_id)
+            for dname, ids in notified.items():
+                if ids:
+                    push_driver_notification(
+                        dname, 'appointment', 'route',
+                        f'🗺️ Rute manual {target_date}: {len(ids)} kunjungan ditugaskan '
+                        f'— cek urutan kunjungan Anda di aplikasi.', None)
+            emit_event('appointment_update',
+                       {'action': 'route_manual', 'date': target_date, 'assigned': total_assigned},
+                       room='appointments_board')
+            return jsonify({
+                'status': 'success',
+                'msg': f'Rute manual diterapkan: {total_assigned} kunjungan ditugaskan'
+                       + (f'; {len(errors)} dilewati' if errors else ''),
+                'assigned': total_assigned,
+                'errors': errors,
             })
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500

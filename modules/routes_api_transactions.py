@@ -88,9 +88,14 @@ def register_transaction_api(app):
     @app.route('/api/audit-logs')
     @role_required(['ga', 'finance', 'admin'])
     def api_audit_logs():
+        """Audit log. Bila ?branch=<code> diberikan (admin), lihat log dari DB cabang itu."""
         try:
-            conn = get_db_connection(); cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT id, transaction_id, action, user_type, user_name, created_at, ip_address FROM activity_logs ORDER BY created_at DESC LIMIT 500")
+            branch = request.args.get('branch', '').strip().upper()
+            conn = get_db_connection(branch_code=branch or None)
+            if not conn:
+                return jsonify({'error': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT id, transaction_id, action, user_type, user_name, created_at, ip_address, branch_code FROM activity_logs ORDER BY created_at DESC LIMIT 500")
             logs = cursor.fetchall(); cursor.close(); conn.close()
             return jsonify(logs)
         except Exception as e:

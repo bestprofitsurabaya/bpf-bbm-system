@@ -6,6 +6,154 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.20.2] - 2026-08-13
+
+### 🗂️ Filter Cabang di Audit Log
+
+- Dropdown **Filter Cabang** di `/app/logs`: "Cabang aktif" (default) atau cabang spesifik → `/api/audit-logs?branch=CODE` memfilter `activity_logs.branch_code`.
+
+### 🖨️ PDF Ringkasan per Cabang
+
+- **`GET /api/branches/report-pdf`** (admin): `BranchSummaryPDF` baru di `pdf_generator.py` — kop resmi + tabel per cabang (transaksi, kunjungan hari ini, user) dengan palet monokrom resmi.
+- Tombol **⬇️ PDF Ringkasan** di kartu Ringkasan Cabang (`/app/dashboard`).
+
+### 🧪 Seed data demo per cabang
+
+- **`POST /api/branches/<code>/seed-demo`** (admin): tanam rute + transaksi demo langsung ke DB cabang tertentu tanpa mengganti cabang aktif — idempoten (`DEMO-*` dilewati).
+- Tombol **✨ Demo** per baris cabang di kartu Cabang (`/app/settings`).
+- **Fix**: `seed_demo_appointments` membaca `users` dari **DB master** (bukan koneksi cabang) agar pengecekan marketing/driver tidak gagal di cabang baru.
+- **Audit**: `branch_seed_demo` kini dicatat dengan `branch_code` = **cabang target** (param baru `branch_code` di `log_activity_async`), bukan cabang sesi admin.
+- Terverifikasi live: seed MLG → 20 rute + 2 transaksi dummy, SBY tidak berubah; audit tercatat `branch_code=MLG`; PDF ringkasan 200 OK.
+
+### 🧪 Pengujian
+
+- **199 pytest** + **82 Vitest** hijau (test LogsView diperbarui untuk urutan select baru) · SPA di-build & image web di-rebuild.
+
+## [2.20.1] - 2026-08-13
+
+### 👥 Akun khusus cabang (diuji end-to-end)
+
+- User baru dibuat lewat **Buat Akun Sekaligus** kini otomatis dicatat dengan `branch_code` cabang aktif — akun **`bagus`** (driver) & **`dewi`** (marketing) untuk cabang **MLG** dibuat & **login terverifikasi masuk ke data MLG**: `/api/driver/me` → BAGUS N 777 ML (dari DB `bpf_branch_malang`), `/api/marketing/members` → Dewi.
+- **Fix multi-cabang**: `_user_team_name` (tim marketing) kini membaca `users` dari **DB master** (bukan koneksi cabang yang tabel `users`-nya kosong).
+
+### 📊 Ringkasan Cabang di dashboard Admin
+
+- **`GET /api/branches/stats`** (admin): transaksi, kunjungan hari ini & jumlah user per cabang — dihitung dari DB masing-masing cabang + user master per `branch_code` (cabang yang DB-nya tidak bisa dihubungi → 0, tidak menggagalkan laporan).
+- **UI**: kartu **🏢 Ringkasan Cabang** di `/app/dashboard` (khusus admin) — terverifikasi: SBY (135 tx, 22 kunjungan hari ini, 20 user) vs MLG (0/0/2).
+
+### 🧾 Audit log bertanda cabang
+
+- `activity_logs.branch_code` (migrasi otomatis di semua DB, termasuk cabang) — `log_activity_async` menangkap `session['branch_code']` di thread pemanggil lalu mencatatnya.
+- **UI Audit Log** (`/app/logs`) menampilkan kolom **Cabang**; endpoint `/api/audit-logs` menyertakan `branch_code`.
+- Terverifikasi: `login dewi/bagus`, `user_bulk_create`, `driver_sync`, `branch_switch` tercatat dengan `branch_code=MLG`.
+
+### 🧪 Pengujian
+
+- **197 pytest** (3 baru: audit branch_code, branch_stats) + **82 Vitest** hijau · SPA di-build & image web di-rebuild.
+
+## [2.20.0] - 2026-08-13
+
+### 🏢 Multi-Cabang — satu instalasi melayani banyak cabang (isolasi data penuh)
+
+- **Setiap cabang = database MySQL sendiri** (isolasi data penuh). DB master (`DB_NAME`) menyimpan `users`, `branches`, dan data operasional cabang utama; cabang baru memakai DB terpisah yang skemanya **disalin otomatis** dari master (`CREATE TABLE ... LIKE` + migrasi aplikasi).
+- **Modul baru `modules/branch_manager.py`**: registri cabang (`tabel branches`), CRUD, `ensure_branch_database()` (buat DB + salin skema + tanam identitas), cache resolusi cabang.
+- **Routing koneksi** di `modules/config.py`: `get_db_connection()` otomatis menunjuk ke DB cabang dari `session['branch_code']` (pool per-DB, lazy); `get_master_connection()` untuk data user/cabang.
+- **Login scoping**: `users.branch_code` (migrasi otomatis) → sesi mengarah ke DB cabang; cabang nonaktif → login ditolak 403.
+- **Endpoint cabang** (`modules/routes_branches.py`, admin): `GET /api/branches`, `POST /api/branches/save` (opsi langsung buat DB), `activate/deactivate`, `<code>/ensure-db`, `switch` (Admin bisa mengoperasikan cabang mana pun).
+- **UI `/app/settings` → kartu 🏢 Cabang**: daftar cabang, tambah/edit (kode, nama, DB, kota, alamat, telp, identitas), tombol DB/aktif-nonaktif, dan **pemilih cabang aktif** untuk Admin. Sidebar menampilkan badge cabang.
+- **Identitas per cabang**: kop surat & footer PDF, halaman login, sidebar, judul tab & watermark foto mengikuti cabang aktif (terverifikasi: cabang MLG → "Sistem Operasional | Malang").
+- **Catatan penyiapan**: user DB aplikasi butuh hak pada pola `bpf\_%` agar bisa membuat database cabang — `GRANT ALL PRIVILEGES ON \`bpf\_%\`.* TO 'bpf_user'@'%'` (dijalankan di DB dev).
+- **E2E terverifikasi**: cabang MLG dibuat (`bpf_branch_malang`, 40+ tabel), isolasi data terbukti (demo 0 di MLG vs 20 di SBY), switch bolak-balik tanpa gangguan.
+
+### 📇 Identitas cabang diperluas
+
+- Variabel baru `company_address` & `company_phone` (6 variabel total) — tampil di **kop surat PDF** (baris alamat | telp) dan dikelola di Settings (kartu Identitas + form Cabang).
+
+### 🚛 Verifikasi PWA driver dengan username baru (huruf kecil)
+
+- Login `guruh` / `akhad` / `wicak` (PIN 123456) via browser: profil benar, **kunjungan hari ini tampil** (GURUH→DEMO-R10, AKHAD→DEMO-R07), 4 tab berfungsi, **konsol 0 error**.
+
+### 🧪 Pengujian
+
+- **194 pytest** (10 baru: branches API, scoping login, routing DB; konvensi username & identitas diperbarui) + **82 Vitest** hijau · SPA di-build & image web di-rebuild.
+
+## [2.19.2] - 2026-08-13
+
+### 🔤 Nama akun driver dirapikan (username huruf kecil)
+
+- Konvensi akun baru dari **Buat Akun Sekaligus**: username **huruf kecil tanpa spasi** (mis. `WICAK` → `wicak`), `full_name` title-case (mis. `Wicak`).
+- **Script migrasi `scripts/tidy_driver_accounts.py`** (idempoten, aman konflik, mode `--dry-run`) — **7 akun driver existing dirapikan** di DB dev (ABIEM, AHMAD, AKHAD, DWIKI, GURUH, RIVAN, WICAK). Login driver dengan username baru **terverifikasi** & `/api/driver/me` tetap terhubung ke data kendaraan (sesi di-UPPER-kan → cocok dengan `drivers.name`).
+
+### 🧪 Data demo dikelola Admin (create & bersihkan)
+
+- **Endpoint admin baru**: `GET /api/demo/status`, `POST /api/demo/seed`, `POST /api/demo/clean` (scope `routes` / `transactions` / `all`, idempoten, audit log).
+  - Rute demo = appointment `display_id` berawalan `DEMO-` (20 lokasi Surabaya & sekitarnya + Madura/Jember/Probolinggo/Pasuruan).
+  - Transaksi demo = `transactions.is_dummy=1` (2 transaksi) + flag `dummy_data_enabled`.
+- **UI di `/app/settings` → kartu 🧪 Data Demo**: status jumlah rute & transaksi demo, tombol ✨ Buat dan 🧹 Bersihkan — data asli tidak pernah terpengaruh.
+- `scripts/seed_demo_routes.py` di-refactor jadi fungsi importable (`seed_demo_appointments` / `clean_demo_appointments`) — dipakai CLI & API.
+
+### 🏢 Identitas perusahaan / cabang bisa diubah Admin (siap multi-cabang)
+
+- **Variabel branding dinamis** di `system_config` (default ada, bisa diubah tanpa ubah kode): `company_name`, `company_subtitle`, `system_name`, `system_version`.
+- **Endpoint**: `GET /api/system-config/identity` (publik — untuk branding pra-login) & `PUT /api/system-config/identity` (admin).
+- **Dipakai otomatis di**: kop surat & footer **PDF** (semua laporan), **halaman login**, **sidebar**, **judul tab browser** (`document.title`) & **watermark foto** — terverifikasi PDF berganti identitas mengikuti config.
+- **UI di `/app/settings` → kartu 🏢 Identitas Perusahaan / Cabang**: 4 field + Simpan (langsung berlaku).
+- Modul baru `modules/company_identity.py` (get/save dengan fallback aman tanpa DB).
+
+### 🧪 Pengujian
+
+- **184 pytest** (9 baru: demo endpoints, identitas, konvensi username) + **82 Vitest** hijau · verifikasi browser nyata (Settings, login, konsol 0 error) · SPA di-build & image web di-rebuild.
+
+## [2.19.1] - 2026-08-13
+
+### 📄 Desain ulang PDF generator — compact, resmi, minimal warna
+
+- **Palet dokumen resmi (monokrom):** teks hitam pekat (`INK`), label abu, garis & border abu tipis, isian header tabel abu sangat terang (`HEADER_FILL`), zebra ultra-tipis — **tanpa blok/aksen biru, hijau, atau merah**.
+- **Header tabel seragam:** judul tabel kini hitam pekat + teks putih (sebelumnya biru `#2563eb`) di semua laporan: Rekap BBM, Laporan Pelamar, Laporan Aset, dan Log Perjalanan (export PDF trip di admin).
+- **Status verifikasi air minum:** `✔ TERVERIFIKASI` / `✘ DITOLAK` kini dicetak teks tebal hitam pekat (sebelumnya hijau/merah) — tetap jelas, tanpa warna.
+- **Kop surat & footer** dipertegas (garis `RULE` abu tua, teks ink) — kesan surat resmi.
+- **Satu halaman** untuk laporan compact (PDFReportCompact) — lebih ringkas.
+- **Tes:** 4 pytest baru (`tests/test_pdf_compact.py`) untuk `PDFReportCompact` & `BBMReportPDF` — **total 175 pytest hijau**, verifikasi render 5 kelas PDF dari image live (0 aksen warna, 1 halaman).
+
+## [2.19.0] - 2026-08-13
+
+### 🐛 Debugging menyeluruh halaman Driver + akun massal + rute manual + data demo rute
+
+**Dilakukan berdasarkan hasil gladi resik nyata di browser (Chrome headless):**
+
+- **🐛 Fix: tab "Trip" bocor ke semua tab lain di PWA driver** — `TripTab.vue` punya **dua root element** (fragment: `.tab-page` + modal hasil kunjungan), sehingga `v-show` di `DriverView` tidak bisa menyembunyikannya → konten Trip (form rute + jadwal appointment) selalu tampil di bawah tab BBM/Kasbon/Rapor. Kini template dibungkus **satu root** → 4 tab benar-benar terisolasi (terverifikasi display per tab di DOM).
+- **🐛 Fix: jendela notifikasi driver selalu muncul & tidak bisa ditutup** — panel `.notif-panel` di `DriverNotifBell.vue` dirender **tanpa syarat** (tidak ada `v-if="open"`) dan CSS-nya tidak menyembunyikan → menutupi ±88% layar HP. Kini panel hanya dirender saat dibuka; tombol ✕ / Esc / klik backdrop berfungsi.
+- **🐛 Fix: spam error server 1452 (FK)** — `log_activity_async(0, ...)` (dipakai banyak aksi tanpa transaksi terkait) meng-INSERT `transaction_id=0` yang ditolak foreign key `activity_logs.transaction_id` → membanjiri log container. Kini `tx_id 0` otomatis jadi `NULL` (tanpa referensi) — log server bersih.
+- **🐛 Fix: warning konsol meta PWA** — `<meta name="apple-mobile-web-app-capable">` deprecated; diganti `mobile-web-app-capable`.
+
+### 👥 Buat Akun Sekaligus (admin, `/app/settings`)
+
+- **Endpoint `POST /api/users/bulk-create`** (admin; idempoten — akun yang sudah ada dilewati, PIN default 123456):
+  - `scope=driver` → **seluruh driver aktif** di tabel `drivers` yang belum punya akun (username = nama driver, role `driver`).
+  - `scope=marketing` → **seluruh user di dropdown marketing** (`marketing_members`) yang belum punya akun (role `marketing`, `team_name` ikut diset).
+- **UI di Settings**: tombol `🚗 Buat Akun Semua Driver` & `📣 Buat Akun User Marketing` + modal hasil (akun dibuat / dilewati + alasan) + audit `user_bulk_create`.
+- **✅ Dijalankan di DB dev**: **7 akun dibuat** — ABIEM, AHMAD, AKHAD, DWIKI, GURUH, WICAK (driver) + **Icang** (marketing, tim Yusie); RIVAN dilewati (sudah ada). Semua PIN `123456`, terverifikasi login.
+
+### 🖐️ Atur Rute Manual (Chief Driver) — otomatis tetap ada
+
+- **⚡ Atur Rute Otomatis (v2.15) dibiarkan utuh.**
+- **Endpoint `POST /api/appointments/route-manual/apply`** (khusus role **chief_driver** — GA/Admin → 403): chief driver menentukan **sendiri** driver + **no. urut kunjungan** per appointment pada satu tanggal (tanpa algoritma). Validasi: driver aktif, appointment pada tanggal tsb & berstatus scheduled/assigned; baris tidak valid dilewati dengan laporan. Menulis `driver_name`+`route_order`+`status='assigned'`, notifikasi 🗺️ ke tiap driver, event realtime, audit `appointment_route_manual_apply`.
+- **UI di board Chief Driver**: tombol `🖐️ Atur Rute Manual` → modal daftar appointment (scheduled+assigned) dengan dropdown driver + input no. urut (default urut per sesi) → `✅ Terapkan Rute Manual`.
+- **Terverifikasi E2E**: 4 appointment ditugaskan via API (GURUH/WICAK/ABIEM/AKHAD, order 1) + DB ter-update; GA ditolak 403.
+
+### 🗺️ Data demo rute diperkaya
+
+- **`scripts/seed_demo_routes.py`** (idempoten, koordinat ditanam langsung): **20 appointment demo** untuk hari ini — Surabaya dalam kota (Pusat/Barat/Utara/Timur/Selatan), sekitar Surabaya (Sidoarjo, Gresik, Mojokerto, Lamongan) dan **luar kota** (Madura–Bangkalan & Sampang, **Jember, Probolinggo, Pasuruan**) — siap diuji dengan Atur Rute Otomatis & Manual (route-plan: 22 kunjungan, 522 km, hemat ±29,7%).
+- **Bonus**: `modules/config.py` membaca `DB_PORT` (untuk script seed dari host).
+
+### 🧪 Pengujian
+
+- **pytest +11 → total 171 hijau** (`tests/test_bulk_accounts_manual_route.py`): bulk-create (driver+marketing, scope per jenis, skip akun ada, PIN/scope invalid, non-admin 403) + rute manual (apply, uppercase driver, driver nonaktif dilewati, appointment di luar tanggal dilewati, tanpa data 400, non-chief 403).
+- **Vitest 82 hijau** + `npm run build` sukses → `static/app` diperbarui (bind-mount langsung live).
+- **Verifikasi browser nyata**: 4 tab driver terisolasi (tidak ada konten Trip di tab lain) · panel notifikasi tersembunyi & bisa ditutup · modal 🖐️ Atur Rute Manual menampilkan 22 baris + dropdown driver · UI Buat Akun Sekaligus tampil · **konsol 100% bersih**.
+
+---
+
 ## [2.18.0] - 2026-08-13
 
 ### 🔧 Aset & Pemeliharaan (migrasi dari bpf-asset-system) — role GA/Admin

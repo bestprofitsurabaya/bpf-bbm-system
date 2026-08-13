@@ -1,4 +1,4 @@
-# 🏢 BPF WorkHub v2.18.0 (SPA Vue 3 penuh — 100% Vue)
+# 🏢 BPF WorkHub v2.20.2 (SPA Vue 3 penuh — 100% Vue)
 
 **Sistem Manajemen Armada, Klaim BBM, Kasbon, Log Perjalanan, Appointment & Air Minum**  
 **PT. Bestprofit Futures - Surabaya**
@@ -6,6 +6,75 @@
 ---
 
 Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pengarsipan klaim BBM, **pengajuan kasbon dengan kode unik**, dan log perjalanan harian (logsheet) dengan workflow GA → Finance → Archive. Dilengkapi **sistem appointment canggih** (Marketing → Chief Driver → Log Perjalanan), deteksi anomali Machine Learning, GPS tracking, **watermark foto otomatis**, PIN security, **session-based login & role-based access**, **CSRF protection**, **notifikasi real-time**, import Excel, audit trail, Chart.js visualization, **PWA offline-first**, dan **WebSocket real-time**.
+
+---
+
+## 🆕 Fitur Terbaru v2.20.2 — Filter Audit, PDF Ringkasan Cabang, Seed Demo per Cabang
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **🗂️ Filter Cabang (Audit)** | `/app/logs` punya dropdown cabang — "Cabang aktif" atau cabang spesifik; `activity_logs.branch_code` jadi sumber filter |
+| **🖨️ PDF Ringkasan per Cabang** | `GET /api/branches/report-pdf` — laporan resmi per cabang (transaksi, kunjungan, user) dengan kop identitas cabang; tombol di `/app/dashboard` |
+| **🧪 Seed demo per cabang** | Admin tanam rute + transaksi demo langsung ke DB cabang mana pun (tombol ✨ Demo di `/app/settings`); idempoten; audit mencatat cabang target |
+| **🧪 Test** | 199 pytest + 82 Vitest |
+
+---
+
+## 🆕 Fitur Terbaru v2.20.1 — Akun Cabang, Ringkasan Cabang, Audit Bertanda Cabang
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **👥 Akun khusus cabang** | Akun dari Buat Akun Sekaligus otomatis memakai `branch_code` cabang aktif — contoh: `bagus` (driver) & `dewi` (marketing) login langsung masuk data cabang MLG |
+| **📊 Ringkasan Cabang (Admin)** | `/app/dashboard` menampilkan transaksi, kunjungan hari ini & user per cabang (`GET /api/branches/stats`) |
+| **🧾 Audit bertanda cabang** | `activity_logs.branch_code` — setiap aktivitas tercatat dengan kode cabang asal; ditampilkan di `/app/logs` |
+| **🧪 Test** | 197 pytest (3 baru) + 82 Vitest |
+
+---
+
+## 🆕 Fitur Terbaru v2.20.0 — Multi-Cabang (Satu Instalasi, Banyak Cabang)
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **🏢 Multi-cabang** | Setiap cabang punya **database sendiri** (isolasi data penuh); Admin daftar cabang di `/app/settings`, DB dibuat & skemanya disalin otomatis; login men-scope ke DB cabang (`users.branch_code`); Admin bisa **ganti cabang aktif** langsung dari UI |
+| **📇 Identitas cabang diperluas** | 6 variabel (nama, subjudul, sistem, versi, **alamat**, **telp**) — muncul di kop PDF, login, sidebar & watermark |
+| **🚛 PWA driver terverifikasi** | Login `guruh`/`akhad`/`wicak` → kunjungan hari ini tampil, 4 tab jalan, konsol 0 error |
+| **🧪 Test** | 194 pytest (10 baru) + 82 Vitest |
+
+> **Catatan penyiapan multi-cabang:** user DB aplikasi perlu hak pada pola nama database cabang, mis. `GRANT ALL PRIVILEGES ON \`bpf\_%\`.* TO 'bpf_user'@'%'` — jalankan sekali sebagai root DB.
+
+---
+
+## 🆕 Fitur Terbaru v2.19.2 — Akun Rapi, Data Demo Admin, Multi-Cabang
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **🔤 Nama akun driver rapi** | Username huruf kecil tanpa spasi (WICAK → `wicak`) + nama title-case; 7 akun existing di-migrasi via `scripts/tidy_driver_accounts.py` (idempoten, `--dry-run`) |
+| **🧪 Data demo dikelola Admin** | `/app/settings`: buat ✨ & bersihkan 🧹 data demo (20 rute appointment `DEMO-*` + transaksi dummy) — data asli aman, endpoint `GET/POST /api/demo/{status,seed,clean}` |
+| **🏢 Identitas perusahaan dinamis (multi-cabang)** | `company_name`, `company_subtitle`, `system_name`, `system_version` bisa diubah Admin — otomatis dipakai PDF, login, sidebar, judul tab & watermark foto (`GET/PUT /api/system-config/identity`) |
+| **🧪 Test** | 184 pytest (9 baru) + 82 Vitest + verifikasi browser nyata |
+
+---
+
+## 🆕 Fitur Terbaru v2.19.1 — Desain Ulang PDF Resmi
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **📄 PDF generator compact & resmi** | Palet monokrom (hitam/abu/putih) tanpa aksen biru/hijau/merah di semua laporan: Rekap BBM, Laporan Pelamar, Laporan Aset, Tanda Terima Air Minum, Log Perjalanan & laporan transaksi — kop surat + garis tegas, 1 halaman untuk laporan compact |
+| **🧪 Test** | 175 pytest (4 PDF baru) — semua hijau, render terverifikasi dari image live |
+
+---
+
+## 🆕 Fitur Terbaru v2.19.0 — Debug Driver, Akun Massal, Rute Manual
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **🐛 Tab Trip PWA driver diperbaiki** | Konten tab Trip sebelumnya bocor ke semua tab (fragment root membuat `v-show` tidak bekerja) — kini 4 tab terisolasi bersih |
+| **🐛 Jendela notifikasi driver diperbaiki** | Panel notifikasi yang selalu menutupi layar & tak bisa ditutup kini hanya muncul saat dibuka (✕/Esc/backdrop berfungsi) |
+| **🐛 Log server dibersihkan** | `log_activity_async(0, ...)` gagal FK `activity_logs.transaction_id` (spam 1452) — kini `tx_id 0` → NULL |
+| **👥 Buat Akun Sekaligus (admin)** | Tombol di `/app/settings`: buat akun login (PIN 123456) untuk **semua driver aktif** & **semua user di dropdown marketing** yang belum punya akun — idempoten, audit log |
+| **🖐️ Atur Rute Manual (Chief Driver)** | Mode manual di board Chief Driver: tentukan sendiri driver + no. urut kunjungan per appointment (otomatis ⚡ tetap tersedia) — endpoint khusus role `chief_driver` (GA/Admin → 403) |
+| **🗺️ Data demo rute diperkaya** | 20 appointment demo (script `scripts/seed_demo_routes.py`): Surabaya dalam kota & sekitarnya (Sidoarjo, Gresik, Mojokerto, Lamongan) + luar kota (Madura, Jember, Probolinggo, Pasuruan) dengan koordinat langsung |
+| **🧪 Test** | 171 pytest (11 baru) + 82 Vitest + verifikasi browser nyata (tab, notifikasi, rute manual, konsol bersih) |
 
 ---
 
@@ -385,8 +454,8 @@ Marketing 📣 → Chief Driver 🚛 → Driver 🗺️ → GA ✅
 ## 📦 Quick Start
 
 ```bash
-git clone https://github.com/bestprofitsurabaya/bpf-bbm-system.git
-cd bpf-bbm-system
+git clone https://github.com/bestprofitsurabaya/bpf-workhub.git
+cd bpf-workhub
 docker compose up -d
 ```
 
@@ -457,7 +526,7 @@ Default Credentials
 ## 📁 Project Structure
 
 ```
-bpf-bbm-system/
+bpf-workhub/
 ├── app.py                          # Main entry point (auth, CSRF, SocketIO)
 ├── init.sql                        # Schema + data awal (termasuk tabel notifications)
 ├── modules/

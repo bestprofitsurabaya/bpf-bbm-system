@@ -1,6 +1,6 @@
 """API Routes - Master Data (Vehicles, BBM, Drivers, Users)"""
 from flask import request, jsonify, session
-from modules.config import get_db_connection
+from modules.config import get_db_connection, get_master_connection
 from modules.helpers import (finalize_pin, log_activity_async, resolve_user_pin, role_required,
                              pin_rate_check, pin_fail, pin_success, client_ip)
 
@@ -111,7 +111,7 @@ def register_master_api(app):
             new_pin = str(data.get('new_pin', '123456') or '123456').strip()
             if not new_pin.isdigit() or len(new_pin) != 6:
                 return jsonify({'status': 'error', 'msg': 'PIN harus 6 digit angka'}), 400
-            conn = get_db_connection()
+            conn = get_master_connection()
             if not conn:
                 return jsonify({'status': 'error', 'msg': 'DB error'}), 500
             cursor = conn.cursor()
@@ -135,7 +135,7 @@ def register_master_api(app):
     @role_required(['admin'])
     def api_users():
         try:
-            conn = get_db_connection(); cursor = conn.cursor(dictionary=True)
+            conn = get_master_connection(); cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT id, username, full_name, role, team_name, is_active, last_login FROM users ORDER BY role, username")
             data = cursor.fetchall(); cursor.close(); conn.close()
             return jsonify(data)
@@ -168,7 +168,7 @@ def register_master_api(app):
                     from modules.helpers import get_or_create_team
                     team = get_or_create_team(team)
 
-            conn = get_db_connection(); cursor = conn.cursor()
+            conn = get_master_connection(); cursor = conn.cursor()
             if team is None or pin is None:
                 cursor.execute("SELECT team_name, pin FROM users WHERE username=%s", (u,))
                 row = cursor.fetchone()
@@ -183,6 +183,106 @@ def register_master_api(app):
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
 
+    @app.route('/api/users/bulk-create', methods=['POST'])
+    @role_required(['admin'])
+    def bulk_create_user_accounts():
+        """Buat akun login sekaligus (PIN default 123456) untuk:
+
+        - scope 'driver'   : seluruh driver AKTIF di tabel `drivers`
+                             yang belum punya akun users (username = nama driver).
+        - scope 'marketing': seluruh anggota AKTIF di tabel `marketing_members`
+                             (dropdown User di form marketing) yang belum punya akun
+                             (username = nama anggota, team_name ikut diset).
+        - scope 'all'      : keduanya.
+
+        Idempoten — akun yang sudah ada dilewati (tidak menimpa PIN/role).
+        Username dirapikan: huruf kecil tanpa spasi (mis. WICAK → `wicak`),
+        full_name memakai huruf kapital awal (title-case, mis. `Wicak`).
+        Audit trail: user_bulk_create.
+        """
+        try:
+            data = request.get_json(silent=True) or {}
+            scope = str(data.get('scope', 'all') or 'all').strip().lower()
+            new_pin = str(data.get('pin', '123456') or '123456').strip()
+            if scope not in ('driver', 'marketing', 'all'):
+                return jsonify({'status': 'error', 'msg': 'Scope tidak valid (driver/marketing/all)'}), 400
+            if not new_pin.isdigit() or len(new_pin) != 6:
+                return jsonify({'status': 'error', 'msg': 'PIN harus 6 digit angka'}), 400
+
+            # Data driver/marketing dibaca dari DB cabang aktif (sesi);
+            # akun users ditulis ke DB master dengan branch_code cabang aktif.
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'status': 'error', 'msg': 'DB error'}), 500
+            mconn = get_master_connection()
+            if not mconn:
+                conn.close()
+                return jsonify({'status': 'error', 'msg': 'DB master error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            mcur = mconn.cursor(dictionary=True)
+            from modules.branch_manager import DEFAULT_BRANCH_CODE
+            branch_code = session.get('branch_code') or DEFAULT_BRANCH_CODE
+
+            created = []
+            skipped = []
+
+            def _tidy_username(raw):
+                """Username rapi: huruf kecil, tanpa spasi/karakter aneh."""
+                import re
+                return re.sub(r'[^a-z0-9_.]', '', (raw or '').strip().lower())
+
+            def _tidy_fullname(raw):
+                """Nama tampilan rapi: title-case (mis. WICAK → Wicak)."""
+                return (raw or '').strip().title()
+
+            def _create(name, role, team=''):
+                username = _tidy_username(name)
+                full_name = _tidy_fullname(name)
+                if not username:
+                    skipped.append({'name': name or '?', 'reason': 'nama kosong'})
+                    return
+                mcur.execute("SELECT id FROM users WHERE username=%s", (username,))
+                if mcur.fetchone():
+                    skipped.append({'name': username, 'reason': 'akun sudah ada'})
+                    return
+                mcur.execute(
+                    "INSERT INTO users (username, full_name, role, pin, team_name, branch_code, is_active) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, 1)",
+                    (username, full_name[:100], role, new_pin, (team or '')[:100], branch_code))
+                created.append({'username': username, 'role': role, 'team': team or '', 'branch_code': branch_code})
+
+            if scope in ('driver', 'all'):
+                cursor.execute(
+                    "SELECT name FROM drivers WHERE is_active=TRUE "
+                    "AND name IS NOT NULL AND TRIM(name) <> '' ORDER BY name")
+                for row in cursor.fetchall():
+                    _create(row['name'], 'driver')
+
+            if scope in ('marketing', 'all'):
+                cursor.execute(
+                    "SELECT member_name, team_name FROM marketing_members "
+                    "WHERE is_active=1 ORDER BY team_name, member_name")
+                for row in cursor.fetchall():
+                    _create(row['member_name'], 'marketing', row['team_name'])
+
+            mconn.commit()
+            actor = session.get('full_name') or session.get('user_name') or 'Admin'
+            log_activity_async(0, 'user_bulk_create', 'admin', actor,
+                               new_data={'scope': scope, 'created': len(created),
+                                         'skipped': len(skipped), 'pin': new_pin,
+                                         'branch_code': branch_code},
+                               ip=request.remote_addr)
+            cursor.close(); conn.close()
+            mcur.close(); mconn.close()
+            return jsonify({
+                'status': 'success',
+                'msg': f'{len(created)} akun dibuat (PIN {new_pin}); {len(skipped)} dilewati',
+                'created': created,
+                'skipped': skipped,
+            })
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
     @app.route('/api/users/reset-pin', methods=['POST'])
     @role_required(['admin'])
     def reset_user_pin():
@@ -191,7 +291,7 @@ def register_master_api(app):
             username = data.get('username', '').strip(); new_pin = data.get('new_pin', '').strip()
             if not username or not new_pin or len(new_pin) != 6:
                 return jsonify({'status': 'error', 'msg': 'Username dan PIN 6-digit wajib'}), 400
-            conn = get_db_connection(); cursor = conn.cursor()
+            conn = get_master_connection(); cursor = conn.cursor()
             cursor.execute("UPDATE users SET pin = %s WHERE username = %s", (new_pin, username))
             affected = cursor.rowcount; conn.commit(); cursor.close(); conn.close()
             if affected > 0:
@@ -211,7 +311,7 @@ def register_master_api(app):
             data = request.get_json()
             username = data.get('username', '').strip(); pin = data.get('pin', '').strip()
             if not username or not pin: return jsonify({'status': 'error', 'msg': 'Username dan PIN wajib'}), 400
-            conn = get_db_connection(); cursor = conn.cursor(dictionary=True)
+            conn = get_master_connection(); cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM users WHERE username=%s AND pin=%s AND is_active=TRUE", (username, pin))
             user = cursor.fetchone()
             if user:
@@ -326,5 +426,141 @@ def register_master_api(app):
             cursor.close(); conn.close()
             log_activity_async(0, 'config_update', 'admin', 'Admin', new_data={config_key: value})
             return jsonify({'status': 'success', 'msg': f'Konfigurasi {config_key} disimpan'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    # ================================================================
+    # IDENTITAS PERUSAHAAN / CABANG (v2.19.2) — multi-cabang
+    # Variabel branding (nama perusahaan, subjudul, nama sistem, versi)
+    # bisa diubah Admin di /app/settings; dipakai PDF, login, sidebar,
+    # watermark foto & judul dokumen.
+    # ================================================================
+    @app.route('/api/system-config/identity')
+    def api_identity_get():
+        """GET publik: identitas perusahaan/cabang (untuk branding pra-login)."""
+        try:
+            from modules.company_identity import get_company_identity
+            return jsonify(get_company_identity())
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/system-config/identity', methods=['PUT'])
+    @role_required(['admin'])
+    def api_identity_put():
+        """PUT admin: simpan identitas perusahaan/cabang (semua/beberapa key)."""
+        try:
+            from modules.company_identity import save_company_identity
+            data = request.get_json(silent=True) or {}
+            saved = save_company_identity(data)
+            if not saved:
+                return jsonify({'status': 'error',
+                                'msg': 'Tidak ada key identitas valid (company_name/company_subtitle/system_name/system_version)'}), 400
+            actor = session.get('full_name') or session.get('user_name') or 'Admin'
+            log_activity_async(0, 'identity_update', 'admin', actor,
+                               new_data=saved, ip=request.remote_addr)
+            return jsonify({'status': 'success', 'msg': 'Identitas perusahaan disimpan', 'identity': saved})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    # ================================================================
+    # DATA DEMO (v2.19.2) — dibuat & dibersihkan Admin (flexible)
+    # - Rute demo  : appointment display_id berawalan 'DEMO-'
+    # - Transaksi demo : transactions.is_dummy = 1
+    # ================================================================
+    DEMO_TX_SQL = """INSERT IGNORE INTO transactions
+        (driver_name, nopol, vehicle_type, bbm_type, nominal, liter, price_per_liter,
+         odo_km, spbu_type, status, km_per_liter, jumlah_appointment, is_dummy, gps_address)
+        VALUES
+        ('AKHAD','L 1413 CBI','AVANZA','PERTALITE',200000,20.00,10000,12936,'rekanan','archived',12.50,3,1,'Jl. Raya Darmo 45, Surabaya'),
+        ('AHMAT','B 2628 SRP','INNOVA','PERTAMAX',270000,20.00,13500,71126,'rekanan','archived',10.20,5,1,'Jl. Ahmad Yani 120, Surabaya')"""
+
+    def _valid_scope(scope):
+        return scope in ('routes', 'transactions', 'all')
+
+    @app.route('/api/demo/status')
+    @role_required(['admin'])
+    def api_demo_status():
+        """Status data demo: jumlah appointment rute demo & transaksi dummy."""
+        try:
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'error': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT COUNT(*) AS c FROM appointments WHERE display_id LIKE 'DEMO-%'")
+            demo_appts = cursor.fetchone()['c'] or 0
+            cursor.execute("SELECT COUNT(*) AS c FROM transactions WHERE is_dummy=1")
+            demo_tx = cursor.fetchone()['c'] or 0
+            cursor.execute("SELECT config_value FROM system_config WHERE config_key='dummy_data_enabled'")
+            row = cursor.fetchone()
+            cursor.close(); conn.close()
+            return jsonify({
+                'demo_appointments': demo_appts,
+                'demo_transactions': demo_tx,
+                'dummy_enabled': row['config_value'] == 'true' if row else False,
+            })
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/demo/seed', methods=['POST'])
+    @role_required(['admin'])
+    def api_demo_seed():
+        """Buat data demo (idempoten): scope routes / transactions / all."""
+        try:
+            data = request.get_json(silent=True) or {}
+            scope = str(data.get('scope', 'all') or 'all').strip().lower()
+            if not _valid_scope(scope):
+                return jsonify({'status': 'error', 'msg': 'Scope tidak valid (routes/transactions/all)'}), 400
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'status': 'error', 'msg': 'DB error'}), 500
+            cursor = conn.cursor()
+            summary = {'routes': 0, 'transactions': 0, 'skipped_routes': 0, 'error': None}
+            if scope in ('routes', 'all'):
+                from scripts.seed_demo_routes import seed_demo_appointments
+                res = seed_demo_appointments(conn=conn, commit=False)
+                summary['routes'] = res['created']
+                summary['skipped_routes'] = res['skipped']
+                summary['error'] = res['error']
+            if scope in ('transactions', 'all'):
+                cursor.execute(DEMO_TX_SQL)
+                summary['transactions'] = cursor.rowcount
+                cursor.execute("INSERT INTO system_config (config_key, config_value) VALUES ('dummy_data_enabled','true') ON DUPLICATE KEY UPDATE config_value=VALUES(config_value)")
+            conn.commit()
+            cursor.close(); conn.close()
+            if summary['error']:
+                return jsonify({'status': 'error', 'msg': summary['error']}), 400
+            actor = session.get('full_name') or session.get('user_name') or 'Admin'
+            log_activity_async(0, 'demo_seed', 'admin', actor, new_data=summary, ip=request.remote_addr)
+            return jsonify({'status': 'success', 'msg': 'Data demo dibuat', 'summary': summary})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    @app.route('/api/demo/clean', methods=['POST'])
+    @role_required(['admin'])
+    def api_demo_clean():
+        """Bersihkan data demo: scope routes / transactions / all (idempoten)."""
+        try:
+            data = request.get_json(silent=True) or {}
+            scope = str(data.get('scope', 'all') or 'all').strip().lower()
+            if not _valid_scope(scope):
+                return jsonify({'status': 'error', 'msg': 'Scope tidak valid (routes/transactions/all)'}), 400
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'status': 'error', 'msg': 'DB error'}), 500
+            cursor = conn.cursor()
+            summary = {'routes': 0, 'transactions': 0}
+            if scope in ('routes', 'all'):
+                from scripts.seed_demo_routes import clean_demo_appointments
+                res = clean_demo_appointments(conn=conn, commit=False)
+                summary['routes'] = res['deleted']
+            if scope in ('transactions', 'all'):
+                cursor.execute("DELETE FROM transactions WHERE is_dummy=1")
+                summary['transactions'] = cursor.rowcount
+                cursor.execute("INSERT INTO system_config (config_key, config_value) VALUES ('dummy_data_enabled','false') ON DUPLICATE KEY UPDATE config_value=VALUES(config_value)")
+            conn.commit()
+            cursor.close(); conn.close()
+            actor = session.get('full_name') or session.get('user_name') or 'Admin'
+            log_activity_async(0, 'demo_clean', 'admin', actor, new_data=summary, ip=request.remote_addr)
+            return jsonify({'status': 'success', 'msg': 'Data demo dibersihkan', 'summary': summary})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500

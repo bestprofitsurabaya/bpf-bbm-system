@@ -223,6 +223,13 @@ def test_e2e_login_tetap_berhasil_saat_pool_habis(monkeypatch):
     monkeypatch.setattr(config, 'db_pool', _PoolHabis())
     monkeypatch.setattr(config, 'MySQLConnection', lambda **kw: _FakeConn())
 
+    # Multi-cabang: user tanpa branch_code → cabang default; stub lookup cabang
+    # (fokus test ini adalah fail-open saat pool habis, bukan logika cabang).
+    import modules.branch_manager as bm
+    monkeypatch.setattr(bm, 'get_branch', lambda code: {
+        'code': 'SBY', 'name': 'Kantor Pusat Surabaya', 'is_active': 1,
+        'db_name': 'bpf_asset_system'})
+
     from modules.routes_spa import register_spa_routes
     app = Flask(__name__)
     app.secret_key = 'test-secret'
