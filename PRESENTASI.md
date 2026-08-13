@@ -254,6 +254,7 @@
 | "Bisa integrasi Excel?" | Sudah: export CSV rekap air minum, export Excel logsheet & rekap harian. |
 | "Apakah ini bisa dipakai untuk cabang lain?" | Ya — tinggal tambah pengguna & data master; alurnya sama. |
 | "Data pelamar masih lewat Google Form?" | Tidak — sudah diganti form internal; **914 riwayat Google Sheet lama sudah dimigrasikan**, kolom User dropdown diatur Receptionist, kehadiran training 4 hari, laporan PDF resmi. |
+| "Ada aplikasi aset terpisah (Streamlit)?" | Sudah **dimigrasikan total** ke WorkHub — 15 AC + 8 kendaraan asli + 12 komponen, health score & rekomendasi servis otomatis, laporan PDF di role GA. Satu aplikasi, satu login. |
 | "Upline bisa lihat rekrutannya?" | Ya — Traineer membuka halamannya, otomatis hanya rekrutan dengan UPLINE miliknya. |
 
 ---

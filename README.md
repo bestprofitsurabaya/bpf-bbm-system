@@ -1,4 +1,4 @@
-# 🏢 BPF WorkHub v2.17.0 (SPA Vue 3 penuh — 100% Vue)
+# 🏢 BPF WorkHub v2.18.0 (SPA Vue 3 penuh — 100% Vue)
 
 **Sistem Manajemen Armada, Klaim BBM, Kasbon, Log Perjalanan, Appointment & Air Minum**  
 **PT. Bestprofit Futures - Surabaya**
@@ -9,14 +9,26 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 
 ---
 
-## 🆕 Fitur Terbaru v2.17.0 — Migrasi Google Sheet + Dropdown User
+## 🆕 Fitur Terbaru v2.18.0 — Aset & Pemeliharaan (GA)
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **🔧 Halaman Aset `/app/assets`** | Pemeliharaan **15 unit AC kantor** + **8 kendaraan asli** (Innova B 1126 DFC + 7 Avanza) + **12 komponen** — role GA/Admin (migrasi total dari bpf-asset-system/Streamlit) |
+| **❄️ Log servis AC** | Parameter teknikal (ampere, tekanan, delta T) → **health score otomatis 0–100**, biaya sparepart, jadwal servis berikutnya |
+| **🚗 Log servis kendaraan** | Per komponen (odometer, umur pakai km/bulan vs standar master, biaya, montir) — terhubung kendaraan BBM |
+| **📋 Rekomendasi otomatis** | Aturan (bukan ML berat): AC > 90 hari tanpa servis / health rendah; komponen melewati umur pakai → prioritas Kritis/Tinggi/Sedang + tandai selesai |
+| **📄 Laporan PDF berlogo BPF** | Laporan AC & kendaraan + TTD General Affairs |
+| **🧪 Test** | 160 pytest (9 baru: `test_assets.py`) + verifikasi browser 8/8 + gladi resik 20/20 + 13/13 + 8/8 + 12/12 |
+
+---
+
+## ✨ Fitur Sebelumnya — v2.17 Migrasi Google Sheet + Dropdown User
 
 | Fitur | Deskripsi |
 |-------|-----------|
 | **🗄️ Data dari Google Sheet** | **914 riwayat pelamar** dari Google Spreadsheet lama dipindahkan ke database internal (DB di-reset — kini **bersih, hanya data Google Sheet**): kehadiran H1–H4 & tanggal, status mengikuti tahap terjauh, Pulang → `resigned` dengan alasan |
 | **🔽 Kolom User = dropdown** | Form pelamar & edit Receptionist memakai dropdown dari tabel `applicant_user_options` — **diatur Receptionist** lewat tombol **⚙️ Kelola User** (tambah / aktif-nonaktif / hapus, audit log) |
 | **📥 Migrasi terotomasi** | `scripts/migrate_applicants_sheet.py` — baca CSV ekspor sheet, normalisasi spasi, isi `applicants` + `applicant_attendance` |
-| **🧪 Test** | 151 pytest (3 baru: `TestSheetMigration`) + verifikasi browser 12/12 konsol bersih + gladi resik 20/20 + 13/13 + 8/8 |
 
 ---
 
@@ -392,6 +404,7 @@ Aplikasi diakses publik melalui **domain permanen** `nasbpfsby.duckdns.org` (HTT
 | **📝 Form Pelamar (publik)** | `https://nasbpfsby.duckdns.org:5000/app/apply` |
 | **🪪 Receptionist** | `https://nasbpfsby.duckdns.org:5000/app/receptionist` |
 | **🎯 Traineer** | `https://nasbpfsby.duckdns.org:5000/app/traineer` |
+| **🔧 Aset & Pemeliharaan** | `https://nasbpfsby.duckdns.org:5000/app/assets` |
 | **📱 Driver PWA** | `https://nasbpfsby.duckdns.org:5000/app/driver` |
 | Dashboard Admin | `https://nasbpfsby.duckdns.org:5000/app/dashboard` |
 | GA Assignments | `https://nasbpfsby.duckdns.org:5000/app/assignments` |
@@ -414,6 +427,7 @@ Aplikasi diakses publik melalui **domain permanen** `nasbpfsby.duckdns.org` (HTT
 | **Form Pelamar (publik)** | http://localhost:5001/app/apply | Tanpa login |
 | **Pelamar Kerja (Receptionist)** | http://localhost:5001/app/receptionist | Receptionist, Admin |
 | **Rekrutan Saya (Traineer)** | http://localhost:5001/app/traineer | Traineer |
+| **Aset & Pemeliharaan** | http://localhost:5001/app/assets | GA, Admin |
 | Dashboard | http://localhost:5001/app/dashboard | GA, Finance, Admin |
 | GA Assignments | http://localhost:5001/app/assignments | GA |
 | Rekap | http://localhost:5001/app/rekap | Finance, Admin |

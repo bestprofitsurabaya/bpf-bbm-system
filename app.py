@@ -75,6 +75,7 @@ from modules.routes_auth import register_auth_routes
 from modules.routes_appointments import register_appointment_routes
 from modules.routes_water import register_water_routes
 from modules.routes_applicants import register_applicant_routes
+from modules.routes_assets import register_asset_routes
 from modules.routes_spa import register_spa_routes
 
 register_driver_routes(app, socketio)
@@ -90,6 +91,7 @@ register_notification_routes(app)
 register_appointment_routes(app)
 register_water_routes(app)
 register_applicant_routes(app)
+register_asset_routes(app)
 register_spa_routes(app)
 
 # ================================================================

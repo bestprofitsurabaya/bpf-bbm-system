@@ -2,7 +2,7 @@
 import os
 import re
 import io
-from datetime import datetime
+from datetime import datetime, date
 from fpdf import FPDF
 
 # ============================================================
@@ -707,3 +707,122 @@ class ApplicantReportPDF(BPFBasePDF):
             self.ln()
             fill = not fill
         self.ln(3)
+
+
+class AssetReportPDF(BPFBasePDF):
+    """Laporan Aset & Pemeliharaan (v2.18) — AC kantor atau kendaraan.
+
+    Dipakai GA/Admin: daftar aset + log servis terakhir per unit,
+    kop & logo resmi BPF WorkHub.
+    """
+
+    def __init__(self, kind='ac'):
+        super().__init__(orientation='L', unit='mm', format='A4')
+        self._kind = kind
+        self._title = 'LAPORAN ASET AC KANTOR' if kind == 'ac' else 'LAPORAN ASET KENDARAAN'
+        self.set_auto_page_break(auto=True, margin=15)
+
+    def header(self):
+        super().header()
+        self.set_font(self._font(), 'B', 11)
+        self.set_text_color(37, 99, 235)
+        self.cell(0, 6, self.clean_text(self._title), align='C', new_x='LMARGIN', new_y='NEXT')
+        self.set_text_color(0, 0, 0)
+        self.ln(2)
+
+    def generate(self, rows, generated_by=''):
+        self.add_page()
+        self.set_font(self._font(), '', 7)
+        self.set_text_color(100, 116, 139)
+        self.cell(0, 4.5, f'Periode laporan: {self.clean_text(str(date.today().isoformat()))}', new_x='LMARGIN', new_y='NEXT')
+        self.ln(2)
+        self.set_text_color(0, 0, 0)
+        if not rows:
+            self.set_font(self._font(), 'I', 10)
+            self.cell(0, 8, 'Tidak ada data aset.', align='C', new_x='LMARGIN', new_y='NEXT')
+        else:
+            self._draw_assets(rows)
+        # Ringkasan + TTD
+        if self.get_y() + 40 > self.h - 25:
+            self.add_page()
+        self.ln(4)
+        self.set_font(self._font(), '', 8)
+        self.set_text_color(51, 65, 85)
+        self.cell(0, 5, f'Total aset pada laporan ini: {len(rows)} unit', new_x='LMARGIN', new_y='NEXT')
+        self.ln(10)
+        col_w = 70
+        x_ttd = self.w - self.r_margin - col_w
+        self.set_xy(x_ttd, self.get_y())
+        self.set_font(self._font(), '', 8)
+        self.set_text_color(71, 85, 105)
+        self.cell(col_w, 5, 'Mengetahui,', align='C')
+        self.ln(16)
+        self.set_draw_color(100, 116, 139)
+        self.set_line_width(0.3)
+        self.set_xy(x_ttd + 8, self.get_y())
+        self.line(x_ttd + 8, self.get_y(), self.w - self.r_margin - 8, self.get_y())
+        self.ln(2)
+        self.set_font(self._font(), 'B', 9)
+        self.set_text_color(30, 41, 59)
+        self.set_xy(x_ttd + 8, self.get_y())
+        self.cell(col_w - 16, 5, self.clean_text(str(generated_by or 'GA')).upper(), align='C')
+        self.ln(5)
+        self.set_font(self._font(), 'I', 7)
+        self.set_text_color(100, 116, 139)
+        self.set_xy(x_ttd + 8, self.get_y())
+        self.cell(col_w - 16, 4, 'General Affairs (Pemeliharaan Aset)', align='C')
+        self.set_text_color(0, 0, 0)
+
+    def _draw_assets(self, rows):
+        if self._kind == 'ac':
+            headers = ['NO', 'ASSET ID', 'MERK', 'TIPE', 'KAPASITAS', 'LOKASI',
+                       'STATUS', 'SERVIS TERAKHIR', 'HEALTH', 'BIAYA SPAREPART']
+            widths = [8, 45, 25, 25, 30, 50, 25, 32, 20, 32]
+        else:
+            headers = ['NO', 'NOPOL', 'TIPE', 'MERK', 'TAHUN', 'ODOMETER',
+                       'STATUS', 'SERVIS TERAKHIR', 'KOMPONEN', 'BIAYA']
+            widths = [8, 35, 30, 25, 20, 30, 25, 32, 40, 30]
+        self.set_font(self._font(), 'B', 7)
+        self.set_fill_color(37, 99, 235)
+        self.set_text_color(255, 255, 255)
+        for i, h in enumerate(headers):
+            self.cell(widths[i], 7, h, border=1, align='C', fill=True)
+        self.set_text_color(0, 0, 0)
+        self.ln()
+        self.set_font(self._font(), '', 7)
+        fill = False
+        for idx, r in enumerate(rows, 1):
+            self.set_fill_color(241, 245, 249) if fill else self.set_fill_color(255, 255, 255)
+            if self._kind == 'ac':
+                last = (r.get('logs') or [{}])[0]
+                vals = [str(idx), r.get('asset_id', '-'), r.get('merk', '-'),
+                        r.get('tipe', '-'), r.get('kapasitas', '-'), r.get('lokasi', '-'),
+                        r.get('status', '-'), self._fmt_dt(last.get('tanggal')),
+                        str(last.get('health_score', '-') if last.get('health_score') is not None else '-'),
+                        self._fmt_money(last.get('sparepart_cost'))]
+            else:
+                last = (r.get('services') or [{}])[0]
+                vals = [str(idx), r.get('nopol', '-'), r.get('vehicle_type', '-'),
+                        r.get('brand', '-'), str(r.get('year', '-') or '-'),
+                        str(r.get('last_odometer', 0) or 0), r.get('status', '-'),
+                        self._fmt_dt(last.get('service_date')),
+                        last.get('component_name', '-'), self._fmt_money(last.get('cost'))]
+            for i, v in enumerate(vals):
+                self.cell(widths[i], 6, self.clean_text(str(v)), border=1, fill=True,
+                          align='C' if i == 0 else 'L')
+            self.ln()
+            fill = not fill
+        self.ln(3)
+
+    def _fmt_dt(self, v):
+        if v and hasattr(v, 'strftime'):
+            return v.strftime('%d-%m-%Y')
+        v = str(v or '-')
+        return v[:10] if len(v) > 10 else v
+
+    def _fmt_money(self, v):
+        try:
+            f = float(v or 0)
+            return 'Rp {:,.0f}'.format(f) if f else '-'
+        except (TypeError, ValueError):
+            return '-'

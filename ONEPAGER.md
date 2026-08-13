@@ -25,6 +25,7 @@ Sebelumnya, pencatatan BBM, kasbon, dan pembelian air minum dilakukan manual —
 | **OB** | Ajukan pembelian air minum (galon/botol/gelas) lengkap dengan foto sebelum & sesudah |
 | **Marketing** | Catat jadwal kunjungan nasabah, pantau realisasi tim |
 | **Receptionist** | Verifikasi & kelola data pelamar kerja: kehadiran interview + 4 hari training, laporan PDF resmi |
+| **GA — Aset** | Pemeliharaan 15 unit AC kantor (health score) + 8 kendaraan asli + 12 komponen, rekomendasi servis otomatis, laporan PDF |
 | **Traineer / Upline** | Pantau kehadiran orang yang direkrutnya |
 | **Admin** | Kelola akun & nama penanda tangan (GA/Finance), lihat analytics |
 

@@ -17,10 +17,11 @@
 8. [Untuk Chief Driver — Pembagian Tugas 🚛](#8-untuk-chief-driver--pembagian-tugas)
 9. [Untuk Receptionist — Pelamar Kerja 🪪](#9-untuk-receptionist--pelamar-kerja)
 10. [Untuk Traineer / Upline — Pantau Rekrutan 🎯](#10-untuk-traineer--upline--pantau-rekrutan)
-11. [Untuk Admin — Pengaturan Sistem ⚙️](#11-untuk-admin--pengaturan-sistem)
-12. [Kasbon: Alur Lengkap dari A sampai Z](#12-kasbon-alur-lengkap-dari-a-sampai-z)
-13. [Mengatasi Masalah (Troubleshooting)](#13-mengatasi-masalah-troubleshooting)
-14. [Istilah-istilah Penting](#14-istilah-istilah-penting)
+11. [Untuk GA — Aset & Pemeliharaan 🔧](#11-untuk-ga--aset--pemeliharaan)
+12. [Untuk Admin — Pengaturan Sistem ⚙️](#12-untuk-admin--pengaturan-sistem)
+13. [Kasbon: Alur Lengkap dari A sampai Z](#13-kasbon-alur-lengkap-dari-a-sampai-z)
+14. [Mengatasi Masalah (Troubleshooting)](#14-mengatasi-masalah-troubleshooting)
+15. [Istilah-istilah Penting](#15-istilah-istilah-penting)
 
 ---
 
@@ -365,7 +366,34 @@ Semua perubahan papan berjalan realtime — saat driver menyelesaikan tugas, sta
 
 ---
 
-## 11. Untuk Admin — Pengaturan Sistem ⚙️
+## 11. Untuk GA — Aset & Pemeliharaan 🔧
+
+> **Kamu adalah GA.** Halaman **🔧 Aset & Pemeliharaan** (`/app/assets`) menggantikan aplikasi aset lama (Streamlit) — semua dikelola di WorkHub.
+
+### 11.1 Unit AC Kantor ❄️
+
+- **15 unit AC** tampil (ID, merk, tipe, kapasitas, lokasi per ruangan, status).
+- Klik **🛠️** untuk mencatat **log servis**: tanggal, teknisi, parameter teknikal (ampere kompresor, tekanan rendah/tinggi, delta T, dst.), biaya sparepart, catatan — **health score 0–100 dihitung otomatis** dari parameter.
+- **＋ Tambah AC** untuk unit baru; **✏️ edit** & **🗑 hapus** untuk kelola master.
+
+### 11.2 Kendaraan 🚗
+
+- **8 kendaraan asli kantor** (Innova + 7 Avanza) — data diambil dari tabel kendaraan BBM, jadi satu sumber data.
+- Klik **🛠️** untuk mencatat **log servis per komponen**: odometer, jenis servis, komponen (dropdown dari master), biaya, montir, no. invoice.
+
+### 11.3 Rekomendasi Otomatis 📋
+
+- **🔄 Perbarui Rekomendasi** → sistem menyarankan: AC yang sudah > 90 hari tanpa servis atau health rendah, dan komponen kendaraan yang melewati umur pakai (km/bulan vs standar).
+- Tandai **✅ Selesai** setelah dikerjakan, atau **✕** untuk membatalkan.
+
+### 11.4 Komponen & Laporan 🧩
+
+- **Tab Komponen**: master komponen + umur standar + estimasi biaya (dasar rekomendasi).
+- **📄 Laporan PDF AC / Kendaraan**: dokumen resmi berlogo BPF + TTD General Affairs.
+
+---
+
+## 12. Untuk Admin — Pengaturan Sistem ⚙️
 
 > **Kamu adalah Admin.** Kamu memegang kunci utama: membuat akun, mengatur nama untuk tanda terima, dan memantau jejak audit.
 
@@ -394,7 +422,7 @@ Suka tampilan gelap? Klik tombol **🌙/☀️** di pojok kanan atas. Pilihanmu 
 
 ---
 
-## 12. Kasbon: Alur Lengkap dari A sampai Z
+## 13. Kasbon: Alur Lengkap dari A sampai Z
 
 Kasbon = uang muka yang diberikan ke driver sebelum berangkat. Alurnya seperti relay — tiap bagian menyentuh sekali:
 
@@ -422,7 +450,7 @@ Angka "receh" yang ditambahkan ke nominal kasbon (mis. Rp 100.023, bukan Rp 100.
 
 ---
 
-## 13. Mengatasi Masalah (Troubleshooting)
+## 14. Mengatasi Masalah (Troubleshooting)
 
 | Masalah | Solusi |
 |---------|--------|
@@ -440,7 +468,7 @@ Angka "receh" yang ditambahkan ke nominal kasbon (mis. Rp 100.023, bukan Rp 100.
 
 ---
 
-## 14. Istilah-istilah Penting
+## 15. Istilah-istilah Penting
 
 | Istilah | Artinya (bahasa sehari-hari) |
 |---------|------------------------------|

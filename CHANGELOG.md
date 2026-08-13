@@ -6,6 +6,29 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.18.0] - 2026-08-13
+
+### 🔧 Aset & Pemeliharaan (migrasi dari bpf-asset-system) — role GA/Admin
+
+Aplikasi Streamlit "BPF Asset Management System" (pemeliharaan AC kantor + kendaraan) **dimigrasikan total** ke BPF WorkHub — satu aplikasi, satu login, data di MySQL.
+
+- **🗄️ Migrasi data** (`scripts/migrate_asset_system.py`): **15 unit AC** (Daikin Split Duct/Wall per ruangan: R. BEST 1–8, VIP, Lounge, Karaoke, Meeting, Trainer, Compliance, IT, Training) + **12 komponen kendaraan** (Oli Mesin, Ban, Aki, Timing Belt, dst. + umur standar km/bulan + estimasi biaya) + **8 kendaraan ASLI kantor** (Innova B 1126 DFC + 7 Avanza: B 2628 SRP, B 2731 SRQ, B 2737 SRQ, L 1413 CBI, L 1415 CBI, L 1904 TF, L 1906 TF) — diambil dari tabel `vehicles` WorkHub (satu sumber data, bukan sample lama).
+- **❄️ Master & log AC**: CRUD unit AC (merk, tipe, kapasitas, lokasi, status) + **log servis** parameter teknikal (V supply, ampere kompresor, tekanan rendah/tinggi, temp return/supply/outdoor, delta T, drainage, test run) + **health score otomatis 0–100** dari parameter + biaya sparepart + jadwal servis berikutnya.
+- **🚗 Master & log kendaraan**: CRUD kendaraan (nopol, tipe, merk, tahun, odometer, pajak/asuransi) + **log servis per komponen** (odometer, umur pakai km/bulan, biaya, montir, no invoice) — terhubung ke kendaraan BBM via `vehicle_id`.
+- **📋 Rekomendasi maintenance OTOMATIS berbasis aturan** (tanpa dependensi ML berat): AC > 90 hari tanpa servis → servis rutin; health score < 60 → periksa; komponen kendaraan melewati umur pakai (km/bulan vs standar master) → servis. Prioritas Kritis/Tinggi/Sedang + batas hari; tombol 🔄 Perbarui + tandai Selesai/Batalkan.
+- **📄 Laporan PDF resmi berlogo BPF** (AC / kendaraan): daftar aset + log servis terakhir + ringkasan + TTD General Affairs.
+- **🔐 Keamanan**: role `ga`/`admin` saja (403 untuk yang lain), CSRF aktif, audit log `asset_*` lengkap.
+- **🗄️ Skema DB** (migrasi otomatis di startup): 6 tabel baru `asset_ac`, `asset_ac_logs`, `vehicle_assets`, `vehicle_service_logs`, `vehicle_components`, `maintenance_recommendations` (FK cascade, index).
+
+### 🧪 Pengujian & Verifikasi
+
+- **pytest +9 → total 160 hijau** (`tests/test_assets.py`): health score AC (normal/ampere tinggi/delta T rendah/kosong), rekomendasi aturan (terlambat → muncul, baru → tidak), PDF AC & kendaraan valid berisi data (parser ToUnicode) + kosong.
+- **Verifikasi browser nyata** (`frontend/scripts/verify_assets_ui.mjs`): **8/8 lulus, konsol bersih** — tab AC 15 unit, tab kendaraan 8 unit asli, tab rekomendasi, tab komponen 12, tombol PDF.
+- **E2E produksi**: login `ga_officer` → summary (15 AC/8 kendaraan) ✓ · tambah log servis AC → health score 75 otomatis ✓ · rekomendasi refresh 14–15 item ✓ · PDF AC 61KB & kendaraan 59KB valid ✓ · tanpa login 401 ✓ · data test dibersihkan ✓.
+- **Gladi resik penuh tetap hijau**: rehearsal 20/20, verify_ui 13/13, verify_route_ui 8/8, verify_applicants_ui 12/12.
+
+---
+
 ## [2.17.0] - 2026-08-13
 
 ### 🗄️ Migrasi Data Google Sheet + Dropdown User (dikelola Receptionist)

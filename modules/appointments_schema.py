@@ -287,6 +287,160 @@ def ensure_appointments_schema():
         except Exception as e:
             print(f"[appointments-schema] commit seed: {e}")
 
+        # ============================================================
+        # ASET & PEMELIHARAAN (v2.18) — migrasi dari bpf-asset-system
+        # (Streamlit) ke BPF WorkHub: AC kantor + kendaraan + komponen +
+        # log servis + rekomendasi otomatis (aturan tanggal/odometer).
+        # Role: GA & Admin (pemeliharaan aset).
+        # ============================================================
+
+        # --- asset_ac: master unit AC kantor ---
+        _run("""
+            CREATE TABLE IF NOT EXISTS asset_ac (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                asset_id VARCHAR(50) NOT NULL UNIQUE,
+                merk VARCHAR(50) NOT NULL,
+                tipe VARCHAR(50) NOT NULL,
+                kapasitas VARCHAR(50) NOT NULL,
+                lokasi VARCHAR(150) NOT NULL,
+                refrigerant VARCHAR(50) DEFAULT '',
+                installation_date DATE NULL,
+                warranty_until DATE NULL,
+                last_maintenance DATE NULL,
+                status ENUM('Aktif','Rusak','Maintenance','Nonaktif') DEFAULT 'Aktif',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_ac_lokasi (lokasi),
+                INDEX idx_ac_status (status)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """, cursor, "asset_ac")
+
+        # --- asset_ac_logs: log servis AC (parameter teknikal + health score) ---
+        _run("""
+            CREATE TABLE IF NOT EXISTS asset_ac_logs (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                asset_id VARCHAR(50) NOT NULL,
+                tanggal DATE NOT NULL,
+                teknisi VARCHAR(100) NOT NULL,
+                v_supply DECIMAL(8,2) NULL,
+                amp_kompresor DECIMAL(8,2) NULL,
+                low_p DECIMAL(8,2) NULL,
+                high_p DECIMAL(8,2) NULL,
+                temp_ret DECIMAL(8,2) NULL,
+                temp_sup DECIMAL(8,2) NULL,
+                temp_outdoor DECIMAL(8,2) NULL,
+                delta_t DECIMAL(8,2) NULL,
+                drainage VARCHAR(20) DEFAULT '',
+                test_run VARCHAR(20) DEFAULT '',
+                health_score INT NULL,
+                sparepart_cost DECIMAL(12,2) DEFAULT 0,
+                catatan VARCHAR(500) DEFAULT '',
+                next_service_date DATE NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_aclog_asset (asset_id, tanggal),
+                INDEX idx_aclog_health (health_score),
+                CONSTRAINT fk_aclog FOREIGN KEY (asset_id)
+                    REFERENCES asset_ac(asset_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """, cursor, "asset_ac_logs")
+
+        # --- vehicle_assets: master kendaraan KANTOR (bukan sample).
+        # vehicle_id -> vehicles.id (tabel kendaraan BBM WorkHub) agar satu
+        # sumber data kendaraan; nopol asli kantor di-seed dari tabel tsb. ---
+        _run("""
+            CREATE TABLE IF NOT EXISTS vehicle_assets (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                vehicle_id INT NULL,
+                nopol VARCHAR(20) NOT NULL UNIQUE,
+                vehicle_type VARCHAR(50) NOT NULL DEFAULT '',
+                brand VARCHAR(50) DEFAULT 'Toyota',
+                model VARCHAR(50) DEFAULT '',
+                year INT NULL,
+                color VARCHAR(30) DEFAULT '',
+                fuel_type VARCHAR(30) DEFAULT 'Bensin',
+                status ENUM('Aktif','Rusak','Nonaktif') DEFAULT 'Aktif',
+                purchase_date DATE NULL,
+                last_odometer INT DEFAULT 0,
+                insurance_until DATE NULL,
+                tax_until DATE NULL,
+                notes VARCHAR(500) DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_va_nopol (nopol),
+                INDEX idx_va_status (status),
+                CONSTRAINT fk_va_vehicle FOREIGN KEY (vehicle_id)
+                    REFERENCES vehicles(id) ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """, cursor, "vehicle_assets")
+
+        # --- vehicle_service_logs: log servis kendaraan per komponen ---
+        _run("""
+            CREATE TABLE IF NOT EXISTS vehicle_service_logs (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                vehicle_asset_id INT NOT NULL,
+                service_date DATE NOT NULL,
+                odometer INT NOT NULL DEFAULT 0,
+                service_type VARCHAR(50) NOT NULL,
+                component_name VARCHAR(100) NOT NULL,
+                component_life_km INT DEFAULT 0,
+                component_life_months INT DEFAULT 0,
+                current_usage_km INT DEFAULT 0,
+                current_usage_months INT DEFAULT 0,
+                next_service_km INT DEFAULT 0,
+                next_service_months INT DEFAULT 0,
+                cost DECIMAL(12,2) DEFAULT 0,
+                mechanic_name VARCHAR(100) DEFAULT '',
+                parts_replaced VARCHAR(500) DEFAULT '',
+                invoice_number VARCHAR(50) DEFAULT '',
+                notes VARCHAR(500) DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_vslog_vehicle (vehicle_asset_id, service_date),
+                INDEX idx_vslog_component (component_name),
+                CONSTRAINT fk_vslog FOREIGN KEY (vehicle_asset_id)
+                    REFERENCES vehicle_assets(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """, cursor, "vehicle_service_logs")
+
+        # --- vehicle_components: master komponen + standar umur pakai ---
+        _run("""
+            CREATE TABLE IF NOT EXISTS vehicle_components (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                component_name VARCHAR(100) NOT NULL UNIQUE,
+                standard_life_km INT DEFAULT 0,
+                standard_life_months INT DEFAULT 0,
+                category VARCHAR(50) DEFAULT '',
+                priority INT DEFAULT 1,
+                estimated_cost DECIMAL(12,2) DEFAULT 0,
+                is_active TINYINT(1) DEFAULT 1,
+                notes VARCHAR(500) DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """, cursor, "vehicle_components")
+
+        # --- maintenance_recommendations: rekomendasi servis otomatis ---
+        _run("""
+            CREATE TABLE IF NOT EXISTS maintenance_recommendations (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                asset_type ENUM('ac','vehicle') NOT NULL,
+                asset_ref VARCHAR(50) NOT NULL,
+                recommendation_date DATE NOT NULL,
+                priority ENUM('Kritis','Tinggi','Sedang','Rutin') NOT NULL DEFAULT 'Rutin',
+                urgency_days INT DEFAULT 0,
+                actions VARCHAR(500) NOT NULL,
+                estimated_cost DECIMAL(12,2) DEFAULT 0,
+                status ENUM('Pending','Selesai','Dibatalkan') DEFAULT 'Pending',
+                completed_date DATE NULL,
+                notes VARCHAR(500) DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_rec_asset (asset_type, asset_ref, status),
+                INDEX idx_rec_date (recommendation_date)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """, cursor, "maintenance_recommendations")
+
         # --- geocode_cache (v2.15): cache geocoding alamat -> koordinat ---
         try:
             from modules.geocode import ensure_geocode_schema

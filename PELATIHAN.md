@@ -43,6 +43,10 @@
 | 4 | Klik **✕ Tolak** tanpa alasan | Tombol terkunci — alasan wajib |
 | 5 | Lihat kasbon menunggu approve | Kasbon DRAFT tampil dengan nominal |
 | 6 | (Opsional) buka **🛡 Verifikasi Anomali** | Modal konfirmasi muncul |
+| 7 | Buka menu **🔧 Aset & Pemeliharaan** (`/app/assets`) | Tab AC: 15 unit; tab kendaraan: 8 unit asli kantor |
+| 8 | Klik **🛠️** pada satu unit AC → isi form servis → simpan | Log tercatat + **health score otomatis** muncul |
+| 9 | Buka tab **📋 Rekomendasi** → klik **🔄 Perbarui** | Daftar rekomendasi (AC lama / komponen lewat umur) tampil |
+| 10 | Klik **📄 Laporan PDF AC / Kendaraan** | PDF resmi berlogo BPF + TTD GA terunduh |
 
 > 🔍 Cek: GA mencoba buka `/app/dashboard` → **ditolak** (guard peran).
 
