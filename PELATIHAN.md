@@ -98,6 +98,8 @@
 | 6 | Isi alasan → simpan | Status **Mengundurkan Diri** |
 | 7 | Pilih tahap laporan → **📄 Laporan PDF** | PDF resmi berlogo BPF + TTD Receptionist terunduh |
 | 8 | (Opsional) ✏️ Edit data yang salah | Data berubah, tercatat audit |
+| 9 | Buka **⚙️ Kelola User** → tambah opsi baru (cth: `TEAM BARU 6`) | Opsi muncul di dropdown form publik & edit |
+| 10 | Nonaktifkan/hapus salah satu opsi | Opsi hilang dari dropdown form, tercatat audit |
 
 ---
 

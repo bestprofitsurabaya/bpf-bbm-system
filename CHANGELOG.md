@@ -6,6 +6,29 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.17.0] - 2026-08-13
+
+### 🗄️ Migrasi Data Google Sheet + Dropdown User (dikelola Receptionist)
+
+Data riwayat pelamar dari **Google Spreadsheet lama** (1.014 baris) dipindahkan ke database internal — DB kini **bersih, hanya berisi data dari Google Sheet tersebut** (tabel `applicants` + `applicant_attendance` di-reset & diisi ulang dari ekspor CSV).
+
+- **📥 Migrasi (914 data valid; 101 baris kosong draft dilewati)**: Nama, Pendidikan, No. HP, UPLINE, User, Posisi, **interview_at dari Tanggal + Jam sheet** (tanggal & jam interview tetap otomatis dari data lama). Kehadiran **H1–H4 (TRUE) → `applicant_attendance`** dengan tanggal masing-masing; status mengikuti tahap terjauh (interview / training_1–4). **Pulang=TRUE → status `resigned`** dengan alasan (kolom Alasan / "PULANG").
+- **🔄 Normalisasi data**: spasi ganda dibersihkan (`TEAM  EDI 2` → `TEAM EDI 2`) sehingga nilai User konsisten dengan dropdown.
+- **🔽 Kolom User kini dropdown di form pelamar** (sebelumnya teks bebas) — nilai diambil dari tabel `applicant_user_options`, **diatur oleh Receptionist**:
+  - Seed awal = daftar User unik dari Google Sheet: **TEAM YUSIE 3, TEAM EDI 2, TEAM LULUK 5, TEAM SISKA 4, TEAM BAPAKE 1** (694+93+48+46+33 = 914 pelamar terpetakan).
+  - **⚙️ Tombol "Kelola User"** di dashboard Receptionist: tambah, aktifkan/nonaktifkan, hapus opsi (audit log `user_option_*`).
+  - Endpoint: `GET /api/applicants/user-options` (publik, hanya aktif) & `/manage` (resepsionis), POST/PATCH/DELETE (resepsionis/admin, CSRF + role). Form edit pelamar juga memakai dropdown (nilai lama tetap tampil bila bukan opsi aktif).
+- **🔧 Fix**: seed `applicant_user_options` kini ter-commit eksplisit (DDL MySQL ter-commit implisit, DML tidak — seed sebelumnya hilang di sesi berikutnya).
+
+### 🧪 Pengujian & Verifikasi
+
+- **pytest +3 → total 151 hijau** (`TestSheetMigration`): normalisasi spasi ganda, parse tanggal `M/D/YYYY` + jam, `is_true` TRUE/FALSE.
+- **Verifikasi browser nyata 12/12, konsol bersih**: form publik menampilkan dropdown User berisi opsi sheet; submit pelamar dengan pilihan dropdown; dashboard Receptionist punya tombol ⚙️ Kelola User + modal daftar opsi; dashboard Traineer tetap menampilkan rekrutan upline sendiri.
+- **E2E produksi**: CRUD opsi (tambah → nonaktifkan → hapus; duplikat 409; tanpa login → 403); meta menyertakan `user_options`; list migrasi 914 baris; kehadiran H4 = 232; resign 26 dengan alasan.
+- **Gladi resik penuh tetap hijau**: rehearsal 20/20, verify_ui 13/13, verify_route_ui 8/8 (tidak ada regresi).
+
+---
+
 ## [2.16.1] - 2026-08-13
 
 ### 🏢 Ganti Nama Aplikasi → **BPF WorkHub**

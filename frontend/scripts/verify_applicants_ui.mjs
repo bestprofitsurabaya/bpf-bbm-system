@@ -71,8 +71,16 @@ async function login(page, username, pin) {
   ok('Halaman /app/apply: form pelamar tampil', formShown)
   const fields = await page.evaluate(() =>
     [...document.querySelectorAll('.apply-card input')].map((i) => i.placeholder))
-  ok('Form berisi 6 field (nama, pendidikan, HP, upline, user, posisi)',
-    fields.length >= 6, fields.join(' | '))
+  ok('Form berisi 5 field input + 1 dropdown User',
+    fields.length >= 5, fields.join(' | '))
+
+  // Dropdown User terisi dari opsi yang dikelola Receptionist (seed Google Sheet)
+  const userSelect = await page.evaluate(() => {
+    const s = document.querySelector('.apply-card select')
+    return s ? [...s.options].map((o) => o.textContent) : []
+  })
+  ok('Dropdown User berisi opsi (TEAM YUSIE 3 dst.)',
+    userSelect.some((o) => o.includes('TEAM YUSIE 3')), userSelect.join(', '))
 
   // Isi & submit pelamar test (nama unik agar mudah diverifikasi)
   const nama = 'UI Test Pelamar ' + Date.now().toString().slice(-5)
@@ -80,7 +88,8 @@ async function login(page, username, pin) {
   await page.type('input[placeholder*="SMA"]', 'SMK')
   await page.type('input[placeholder*="08x"]', '081377889900')
   await page.type('input[placeholder*="Nama orang yang merekrut"]', 'Traineer Upline A')
-  await page.type('input[placeholder*="User / akun"]', 'ui_user')
+  // Pilih User dari dropdown (opsi pertama yang bukan placeholder)
+  await page.select('.apply-card select', userSelect.find((t) => t.includes('TEAM YUSIE 3')).trim())
   await page.type('input[placeholder*="Marketing, Trader"]', 'Marketing')
   await page.click('.apply-card form button.btn-primary')
   let success = false
@@ -137,6 +146,25 @@ async function login(page, username, pin) {
   const hasPdf = await page.evaluate(() =>
     [...document.querySelectorAll('a')].some((a) => a.textContent.includes('Laporan PDF')))
   ok('Tombol "📄 Laporan PDF" ada', hasPdf)
+
+  // Tombol Kelola User + modal kelola opsi dropdown
+  const hasManage = await page.evaluate(() =>
+    [...document.querySelectorAll('button')].some((b) => b.textContent.includes('Kelola User')))
+  ok('Tombol "⚙️ Kelola User" ada', hasManage)
+  if (hasManage) {
+    await page.evaluate(() =>
+      [...document.querySelectorAll('button')].find((b) => b.textContent.includes('Kelola User')).click())
+    await sleep(1200)
+    const optNames = await page.evaluate(() =>
+      [...document.querySelectorAll('.att-edit-row b')].map((b) => b.textContent))
+    ok('Modal kelola opsi menampilkan daftar User (seed sheet)',
+      optNames.some((n) => n.includes('TEAM YUSIE 3')), optNames.join(', '))
+    await page.screenshot({ path: SHOT_DIR + '/02b-manage-user.png' })
+    // Tutup modal
+    await page.evaluate(() =>
+      [...document.querySelectorAll('.modal-header button, .modal button')].find((b) => b.textContent.includes('Tutup'))?.click())
+    await sleep(500)
+  }
   await page.screenshot({ path: SHOT_DIR + '/02-receptionist.png' })
   await ctx.close()
 }

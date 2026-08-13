@@ -1,4 +1,4 @@
-# 🏢 BPF WorkHub v2.16.0 (SPA Vue 3 penuh — 100% Vue)
+# 🏢 BPF WorkHub v2.17.0 (SPA Vue 3 penuh — 100% Vue)
 
 **Sistem Manajemen Armada, Klaim BBM, Kasbon, Log Perjalanan, Appointment & Air Minum**  
 **PT. Bestprofit Futures - Surabaya**
@@ -9,7 +9,18 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 
 ---
 
-## 🆕 Fitur Terbaru v2.16.0 — Sistem Pelamar Kerja (menggantikan Google Form)
+## 🆕 Fitur Terbaru v2.17.0 — Migrasi Google Sheet + Dropdown User
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **🗄️ Data dari Google Sheet** | **914 riwayat pelamar** dari Google Spreadsheet lama dipindahkan ke database internal (DB di-reset — kini **bersih, hanya data Google Sheet**): kehadiran H1–H4 & tanggal, status mengikuti tahap terjauh, Pulang → `resigned` dengan alasan |
+| **🔽 Kolom User = dropdown** | Form pelamar & edit Receptionist memakai dropdown dari tabel `applicant_user_options` — **diatur Receptionist** lewat tombol **⚙️ Kelola User** (tambah / aktif-nonaktif / hapus, audit log) |
+| **📥 Migrasi terotomasi** | `scripts/migrate_applicants_sheet.py` — baca CSV ekspor sheet, normalisasi spasi, isi `applicants` + `applicant_attendance` |
+| **🧪 Test** | 151 pytest (3 baru: `TestSheetMigration`) + verifikasi browser 12/12 konsol bersih + gladi resik 20/20 + 13/13 + 8/8 |
+
+---
+
+## ✨ Fitur Sebelumnya — Sistem Pelamar Kerja (v2.16, menggantikan Google Form)
 
 | Fitur | Deskripsi |
 |-------|-----------|
@@ -18,7 +29,6 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 | **📄 Laporan PDF resmi berlogo BPF** | Per tahap (interview / training H1–H4) + rentang tanggal + filter UPLINE/User + TTD Receptionist |
 | **🎯 Traineer `/app/traineer`** | Pantau kehadiran orang yang direkrutnya — **scope UPLINE sendiri** otomatis (nama/username), search + filter, chip kehadiran, statistik rekrutan |
 | **🔐 Keamanan** | Role baru `receptionist`/`traineer`, kontrol akses per endpoint (403), audit trail lengkap, CSRF aktif |
-| **🧪 Test** | 148 pytest (7 baru: `test_applicants.py`) + verifikasi browser 9/9 konsol bersih |
 
 ---
 

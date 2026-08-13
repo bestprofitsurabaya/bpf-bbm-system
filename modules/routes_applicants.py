@@ -191,12 +191,147 @@ def register_applicant_routes(app):
             cursor.execute(
                 "SELECT DISTINCT user_field FROM applicants WHERE user_field<>'' ORDER BY user_field")
             users = [r['user_field'] for r in cursor.fetchall()]
+            cursor.execute(
+                "SELECT id, name FROM applicant_user_options WHERE is_active=1 ORDER BY name")
+            user_options = cursor.fetchall()
             cursor.close()
             conn.close()
             return jsonify({'uplines': uplines, 'users': users,
+                            'user_options': user_options,
                             'statuses': [{'value': k, 'label': v} for k, v in STATUS_LABELS.items()]})
         except Exception as e:
             return jsonify({'error': str(e)}), 500
+
+    # ================================================================
+    # USER OPTIONS — dropdown 'User' pada form pelamar.
+    # Data diatur oleh Receptionist (tambah/rename/nonaktifkan/hapus);
+    # nilai awal di-seed dari daftar User unik pada Google Sheet lama.
+    # ================================================================
+    @app.route('/api/applicants/user-options', methods=['GET'])
+    def api_user_options_list():
+        """Daftar opsi User AKTIF (dipakai form publik & edit receptionist)."""
+        try:
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'error': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(
+                "SELECT id, name FROM applicant_user_options "
+                "WHERE is_active=1 ORDER BY name")
+            rows = cursor.fetchall()
+            cursor.close(); conn.close()
+            return jsonify({'options': rows})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/applicants/user-options/manage', methods=['GET'])
+    @role_required(['receptionist', 'admin'])
+    def api_user_options_manage():
+        """Semua opsi (termasuk nonaktif) untuk kelola di dashboard Receptionist."""
+        try:
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'error': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(
+                "SELECT id, name, is_active, created_at FROM applicant_user_options "
+                "ORDER BY is_active DESC, name")
+            rows = cursor.fetchall()
+            cursor.close(); conn.close()
+            return jsonify({'options': rows})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/applicants/user-options', methods=['POST'])
+    @role_required(['receptionist', 'admin'])
+    def api_user_options_add():
+        try:
+            data = request.get_json(silent=True) or {}
+            name = str(data.get('name', '') or '').strip()[:100]
+            if not name:
+                return jsonify({'status': 'error', 'msg': 'Nama opsi wajib diisi'}), 400
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'status': 'error', 'msg': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("INSERT INTO applicant_user_options (name) VALUES (%s)", (name,))
+            new_id = cursor.lastrowid
+            conn.commit()
+            user = _current_user()
+            log_activity_async(None, 'user_option_add', user['role'], user['full_name'],
+                               new_data={'name': name}, ip=request.remote_addr)
+            cursor.close(); conn.close()
+            return jsonify({'status': 'success', 'msg': f'Opsi "{name}" ditambahkan', 'id': new_id})
+        except Exception as e:
+            # Duplikat (UNIQUE name) -> pesan jelas
+            if 'Duplicate' in str(e):
+                return jsonify({'status': 'error', 'msg': 'Opsi dengan nama tersebut sudah ada'}), 409
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    @app.route('/api/applicants/user-options/<int:opt_id>', methods=['PATCH'])
+    @role_required(['receptionist', 'admin'])
+    def api_user_options_patch(opt_id):
+        try:
+            data = request.get_json(silent=True) or {}
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'status': 'error', 'msg': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM applicant_user_options WHERE id=%s", (opt_id,))
+            row = cursor.fetchone()
+            if not row:
+                cursor.close(); conn.close()
+                return jsonify({'status': 'error', 'msg': 'Opsi tidak ditemukan'}), 404
+            fields, params = [], []
+            if 'name' in data:
+                name = str(data['name'] or '').strip()[:100]
+                if not name:
+                    cursor.close(); conn.close()
+                    return jsonify({'status': 'error', 'msg': 'Nama opsi tidak boleh kosong'}), 400
+                fields.append('name = %s'); params.append(name)
+            if 'is_active' in data:
+                fields.append('is_active = %s')
+                params.append(1 if data['is_active'] else 0)
+            if not fields:
+                cursor.close(); conn.close()
+                return jsonify({'status': 'error', 'msg': 'Tidak ada field yang diubah'}), 400
+            params.append(opt_id)
+            cursor.execute("UPDATE applicant_user_options SET " + ", ".join(fields) +
+                           " WHERE id=%s", params)
+            conn.commit()
+            user = _current_user()
+            log_activity_async(None, 'user_option_edit', user['role'], user['full_name'],
+                               new_data={'id': opt_id, 'fields': list(data.keys())},
+                               ip=request.remote_addr)
+            cursor.close(); conn.close()
+            return jsonify({'status': 'success', 'msg': 'Opsi diperbarui'})
+        except Exception as e:
+            if 'Duplicate' in str(e):
+                return jsonify({'status': 'error', 'msg': 'Opsi dengan nama tersebut sudah ada'}), 409
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    @app.route('/api/applicants/user-options/<int:opt_id>', methods=['DELETE'])
+    @role_required(['receptionist', 'admin'])
+    def api_user_options_delete(opt_id):
+        try:
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'status': 'error', 'msg': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT name FROM applicant_user_options WHERE id=%s", (opt_id,))
+            row = cursor.fetchone()
+            if not row:
+                cursor.close(); conn.close()
+                return jsonify({'status': 'error', 'msg': 'Opsi tidak ditemukan'}), 404
+            cursor.execute("DELETE FROM applicant_user_options WHERE id=%s", (opt_id,))
+            conn.commit()
+            user = _current_user()
+            log_activity_async(None, 'user_option_delete', user['role'], user['full_name'],
+                               new_data={'name': row['name']}, ip=request.remote_addr)
+            cursor.close(); conn.close()
+            return jsonify({'status': 'success', 'msg': f'Opsi "{row["name"]}" dihapus'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
 
     # ================================================================
     # LIST — receptionist & traineer (scope upline utk traineer)

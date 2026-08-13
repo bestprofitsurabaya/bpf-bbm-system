@@ -253,7 +253,7 @@
 | "Bagaimana kalau ada sopir baru / OB baru?" | Admin membuat akun dalam hitungan menit dari halaman Users. |
 | "Bisa integrasi Excel?" | Sudah: export CSV rekap air minum, export Excel logsheet & rekap harian. |
 | "Apakah ini bisa dipakai untuk cabang lain?" | Ya — tinggal tambah pengguna & data master; alurnya sama. |
-| "Data pelamar masih lewat Google Form?" | Tidak — sudah diganti form internal; Receptionist verifikasi, kehadiran training 4 hari, laporan PDF resmi. |
+| "Data pelamar masih lewat Google Form?" | Tidak — sudah diganti form internal; **914 riwayat Google Sheet lama sudah dimigrasikan**, kolom User dropdown diatur Receptionist, kehadiran training 4 hari, laporan PDF resmi. |
 | "Upline bisa lihat rekrutannya?" | Ya — Traineer membuka halamannya, otomatis hanya rekrutan dengan UPLINE miliknya. |
 
 ---

@@ -262,6 +262,31 @@ def ensure_appointments_schema():
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """, cursor, "applicant_attendance")
 
+        # --- applicant_user_options (v2.17): pilihan dropdown 'User' pada form
+        # pelamar. Dikelola Receptionist (tambah/hapus/aktif-nonaktif). Nilai
+        # awal di-seed dari daftar User unik pada Google Sheet lama (idempotent). ---
+        _run("""
+            CREATE TABLE IF NOT EXISTS applicant_user_options (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(100) NOT NULL UNIQUE,
+                is_active TINYINT(1) DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """, cursor, "applicant_user_options")
+        # Seed awal: daftar User unik dari Google Sheet (v2.17)
+        _run("""
+            INSERT IGNORE INTO applicant_user_options (name) VALUES
+                ('TEAM YUSIE 3'), ('TEAM EDI 2'), ('TEAM LULUK 5'),
+                ('TEAM SISKA 4'), ('TEAM BAPAKE 1')
+        """, cursor, "applicant_user_options seed")
+
+        # Commit DML seed (DDL di MySQL ter-commit implisit, DML tidak)
+        try:
+            conn.commit()
+        except Exception as e:
+            print(f"[appointments-schema] commit seed: {e}")
+
         # --- geocode_cache (v2.15): cache geocoding alamat -> koordinat ---
         try:
             from modules.geocode import ensure_geocode_schema

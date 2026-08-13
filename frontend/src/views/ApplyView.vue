@@ -7,6 +7,16 @@ const form = ref({ nama_lengkap: '', pendidikan: '', no_hp: '', upline: '', user
 const error = ref('')
 const loading = ref(false)
 const done = ref(null) // { display_id, interview_at }
+const userOptions = ref([])
+
+async function loadUserOptions() {
+  try {
+    const d = await api('/api/applicants/user-options')
+    userOptions.value = d.options || []
+  } catch {
+    userOptions.value = []
+  }
+}
 
 async function submit() {
   error.value = ''
@@ -30,6 +40,8 @@ function reset() {
   form.value = { nama_lengkap: '', pendidikan: '', no_hp: '', upline: '', user: '', posisi: '' }
   error.value = ''
 }
+
+loadUserOptions()
 </script>
 
 <template>
@@ -78,7 +90,10 @@ function reset() {
         </div>
         <div class="field">
           <label>User</label>
-          <input class="input" v-model="form.user" placeholder="User / akun (jika ada)" />
+          <select class="select" v-model="form.user">
+            <option value="">— Pilih User (jika ada) —</option>
+            <option v-for="u in userOptions" :key="u.id" :value="u.name">{{ u.name }}</option>
+          </select>
         </div>
         <div class="field">
           <label>Posisi Yang Dilamar <span class="req">*</span></label>

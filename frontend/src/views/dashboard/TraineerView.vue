@@ -5,7 +5,7 @@ import StatCard from '../../components/StatCard.vue'
 
 const list = ref([])
 const stats = ref(null)
-const meta = ref({ uplines: [], users: [], statuses: [] })
+const meta = ref({ uplines: [], users: [], statuses: [], user_options: [] })
 const loading = ref(true)
 const err = ref('')
 const scopeUpline = ref('')
@@ -37,7 +37,7 @@ async function load() {
 }
 
 async function loadMeta() {
-  try { meta.value = await api('/api/applicants/meta') } catch { meta.value = { uplines: [], users: [], statuses: [] } }
+  try { meta.value = await api('/api/applicants/meta') } catch { meta.value = { uplines: [], users: [], statuses: [], user_options: [] } }
 }
 
 const badge = (s) => STATUS_BADGE[s] || 'badge-gray'
@@ -75,7 +75,7 @@ onMounted(() => { load(); loadMeta() })
         <div class="field" style="margin:0;"><label>User</label>
           <select class="select" v-model="f.user" @change="load" style="min-width:120px;">
             <option value="">Semua</option>
-            <option v-for="u in meta.users" :key="u" :value="u">{{ u }}</option>
+            <option v-for="u in meta.user_options" :key="u.id" :value="u.name">{{ u.name }}</option>
           </select></div>
         <div class="field" style="margin:0;"><label>Status</label>
           <select class="select" v-model="f.status" @change="load" style="min-width:140px;">

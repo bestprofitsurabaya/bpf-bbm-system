@@ -103,4 +103,45 @@ class TestApplicantPDF:
         assert '081234567890' in txt
         assert 'Marketing' in txt
         assert 'UPLINE-A' in txt.upper()
+        # TTD receptionist tampil di PDF
         assert 'RECEPTIONIST' in txt.upper()
+
+
+# ============================================================
+# Unit: logika migrasi Google Sheet (v2.17)
+# ============================================================
+class TestSheetMigration:
+    """Parse tanggal M/D/YYYY, normalisasi spasi ganda, status dari H/Pulang."""
+
+    def _load(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            'migrate_sheet', os.path.join(os.path.dirname(__file__), '..',
+                                          'scripts', 'migrate_applicants_sheet.py'))
+        m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(m)
+        return m
+
+    def test_clean_normalizes_double_space(self):
+        m = self._load()
+        assert m.clean('  TEAM  EDI 2 ') == 'TEAM EDI 2'
+        assert m.clean('PUSPILITA GALUH ') == 'PUSPILITA GALUH'
+        assert m.clean('') == ''
+
+    def test_parse_dt_mdy(self):
+        m = self._load()
+        dt = m.parse_dt('5/1/2026', '8:45:33')
+        assert dt is not None
+        assert dt.strftime('%Y-%m-%d %H:%M:%S') == '2026-05-01 08:45:33'
+        # Tanggal tanpa jam
+        dt2 = m.parse_dt('12/25/2026', '')
+        assert dt2 is not None and dt2.year == 2026 and dt2.month == 12
+        # Data tidak valid -> None (dilewati)
+        assert m.parse_dt('', '') is None
+
+    def test_status_follows_furthest_training(self):
+        m = self._load()
+        # H1..H4 berdasarkan is_true; status mengikuti tahap terjauh
+        assert m.is_true('TRUE') is True
+        assert m.is_true('FALSE') is False
+        assert m.is_true('') is False

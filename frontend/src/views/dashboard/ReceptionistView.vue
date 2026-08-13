@@ -6,7 +6,7 @@ import Modal from '../../components/Modal.vue'
 
 const list = ref([])
 const stats = ref(null)
-const meta = ref({ uplines: [], users: [], statuses: [] })
+const meta = ref({ uplines: [], users: [], statuses: [], user_options: [] })
 const loading = ref(true)
 const err = ref('')
 const msg = ref('')
@@ -151,6 +151,55 @@ function reportUrl() {
   return '/api/applicants/report?' + p.toString()
 }
 
+// ---- Kelola opsi User (dropdown) ----
+const optModal = ref(false)
+const optList = ref([])
+const optNew = ref('')
+const optBusy = ref(false)
+
+async function loadOptions() {
+  try {
+    const d = await api('/api/applicants/user-options/manage')
+    optList.value = d.options || []
+  } catch { optList.value = [] }
+}
+
+function openOptions() {
+  optModal.value = true; optNew.value = ''; loadOptions()
+}
+
+async function addOption() {
+  const name = optNew.value.trim()
+  if (!name) return
+  optBusy.value = true; msg.value = ''
+  try {
+    const r = await api('/api/applicants/user-options', { method: 'POST', body: { name } })
+    msg.value = '✅ ' + (r.msg || 'Ditambahkan')
+    optNew.value = ''; loadOptions(); loadMeta()
+  } catch (e) { msg.value = '❌ ' + e.message }
+  finally { optBusy.value = false }
+}
+
+async function toggleOption(o) {
+  optBusy.value = true
+  try {
+    await api(`/api/applicants/user-options/${o.id}`, { method: 'PATCH', body: { is_active: !o.is_active } })
+    loadOptions(); loadMeta()
+  } catch (e) { msg.value = '❌ ' + e.message }
+  finally { optBusy.value = false }
+}
+
+async function delOption(o) {
+  if (!confirm(`Hapus opsi User "${o.name}"?`)) return
+  optBusy.value = true
+  try {
+    const r = await api(`/api/applicants/user-options/${o.id}`, { method: 'DELETE' })
+    msg.value = '✅ ' + (r.msg || 'Dihapus')
+    loadOptions(); loadMeta()
+  } catch (e) { msg.value = '❌ ' + e.message }
+  finally { optBusy.value = false }
+}
+
 const badge = (s) => STATUS_BADGE[s] || 'badge-gray'
 const attended = (a, stage) => !!(a.attendance && a.attendance[stage] && a.attendance[stage].attended_at)
 const terminal = (a) => ['lulus', 'resigned', 'rejected'].includes(a.status)
@@ -176,7 +225,7 @@ onMounted(() => { load(); loadMeta() })
         <div class="field" style="margin:0;"><label>User</label>
           <select class="select" v-model="f.user" @change="load" style="min-width:120px;">
             <option value="">Semua</option>
-            <option v-for="u in meta.users" :key="u" :value="u">{{ u }}</option>
+            <option v-for="u in meta.user_options" :key="u.id" :value="u.name">{{ u.name }}</option>
           </select></div>
         <div class="field" style="margin:0;"><label>Status</label>
           <select class="select" v-model="f.status" @change="load" style="min-width:140px;">
@@ -196,6 +245,7 @@ onMounted(() => { load(); loadMeta() })
             <option value="training_4">📕 Training H4</option>
           </select></div>
         <a class="btn btn-primary" :href="reportUrl()" target="_blank">📄 Laporan PDF</a>
+        <button class="btn" title="Kelola pilihan User untuk dropdown form" @click="openOptions">⚙️ Kelola User</button>
       </div>
       <div v-if="msg" class="alert" :class="msg.startsWith('✅') ? 'alert-success' : msg.startsWith('⚠️') ? 'alert-warning' : 'alert-error'" style="margin-top:10px;">{{ msg }}</div>
     </div>
@@ -262,7 +312,12 @@ onMounted(() => { load(); loadMeta() })
         <div class="field"><label>Pendidikan Terakhir</label><input class="input" v-model="editForm.pendidikan" /></div>
         <div class="field"><label>Nomor Telepon/HP</label><input class="input" v-model="editForm.no_hp" /></div>
         <div class="field"><label>UPLINE</label><input class="input" v-model="editForm.upline" /></div>
-        <div class="field"><label>User</label><input class="input" v-model="editForm.user" /></div>
+        <div class="field"><label>User</label>
+          <select class="select" v-model="editForm.user">
+            <option value="">— (kosong) —</option>
+            <option v-for="u in meta.user_options" :key="u.id" :value="u.name">{{ u.name }}</option>
+            <option v-if="editForm.user && !meta.user_options.some(u => u.name === editForm.user)" :value="editForm.user">{{ editForm.user }} (nilai lama)</option>
+          </select></div>
         <div class="field"><label>Posisi Yang Dilamar</label><input class="input" v-model="editForm.posisi" /></div>
         <div class="field" style="grid-column:1/-1;"><label>Catatan</label><textarea class="textarea" v-model="editForm.notes" rows="2"></textarea></div>
       </div>
@@ -291,6 +346,33 @@ onMounted(() => { load(); loadMeta() })
         <input class="input" v-model="attForm.note" placeholder="cth: hadir tepat waktu" /></div>
       <div class="row" style="justify-content:flex-end;margin-top:10px;">
         <button class="btn" @click="attAppt = null">Tutup</button>
+      </div>
+    </Modal>
+
+    <!-- Modal Kelola Opsi User -->
+    <Modal v-if="optModal" title="⚙️ Kelola Pilihan User (Dropdown)" @close="optModal = false">
+      <p class="muted" style="font-size:12px;margin-bottom:10px;">
+        Pilihan ini muncul di dropdown form pendaftaran (publik) dan saat edit data pelamar.
+        Nilai awal berasal dari data Google Sheet lama.
+      </p>
+      <div class="row" style="gap:6px;margin-bottom:12px;">
+        <input class="input" v-model="optNew" placeholder="Nama User baru, cth: TEAM YUSIE 3" @keyup.enter="addOption" style="flex:1;" />
+        <button class="btn btn-primary" :disabled="optBusy || !optNew.trim()" @click="addOption">＋ Tambah</button>
+      </div>
+      <div class="att-edit-list">
+        <div v-for="o in optList" :key="o.id" class="att-edit-row">
+          <span class="badge" :class="o.is_active ? 'badge-green' : 'badge-gray'">{{ o.is_active ? 'Aktif' : 'Nonaktif' }}</span>
+          <b style="font-size:13px;">{{ o.name }}</b>
+          <div class="spacer"></div>
+          <button class="btn btn-sm" :disabled="optBusy" @click="toggleOption(o)" :title="o.is_active ? 'Nonaktifkan' : 'Aktifkan'">
+            {{ o.is_active ? '🚫 Nonaktifkan' : '✅ Aktifkan' }}
+          </button>
+          <button class="btn btn-sm btn-danger" :disabled="optBusy" @click="delOption(o)" title="Hapus">🗑</button>
+        </div>
+        <div v-if="!optList.length" class="empty">Belum ada opsi. Tambahkan di atas.</div>
+      </div>
+      <div class="row" style="justify-content:flex-end;margin-top:12px;">
+        <button class="btn" @click="optModal = false">Tutup</button>
       </div>
     </Modal>
 

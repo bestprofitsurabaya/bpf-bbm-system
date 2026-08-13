@@ -323,8 +323,15 @@ Semua perubahan papan berjalan realtime — saat driver menyelesaikan tugas, sta
 
 ### 9.1 Pelamar Mengisi Form (Halaman Publik `/app/apply`)
 
-- Pelamar membuka **Formulir Pendaftaran Kerja** (link dari resepsionis): Nama Lengkap, Pendidikan, No. HP, UPLINE, User, Posisi.
+- Pelamar membuka **Formulir Pendaftaran Kerja** (link dari resepsionis): Nama Lengkap, Pendidikan, No. HP, UPLINE, User (dropdown), Posisi.
 - **Tanggal & jam interview diambil otomatis** dari waktu pengiriman form — pelamar langsung mendapat No. Registrasi (mis. `PLM-20260813-…`).
+- **Kolom User berupa dropdown** — pilihannya dikelola Receptionist (lihat §9.4). Nilai awal diambil dari daftar User pada Google Sheet lama (TEAM YUSIE 3, TEAM EDI 2, dst.).
+
+### 9.4 Kelola Pilihan User (Dropdown) ⚙️
+
+- Klik tombol **⚙️ Kelola User** di dashboard Receptionist untuk membuka modal daftar opsi.
+- **＋ Tambah** opsi baru (cth: `TEAM BARU 6`), **🚫 Nonaktifkan / ✅ Aktifkan** (opsi nonaktif tidak muncul di form pelamar), atau **🗑 Hapus**.
+- Perubahan langsung berlaku di form publik & dropdown edit — semua tercatat di Audit Log (`user_option_*`).
 
 ### 9.2 Dashboard Receptionist `/app/receptionist`
 
@@ -335,6 +342,7 @@ Semua perubahan papan berjalan realtime — saat driver menyelesaikan tugas, sta
 - **🚪 Mengundurkan Diri** — jika pelamar berhenti (mis. setelah training hari 1), pilih *Mengundurkan Diri* dan **tuliskan alasannya (WAJIB karena pelamar sudah pernah hadir)**.
 - **🏁 Lulus / ✕ Tolak** — setelah 4 hari training tuntas, tandai **Lulus**; atau **Tolak** dengan alasan (opsional).
 - **🗑 Hapus** — hapus data pelamar beserta riwayat kehadirannya.
+- **⚙️ Kelola User** — atur pilihan dropdown User untuk form pelamar (lihat §9.4).
 
 ### 9.3 Laporan PDF Resmi 📄
 

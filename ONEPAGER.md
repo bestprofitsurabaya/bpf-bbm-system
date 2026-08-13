@@ -39,7 +39,7 @@ Sebelumnya, pencatatan BBM, kasbon, dan pembelian air minum dilakukan manual —
 - **Pembelian air minum** — OB mengisi tanggal, jumlah, foto *before/after*; Finance verifikasi → dokumen PDF tanda tangan GA & Finance.
 - **Jadwal kunjungan marketing** — input jadwal + **jam kunjungan**, penugasan ke driver, hasil kunjungan terekam.
 - **Rute otomatis hemat BBM** — Chief Driver sekali klik membagi kunjungan **per area & urut jam** (rute searah), lengkap dengan estimasi jarak/BBM dan angka penghematan.
-- **Sistem pelamar kerja** — pelamar mengisi form publik, **jam interview otomatis** dari timestamp; Receptionist mencatat kehadiran interview & training H1–H4 (alasan wajib bila mundur), membuat **laporan PDF berlogo**; Traineer memantau rekrutannya.
+- **Sistem pelamar kerja** — pelamar mengisi form publik, **jam interview otomatis** dari timestamp; Receptionist mencatat kehadiran interview & training H1–H4 (alasan wajib bila mundur), membuat **laporan PDF berlogo**; Traineer memantau rekrutannya. **914 riwayat pelamar Google Sheet lama sudah dimigrasikan** ke DB internal, kolom User kini **dropdown yang diatur Receptionist** (⚙️ Kelola User).
 - **Notifikasi realtime** — driver langsung tahu klaimnya sudah diverifikasi atau ada jadwal baru.
 - **Bisa dipakai offline** — koneksi tersambung kembali, data otomatis tersinkron.
 - **Laporan PDF & Excel** — logsheet, rekap, dan dokumen tanda terima siap diunduh.
