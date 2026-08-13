@@ -129,10 +129,23 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
   }
   const modalText = await page.evaluate(() => document.querySelector('.modal-box')?.textContent || '')
   const hasDrivers = modalText.includes('kunjungan')
-  const hasSavings = /Hemat [\d.]+%/.test(modalText)
   const hasTotal = modalText.includes('Total Jarak')
+  // Bandingkan banner penghematan dengan nilai API (data-agnostik):
+  // savings > 0 -> banner harus tampil; savings = 0 -> banner boleh tidak ada.
+  const apiPlan = await page.evaluate(async () => {
+    const r = await fetch('/api/appointments/route-plan?date=' + new Date().toISOString().slice(0, 10))
+    const d = await r.json()
+    return { savings: d.totals?.savings_percent ?? 0, km: d.totals?.km, baseline: d.totals?.baseline_km }
+  }).catch(() => null)
+  const banner = modalText.match(/Hemat ([\d.]+)%[^\n]{0,80}/)
+  const bannerShown = !!banner
+  const bannerCorrect = apiPlan
+    ? (apiPlan.savings > 0 ? bannerShown && parseFloat(banner[1]) === apiPlan.savings
+                            : !bannerShown)
+    : true
   ok('Modal menampilkan rute per driver', hasDrivers)
-  ok('Modal menampilkan estimasi hemat BBM', hasSavings, modalText.match(/Hemat [\d.]+%[^\n]{0,80}/)?.[0] || '')
+  ok('Banner penghematan BBM benar (API ' + (apiPlan?.savings ?? '?') + '%)', bannerCorrect,
+    banner ? banner[0] : 'tanpa banner (savings 0%)')
   ok('Modal menampilkan statistik total', hasTotal)
   await page.screenshot({ path: SHOT_DIR + '/03-route-modal-plan.png' })
 

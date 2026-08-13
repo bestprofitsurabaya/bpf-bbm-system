@@ -79,6 +79,11 @@ async function loginAs(user, pin, home) {
     await p.type('input[autocomplete="username"]', user)
     await p.type('#login-pin', pin)
     await p.click('form button.btn-primary')
+    // Tunggu SPA selesai login (hindari race: navigasi berikutnya jangan
+    // menginterupsi alur login yang masih berjalan).
+    try {
+      await p.waitForFunction(() => !location.pathname.endsWith('/login'), { timeout: 15000 })
+    } catch (e) { /* fallback: guard router akan mengarahkan */ }
     const t0 = Date.now()
     while (!sess && Date.now() - t0 < 15000) await new Promise((r) => setTimeout(r, 200))
     p.off('response', onResp)
@@ -227,6 +232,9 @@ try {
   await p.type('input[autocomplete="username"]', 'RIVAN')
   await p.type('#login-pin', '123456')
   await p.click('form button.btn-primary')
+  try {
+    await p.waitForFunction(() => !location.pathname.endsWith('/login'), { timeout: 15000 })
+  } catch (e) { /* fallback */ }
   const t0 = Date.now()
   while (!sess && Date.now() - t0 < 15000) await new Promise((r) => setTimeout(r, 200))
   p.off('response', onResp)
