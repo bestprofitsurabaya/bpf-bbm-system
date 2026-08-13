@@ -20,6 +20,8 @@ from datetime import timedelta
 import os
 import warnings
 import secrets
+import json
+import time
 warnings.filterwarnings('ignore')
 
 # Init Flask
@@ -92,6 +94,7 @@ from modules.routes_applicants import register_applicant_routes
 from modules.routes_assets import register_asset_routes
 from modules.routes_branches import register_branch_routes
 from modules.routes_spa import register_spa_routes
+from modules.security import register_health_routes
 
 register_driver_routes(app, socketio)
 register_auth_routes(app)
@@ -109,6 +112,7 @@ register_applicant_routes(app)
 register_asset_routes(app)
 register_branch_routes(app)
 register_spa_routes(app)
+register_health_routes(app)
 
 # ================================================================
 # CSRF PROTECTION (berlaku untuk sesi admin yang login)
@@ -158,6 +162,68 @@ def add_no_cache_header(response):
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
     return response
+
+
+@app.after_request
+def add_security_headers(response):
+    """Security headers lengkap (ISO/IEC 27001 A.8.2 · A.8.7 · A.8.8).
+
+    - X-Content-Type-Options: nosniff        — cegah MIME sniffing
+    - X-Frame-Options: DENY                  — cegah clickjacking
+    - Referrer-Policy: strict-origin-when-cross-origin
+    - Permissions-Policy                     — batasi fitur browser
+    - Content-Security-Policy                — batasi sumber skrip/style (anti-XSS)
+      (santai untuk SPA Vue + Socket.IO + map; inline script/styles dibatasi
+      ketat, nonce sulit karena SPA statis — pendekatan ini tetap memblokir
+      injeksi skrip dari sumber asing)
+    """
+    response.headers.setdefault('X-Content-Type-Options', 'nosniff')
+    response.headers.setdefault('X-Frame-Options', 'DENY')
+    response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+    response.headers.setdefault('Permissions-Policy',
+                                'camera=(self), geolocation=(self), microphone=(), '
+                                'payment=(), usb=(), display-capture=()')
+    if response.headers.get('Content-Type', '').startswith('text/html'):
+        response.headers.setdefault(
+            'Content-Security-Policy',
+            "default-src 'self'; "
+            "script-src 'self'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "font-src 'self' data:; "
+            "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://a.tile.openstreetmap.org; "
+            "connect-src 'self' ws: wss:; "
+            "frame-ancestors 'none'")
+    return response
+
+
+@app.after_request
+def log_access_json(response):
+    """Access log ringkas berformat JSON (observabilitas, v2.21).
+
+    Dicetak via app.logger (INFO) — satu baris per request dengan field
+    terstruktur untuk diproses (grep/jq) atau dipipakan ke aggregator.
+    Endpoint statis & socket.io dilewati agar tidak membanjiri log.
+    """
+    p = request.path
+    if p.startswith(('/static/', '/uploads/', '/socket.io', '/app/assets/', '/app/dark-init.js')):
+        return response
+    entries = {
+        'ts': time.strftime('%Y-%m-%dT%H:%M:%S'),
+        'method': request.method,
+        'path': p,
+        'status': response.status_code,
+        'ip': request.remote_addr or '-',
+        'user': session.get('user_name') if session else '-',
+        'role': session.get('user_role') if session else '-',
+        'ms': int((time.perf_counter() - request.environ.get('_req_start', time.perf_counter())) * 1000),
+    }
+    app.logger.info(json.dumps(entries, ensure_ascii=False))
+    return response
+
+
+@app.before_request
+def mark_request_start():
+    request.environ['_req_start'] = time.perf_counter()
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=False, allow_unsafe_werkzeug=True)

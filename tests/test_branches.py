@@ -16,6 +16,102 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from flask import Flask
 
 
+# ---------------------------------------------------------------------------
+# Ekstraktor teks PDF (CMap-aware) — sama dengan test_water._pdf_text, disalin
+# agar test_branches berdiri sendiri (tanpa dependensi antar test module).
+# ---------------------------------------------------------------------------
+def _pdf_text(pdf_bytes):
+    import re
+    import zlib
+
+    def _decomp(data):
+        try:
+            return zlib.decompress(data)
+        except Exception:
+            return data
+
+    def _stream_of(body):
+        m = re.search(rb'stream\r?\n(.*?)\r?\nendstream', body, re.S)
+        return _decomp(m.group(1)) if m else b''
+
+    objs = {}
+    for m in re.finditer(rb'(\d+) 0 obj(.*?)endobj', pdf_bytes, re.S):
+        objs[int(m.group(1))] = m.group(2)
+    font_to_unicode = {}
+    for num, body in objs.items():
+        m = re.search(rb'/ToUnicode\s+(\d+)\s+0\s+R', body)
+        if m:
+            font_to_unicode[num] = int(m.group(1))
+    name_to_font = {}
+    for body in objs.values():
+        m = re.search(rb'/Font\s*<<(.*?)>>', body, re.S)
+        if m:
+            for fm in re.finditer(rb'/(F\d+)\s+(\d+)\s+0\s+R', m.group(1)):
+                name_to_font[fm.group(1).decode()] = int(fm.group(2))
+    cmaps = {}
+    for name, font_num in name_to_font.items():
+        touni = font_to_unicode.get(font_num)
+        if touni is None or touni not in objs:
+            continue
+        body = _stream_of(objs[touni])
+        cmap = {}
+        for part in body.split(b'endbfchar'):
+            if b'beginbfchar' not in part:
+                continue
+            section = part.split(b'beginbfchar', 1)[1]
+            for bm in re.finditer(rb'<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>', section):
+                code = int(bm.group(1), 16)
+                uni = bm.group(2)
+                cmap[code] = ''.join(chr(int(uni[i:i + 4], 16)) for i in range(0, len(uni), 4))
+        cmaps[name] = cmap
+
+    def _decode(raw, cmap):
+        if all(0x20 <= b < 0x7F for b in raw) and b'\x00' not in raw:
+            return raw.decode('latin-1')
+        out = []
+        k = 0
+        while k + 1 < len(raw):
+            ch = cmap.get((raw[k] << 8) | raw[k + 1], '')
+            if ch:
+                out.append(ch)
+            k += 2
+        return ''.join(out)
+
+    texts = []
+    for body in objs.values():
+        stream = _stream_of(body)
+        if b'BT' not in stream or b'Tj' not in stream:
+            continue
+        font = 'F1'
+        out = []
+        i, n = 0, len(stream)
+        while i < n:
+            fm = re.match(rb'/(F\d+)\s+[\d.]+\s+Tf', stream[i:])
+            if fm:
+                font = fm.group(1).decode()
+                i += fm.end()
+                continue
+            if stream[i] == 0x28:
+                j = i + 1
+                buf = bytearray()
+                while j < n:
+                    c = stream[j]
+                    if c == 0x5C and j + 1 < n:
+                        buf.append(stream[j + 1])
+                        j += 2
+                        continue
+                    if c == 0x29:
+                        break
+                    buf.append(c)
+                    j += 1
+                out.append(_decode(bytes(buf), cmaps.get(font, {})))
+                i = j + 1
+            else:
+                i += 1
+        texts.append(''.join(out))
+    return '\n'.join(texts)
+
+
 class FakeCursor:
     def __init__(self, db):
         self.db = db
@@ -397,6 +493,52 @@ class TestBranchStats:
         assert by_code['SBY']['users'] == 1              # admin (SBY)
         assert by_code['MLG']['users'] == 1              # eko (MLG)
         assert by_code['MLG']['transactions'] == 0       # DB MLG tidak tersedia
+
+
+def test_consolidated_pdf_renders(monkeypatch):
+    """ConsolidatedReportPDF: statistik + transaksi terbaru per cabang."""
+    from datetime import datetime
+    from modules.pdf_generator import ConsolidatedReportPDF
+
+    stats = [
+        {'code': 'SBY', 'name': 'Kantor Pusat', 'db_name': 'bpf_asset_system',
+         'transactions': 10, 'appointments_today': 3, 'users': 5, 'is_active': True},
+        {'code': 'MLG', 'name': 'Cabang Malang', 'db_name': 'bpf_branch_malang',
+         'transactions': 2, 'appointments_today': 1, 'users': 2, 'is_active': True},
+    ]
+    latest = {
+        'SBY': [{'display_id': 'TX-1', 'driver_name': 'Wicak', 'nopol': 'N 1 AB',
+                 'bbm_type': 'Pertalite', 'nominal': 100000, 'liter': 10.0,
+                 'created_at': datetime.now()}],
+        'MLG': [],
+    }
+    pdf = ConsolidatedReportPDF()
+    pdf.add_page()
+    pdf.generate(stats, latest, generated_by='Admin')
+    raw = pdf.output()
+    text = _pdf_text(raw)
+    assert 'LAPORAN KONSOLIDASI' in text
+    assert 'RINGKASAN PER CABANG' in text
+    assert 'Cabang Malang' in text
+    assert 'Wicak' in text
+
+
+def test_consolidated_endpoint_admin_only(monkeypatch):
+    """Endpoint konsolidasi: role admin (non-admin → 403)."""
+    import modules.routes_branches as rb
+    conn = FakeConn({'branches': []})
+    monkeypatch.setattr(rb, 'get_master_connection', lambda: conn)
+    monkeypatch.setattr(rb, 'log_activity_async', lambda *a, **k: None)
+
+    app = Flask(__name__)
+    app.secret_key = 'test-secret'
+    rb.register_branch_routes(app)
+    c = app.test_client()
+    with c.session_transaction() as s:
+        s['user_role'] = 'ga'
+        s['user_name'] = 'ga1'
+    r = c.get('/api/branches/consolidated')
+    assert r.status_code == 403
 
 
 if __name__ == '__main__':

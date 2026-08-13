@@ -4,6 +4,9 @@ import { api } from '../../api'
 import { useAuthStore } from '../../stores/auth'
 import StatCard from '../../components/StatCard.vue'
 import Modal from '../../components/Modal.vue'
+import LoadingState from '../../components/LoadingState.vue'
+import EmptyState from '../../components/EmptyState.vue'
+import ErrorState from '../../components/ErrorState.vue'
 
 const auth = useAuthStore()
 const s = ref(null)
@@ -56,6 +59,29 @@ async function loadBranchStats() {
 
 function openBranchReportPdf() {
   window.open('/api/branches/report-pdf', '_blank')
+}
+
+function openConsolidatedPdf() {
+  window.open('/api/branches/consolidated-pdf', '_blank')
+}
+
+function openConsolidatedExcel() {
+  window.open('/api/branches/consolidated-excel', '_blank')
+}
+
+function exportQueueExcel() {
+  // Sesi cookie dibawa otomatis; buka lewat fetch lalu unduh blob (agar
+  // error 401/403 bisa ditangani, bukan halaman kosong).
+  api(`/api/queue/export-excel?tab=${queueTab.value}`, { raw: true })
+    .then((blob) => {
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `antrean_${queueTab.value}_${new Date().toISOString().slice(0, 10)}.xlsx`
+      a.click()
+      URL.revokeObjectURL(url)
+    })
+    .catch((e) => { queueMsg.value = '❌ Gagal export Excel: ' + e.message })
 }
 
 const quick = computed(() => {
@@ -254,6 +280,8 @@ watch(queueTab, loadQueue)
           <span class="muted" style="font-size:11px;">Transaksi, kunjungan hari ini &amp; user per cabang (multi-cabang)</span>
           <div class="spacer"></div>
           <button class="btn btn-sm" title="Unduh PDF ringkasan cabang" @click="openBranchReportPdf">📄 PDF</button>
+          <button class="btn btn-sm" title="Unduh laporan konsolidasi lintas cabang (semua DB) sebagai PDF" aria-label="Unduh PDF konsolidasi lintas cabang" @click="openConsolidatedPdf">🧮 PDF Konsolidasi</button>
+          <button class="btn btn-sm" title="Unduh laporan konsolidasi lintas cabang sebagai Excel" aria-label="Unduh Excel konsolidasi lintas cabang" @click="openConsolidatedExcel">🧮 Excel Konsolidasi</button>
           <button class="btn btn-sm" :disabled="branchStatsLoading" @click="loadBranchStats">🔄</button>
         </div>
         <div v-if="branchStatsLoading" class="empty" style="padding:14px;">⏳ Memuat…</div>
@@ -281,10 +309,12 @@ watch(queueTab, loadQueue)
         <div class="row" style="flex-wrap:wrap;gap:8px;">
           <h3 style="margin:0;">🕐 Antrean Kerja</h3>
           <button v-for="t in queueTabs" :key="t.key" class="btn btn-sm" :class="queueTab === t.key ? 'btn-primary' : ''" @click="queueTab = t.key">{{ t.label }}</button>
+          <button class="btn btn-sm" title="Unduh antrean tab aktif sebagai Excel" aria-label="Unduh antrean sebagai Excel" @click="exportQueueExcel">⬇️ Excel</button>
           <span v-if="queueMsg" class="alert" :class="queueMsg.startsWith('✅') ? 'alert-success' : 'alert-error'" style="margin:0;">{{ queueMsg }}</span>
           <div class="spacer"></div>
         </div>
-        <div v-if="queueLoading" class="empty" style="padding:20px;">⏳ Memuat antrean…</div>
+        <div v-if="queueLoading"><LoadingState rows="3" label="Memuat antrean…" /></div>
+        <div v-else-if="queueMsg && queueMsg.startsWith('❌')" ><ErrorState :message="queueMsg.slice(2)" @retry="loadQueue" /></div>
         <div class="table-wrap" v-else>
           <table class="tbl">
             <thead><tr><th>ID</th><th>Driver</th><th>Nopol</th><th>BBM</th><th>Nominal</th><th>Liter</th><th>ODO</th><th>Anomali</th><th>Waktu</th><th></th></tr></thead>
@@ -318,7 +348,7 @@ watch(queueTab, loadQueue)
                   </template>
                 </td>
               </tr>
-              <tr v-if="!queue.length"><td colspan="10" class="empty">Antrean kosong. 🎉</td></tr>
+              <tr v-if="!queue.length"><td colspan="10" style="padding:0;"><EmptyState message="Antrean kosong. 🎉" icon="🎉" /></td></tr>
             </tbody>
           </table>
         </div>

@@ -1,4 +1,4 @@
-# 🏢 BPF WorkHub v2.20.2 (SPA Vue 3 penuh — 100% Vue)
+# 🏢 BPF WorkHub v2.21.0 (SPA Vue 3 penuh — 100% Vue)
 
 **Sistem Manajemen Armada, Klaim BBM, Kasbon, Log Perjalanan, Appointment & Air Minum**  
 **PT. Bestprofit Futures - Surabaya**
@@ -6,6 +6,19 @@
 ---
 
 Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pengarsipan klaim BBM, **pengajuan kasbon dengan kode unik**, dan log perjalanan harian (logsheet) dengan workflow GA → Finance → Archive. Dilengkapi **sistem appointment canggih** (Marketing → Chief Driver → Log Perjalanan), deteksi anomali Machine Learning, GPS tracking, **watermark foto otomatis**, PIN security, **session-based login & role-based access**, **CSRF protection**, **notifikasi real-time**, import Excel, audit trail, Chart.js visualization, **PWA offline-first**, dan **WebSocket real-time**.
+
+---
+
+## 🆕 Fitur Terbaru v2.21.0 — Keamanan, Backup, Konsolidasi Cabang, UI/UX
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **🔐 Security headers lengkap** | CSP ketat (`script-src 'self'`, tanpa inline/eval) + X-Frame-Options + Referrer-Policy + Permissions-Policy — SPA terverifikasi tetap jalan, 0 error konsol |
+| **🗄️ Backup DB otomatis** | Service `backup` di compose: dump semua database (master + tiap cabang) tiap 03:00 WIB, retensi 30 hari, status `last-backup.txt` |
+| **📊 Konsolidasi lintas cabang** | `GET /api/branches/consolidated(-pdf/-excel)` — statistik + transaksi terbaru dari SEMUA DB cabang dalam satu PDF/Excel resmi; tombol 🧮 di dashboard Admin |
+| **🏥 Health check** | `GET /api/health` — DB, Redis, pool, opsi per-cabang (`?branches=1`); access log JSON terstruktur per request |
+| **🖥️ UI/UX** | LoadingState/EmptyState/ErrorState reusable, pagination Audit Log & Rekap, export Excel antrean, error boundary global, aksesibilitas |
+| **🧪 Test** | 208 pytest (9 baru) + 82 Vitest |
 
 ---
 

@@ -26,6 +26,11 @@ fi
 echo "▶ Salin frontend/dist → static/app ..."
 rm -rf static/app
 cp -r frontend/dist static/app
+# Script anti-flash dark-mode (di-<script src> index.html, bukan inline agar
+# Content-Security-Policy tetap ketat: script-src 'self')
+if [[ -f frontend/public/dark-init.js ]]; then
+  cp frontend/public/dark-init.js static/app/dark-init.js
+fi
 
 echo "✅ Selesai. SPA tersedia di static/app:"
 ls -la static/app

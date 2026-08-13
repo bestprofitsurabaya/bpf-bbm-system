@@ -155,7 +155,30 @@ curl -s -o /dev/null -w 'driver: %{http_code}\n'  http://localhost:5001/driver
 
 ## 6. Backup & Restore
 
-### 6.1 Backup Database (otomatis via mysqldump)
+### 6.1 Backup Database — OTOMATIS (v2.21, direkomendasikan)
+
+Sejak v2.21 tersedia service `backup` di docker-compose: **mysqldump semua
+database (master + tiap cabang) setiap 03:00 WIB** ke volume `bbm_backups`,
+retensi 30 hari, status terakhir di `backups/last-backup.txt`.
+
+```bash
+# Cek status backup terakhir
+docker exec bbm_backup cat /backups/last-backup.txt
+
+# Lihat file backup
+docker exec bbm_backup ls -lh /backups/
+
+# Jalankan backup manual sekarang
+docker exec bbm_backup /bin/sh /usr/local/bin/backup-db.sh
+
+# Salin backup keluar dari volume (opsional, ke server lain)
+docker cp bbm_backup:/backups/bpf_<db>_<tanggal>.sql.gz .
+```
+
+Konfigurasi (env service `backup`): `BACKUP_CRON` (default `0 3 * * *`),
+`BACKUP_RETENTION_DAYS` (default 30).
+
+### 6.2 Backup Database (manual / satu DB)
 
 ```bash
 # Di dalam container web (mysqldump sudah terinstall)
@@ -163,20 +186,22 @@ docker exec bbm_web sh -c 'mysqldump -h db -u bpf_user -pbpf_pass bpf_asset_syst
   --single-transaction --routines --triggers' > backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
-### 6.2 Backup Uploads (foto & bukti)
+### 6.3 Backup Uploads (foto & bukti)
 
 ```bash
 tar czf uploads_$(date +%Y%m%d).tar.gz uploads/
 ```
 
-### 6.3 Restore
+### 6.4 Restore
 
 ```bash
 # Stop web dulu agar tidak ada koneksi aktif
 docker compose stop web
 
-# Restore DB (dari file backup.sql)
-cat backup.sql | docker exec -i bbm_mariadb mysql -uroot -ppassword_db bpf_asset_system
+# Restore DB (dari file backup.sql atau .sql.gz dari service backup)
+zcat backup.sql.gz | docker exec -i bbm_mariadb mysql -uroot -ppassword_db bpf_asset_system
+# atau tanpa kompresi:
+# cat backup.sql | docker exec -i bbm_mariadb mysql -uroot -ppassword_db bpf_asset_system
 
 # Restore uploads
 tar xzf uploads_YYYYMMDD.tar.gz -C .
@@ -185,10 +210,8 @@ tar xzf uploads_YYYYMMDD.tar.gz -C .
 docker compose start web
 ```
 
-> 💡 **Jadwalkan backup otomatis** via cron di server host:
-> ```
-> 30 1 * * * cd /opt/bpf-workhub && docker exec bbm_web sh -c 'mysqldump -h db -u bpf_user -pbpf_pass bpf_asset_system --single-transaction' > /backups/bbm_$(date +\%Y\%m\%d).sql && find /backups -name 'bbm_*.sql' -mtime +30 -delete
-> ```
+> ⚠️ **Backup lama via cron host tidak lagi diperlukan** — service `backup`
+> sudah menggantikannya (lebih aman: terpisah dari container web).
 
 ---
 
@@ -229,6 +252,22 @@ docker exec bbm_mariadb mysql -uroot -ppassword_db bpf_asset_system \
 ```
 
 ### 7.4 Healthcheck Endpoint
+
+```bash
+# Status layanan (DB, Redis, pool) — publik
+docker exec bbm_web curl -s localhost:5000/api/health | python3 -m json.tool
+
+# Status per cabang (admin — perlu sesi login)
+curl -s -b <cookie> 'https://nasbpfsby.duckdns.org:5000/api/health?branches=1'
+```
+
+#### 7.4.1 Access Log JSON
+
+Setiap request (non-statis) tercatat satu baris JSON via `app.logger`:
+`ts, method, path, status, ip, user, role, ms` — bisa dipipakan ke
+aggregator (mis. `docker logs bbm_web | jq -c`).
+
+---
 
 ```bash
 curl -s -o /dev/null -w 'login: %{http_code}\n' http://localhost:5001/login

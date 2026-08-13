@@ -2,8 +2,8 @@
  * Fetch wrapper — JSON + CSRF + error normalization.
  * CSRF token disimpan dari /api/auth/me atau /api/auth/login (session-based).
  */
-export async function api(path, { method = 'GET', body, params } = {}) {
-  const opts = { method, headers: { Accept: 'application/json' } }
+export async function api(path, { method = 'GET', body, params, raw = false } = {}) {
+  const opts = { method, headers: raw ? {} : { Accept: 'application/json' } }
   if (body !== undefined) {
     opts.headers['Content-Type'] = 'application/json'
     opts.body = JSON.stringify(body)
@@ -28,6 +28,17 @@ export async function api(path, { method = 'GET', body, params } = {}) {
 
   if (r.status === 401) {
     window.dispatchEvent(new CustomEvent('bpf:unauthorized'))
+  }
+
+  if (raw) {
+    if (!r.ok) {
+      let msg = `HTTP ${r.status}`
+      try { const d = await r.json(); msg = (d && (d.msg || d.error)) || msg } catch { /* bukan JSON */ }
+      const err = new Error(msg)
+      err.status = r.status
+      throw err
+    }
+    return await r.blob()
   }
 
   let data = null

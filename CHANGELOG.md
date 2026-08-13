@@ -6,6 +6,36 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.21.0] - 2026-08-13
+
+### 🔐 Keamanan & Observabilitas
+
+- **Security headers lengkap** (ISO/IEC 27001 A.8.2/A.8.7/A.8.8): `Content-Security-Policy` ketat (`script-src 'self'` — tanpa inline/eval), `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, `X-Content-Type-Options`. Script dark-mode dipindah ke `dark-init.js` eksternal agar CSP tetap ketat — **terverifikasi: SPA berjalan normal, 0 error konsol**.
+- **Rate limit** terpusat (`modules/security.py`) — diterapkan di seed-demo per cabang (10/menit/IP); login & form pelamar sudah punya limit sendiri.
+- **Logging akses JSON**: satu baris terstruktur per request (ts, method, path, status, ip, user, role, ms) — siap dipipakan ke aggregator.
+- **`GET /api/health`**: status DB master, Redis, pool — opsi `?branches=1` (admin) untuk kesehatan tiap DB cabang.
+
+### 🗄️ Backup DB otomatis
+
+- Service `backup` baru di docker-compose: `mysqldump` **semua database (master + tiap cabang)** setiap 03:00 WIB, retensi 30 hari, status di `last-backup.txt`. Script `scripts/backup-db.sh`.
+
+### 📊 Laporan Konsolidasi Lintas Cabang
+
+- **`GET /api/branches/consolidated`** (JSON) + **`consolidated-pdf`** (`ConsolidatedReportPDF` baru di pdf_generator.py) + **`consolidated-excel`** (2 sheet: Ringkasan + Transaksi Terbaru) — agregasi statistik & transaksi BBM terbaru dari **semua DB cabang** dalam satu dokumen resmi.
+- Tombol **🧮 PDF Konsolidasi / Excel Konsolidasi** di kartu Ringkasan Cabang (`/app/dashboard`).
+
+### 🖥️ UI/UX
+
+- Komponen reusable **LoadingState (skeleton) · EmptyState · ErrorState** diterapkan di Logs, Rekap, Admin Dashboard.
+- **Pagination** di Audit Log (25/halaman) & Rekap (50/halaman) — hasil filter & total tetap akurat.
+- **Export Excel antrean** (`GET /api/queue/export-excel?tab=…`) + tombol ⬇️ Excel di dashboard Admin (dukungan `raw` blob di api.js).
+- **Error boundary global** (Vue `errorHandler`) — kesalahan tak tertangkap tampil sebagai toast, bukan layar kosong.
+- Aksesibilitas: aria-label tombol ikon & export; Modal/bell sudah punya focus trap + `role="dialog"`.
+
+### 🧪 Pengujian
+
+- **208 pytest** (9 baru: security headers, rate limit, health, konsolidasi PDF/endpoint) + **82 Vitest** hijau · SPA di-build & image web di-rebuild · verifikasi browser (CSP, tombol baru, pagination, konsol 0 error).
+
 ## [2.20.2] - 2026-08-13
 
 ### 🗂️ Filter Cabang di Audit Log

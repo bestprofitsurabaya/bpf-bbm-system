@@ -113,3 +113,16 @@ def get_db_connection(branch_code=None, master=False):
 # Alias eksplisit untuk koneksi master (users/branches) — lebih terbaca di route.
 def get_master_connection():
     return get_db_connection(master=True)
+
+
+def get_db_pool_info():
+    """Info ringkas pool DB (untuk /api/health). Aman bila pool belum init."""
+    info = {'master_pool': 'not_initialized'}
+    try:
+        if db_pool is not None:
+            size = DB_CONFIG.get('pool_size', 10)
+            info['master_pool'] = f'ready/{size}'
+        info['branch_pools'] = {name: 'ready' for name in _branch_pools}
+    except Exception:
+        pass
+    return info

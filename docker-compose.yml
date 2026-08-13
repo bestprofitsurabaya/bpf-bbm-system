@@ -90,9 +90,40 @@ services:
     volumes:
       - bbm_redis_data:/data
 
+  # ------------------------------------------------------------
+  # BACKUP DB OTOMATIS (v2.21)
+  # ------------------------------------------------------------
+  # mysqldump semua database (master + tiap cabang) setiap 03:00 WIB,
+  # retensi 30 hari. Log/status tersedia di volume bbm_backups.
+  # Restore manual: lihat DEPLOYMENT.md bagian Backup & Restore.
+  backup:
+    image: mariadb:10.11
+    container_name: bbm_backup
+    environment:
+      - TZ=Asia/Jakarta
+      - MYSQL_HOST=db
+      - MYSQL_ROOT_PASSWORD=password_db
+      - BACKUP_RETENTION_DAYS=30
+      - BACKUP_CRON=0 3 * * *
+    volumes:
+      - bbm_backups:/backups
+      - ./scripts/backup-db.sh:/usr/local/bin/backup-db.sh:ro
+    entrypoint: |
+      /bin/sh -c "chmod +x /usr/local/bin/backup-db.sh && \
+      echo \"$${BACKUP_CRON} /bin/sh /usr/local/bin/backup-db.sh >> /var/log/backup.log 2>&1\" > /etc/crontabs/root && \
+      echo 'Backup service siap — cron:' && cat /etc/crontabs/root && \
+      crond -f -l 2"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - default
+
 volumes:
   bbm_db_data:
   bbm_redis_data:
+  bbm_backups:
 
 networks:
   default:

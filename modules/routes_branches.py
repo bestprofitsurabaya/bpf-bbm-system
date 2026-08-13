@@ -1,14 +1,17 @@
 """API Cabang (v2.19.2 — multi-cabang).
 
 Dikelola Admin: daftar cabang, tambah/edit (identitas + nama database),
-aktif/nonaktif, buat database cabang (salinan skema), dan ganti cabang aktif
-(sesi) — memungkinkan satu instalasi melayani banyak cabang.
+aktif/nonaktif, buat database cabang (salinan skema), ganti cabang aktif
+(sesi) + laporan konsolidasi lintas cabang (PDF/Excel, v2.21) —
+memungkinkan satu instalasi melayani banyak cabang.
 """
+from datetime import datetime
 from flask import request, jsonify, session, make_response
 
 from modules.config import get_master_connection, get_db_connection
 from modules.helpers import role_required, log_activity_async
 from modules import branch_manager as bm
+from modules.security import rate_limit
 
 _DUMMY_TX_SQL = """INSERT IGNORE INTO transactions
     (driver_name, nopol, vehicle_type, bbm_type, nominal, liter, price_per_liter,
@@ -80,6 +83,7 @@ def register_branch_routes(app):
 
     @app.route('/api/branches/<code>/seed-demo', methods=['POST'])
     @role_required(['admin'])
+    @rate_limit(limit=10, window=60, scope='seed-demo')
     def api_branches_seed_demo(code):
         """Tanam data demo (rute + transaksi dummy) langsung ke DB cabang tertentu.
 
@@ -189,3 +193,105 @@ def register_branch_routes(app):
                             'current': bm.current_branch()})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    # ================================================================
+    # KONSOLIDASI LINTAS CABANG (v2.21) — PDF / Excel / JSON
+    # ================================================================
+    def _consolidated_payload():
+        """Statistik semua cabang + transaksi BBM terbaru dari tiap DB."""
+        stats = bm.branch_stats()
+        latest = {}
+        for b in stats:
+            code = b['code']
+            db = b.get('db_name') or ''
+            if not b.get('is_active') or not db:
+                latest[code] = []
+                continue
+            try:
+                from modules.config import _pool_for, DB_CONFIG
+                if db == DB_CONFIG['database']:
+                    c = get_master_connection()
+                else:
+                    pool = _pool_for(db)
+                    c = pool.get_connection() if pool else None
+                if not c:
+                    latest[code] = []
+                    continue
+                cur = c.cursor(dictionary=True)
+                cur.execute("SELECT display_id, driver_name, nopol, bbm_type, nominal, liter, created_at "
+                            "FROM transactions WHERE status='archived' ORDER BY created_at DESC LIMIT 5")
+                rows = cur.fetchall()
+                cur.close(); c.close()
+                latest[code] = rows
+            except Exception:
+                latest[code] = []
+        return stats, latest
+
+    @app.route('/api/branches/consolidated')
+    @role_required(['admin'])
+    def api_branches_consolidated():
+        stats, latest = _consolidated_payload()
+        return jsonify({'branches': stats, 'latest_by_branch': latest})
+
+    @app.route('/api/branches/consolidated-pdf')
+    @role_required(['admin'])
+    def api_branches_consolidated_pdf():
+        from modules.pdf_generator import ConsolidatedReportPDF
+        stats, latest = _consolidated_payload()
+        pdf = ConsolidatedReportPDF()
+        pdf.add_page()
+        pdf.generate(stats, latest, generated_by=session.get('full_name') or session.get('user_name') or 'Admin')
+        from io import BytesIO
+        buf = BytesIO()
+        pdf.output(buf)
+        buf.seek(0)
+        resp = make_response(buf.getvalue())
+        resp.headers['Content-Type'] = 'application/pdf'
+        resp.headers['Content-Disposition'] = f'attachment; filename=konsolidasi_cabang_{datetime.now().strftime("%Y%m%d")}.pdf'
+        log_activity_async(0, 'branch_consolidated_pdf', 'admin',
+                           session.get('full_name') or session.get('user_name') or 'Admin',
+                           new_data={'count': len(stats)}, ip=request.remote_addr)
+        return resp
+
+    @app.route('/api/branches/consolidated-excel')
+    @role_required(['admin'])
+    def api_branches_consolidated_excel():
+        from io import BytesIO
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment
+        stats, latest = _consolidated_payload()
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = 'Ringkasan'
+        ws.append(['KODE', 'CABANG', 'DATABASE', 'TRANSAKSI', 'KUNJUNGAN HARI INI', 'USER', 'STATUS'])
+        hdr = PatternFill('solid', fgColor='1F2937')
+        for c in ws[1]:
+            c.font = Font(bold=True, color='FFFFFF'); c.fill = hdr; c.alignment = Alignment(horizontal='center')
+        for b in stats:
+            ws.append([b.get('code'), b.get('name'), b.get('db_name'), b.get('transactions', 0),
+                       b.get('appointments_today', 0), b.get('users', 0),
+                       'Aktif' if b.get('is_active') else 'Nonaktif'])
+        ws2 = wb.create_sheet('Transaksi Terbaru')
+        ws2.append(['CABANG', 'ID', 'DRIVER', 'NOPOL', 'BBM', 'NOMINAL', 'LITER', 'TANGGAL'])
+        for c in ws2[1]:
+            c.font = Font(bold=True, color='FFFFFF'); c.fill = hdr; c.alignment = Alignment(horizontal='center')
+        for code, txs in latest.items():
+            for t in (txs or [])[:5]:
+                ws2.append([code, t.get('display_id'), t.get('driver_name'), t.get('nopol'),
+                            t.get('bbm_type'), float(t.get('nominal') or 0), float(t.get('liter') or 0),
+                            t.get('created_at').strftime('%d-%m-%Y %H:%M') if hasattr(t.get('created_at'), 'strftime') else t.get('created_at')])
+        for sheet in (ws, ws2):
+            for col in sheet.columns:
+                letter = col[0].column_letter
+                sheet.column_dimensions[letter].width = max(12, max((len(str(c.value or '')) for c in col), default=8) + 2)
+        buf = BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        resp = make_response(buf.getvalue())
+        resp.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        resp.headers['Content-Disposition'] = f'attachment; filename=konsolidasi_cabang_{datetime.now().strftime("%Y%m%d")}.xlsx'
+        log_activity_async(0, 'branch_consolidated_excel', 'admin',
+                           session.get('full_name') or session.get('user_name') or 'Admin',
+                           new_data={'count': len(stats)}, ip=request.remote_addr)
+        return resp

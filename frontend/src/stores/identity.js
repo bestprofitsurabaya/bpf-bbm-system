@@ -14,7 +14,7 @@ export const identity = reactive({
   company_name: 'PT BESTPROFIT FUTURES',
   company_subtitle: 'Sistem Operasional Kantor | Surabaya',
   system_name: 'BPF WorkHub',
-  system_version: 'v2.20.2',
+  system_version: 'v2.21.0',
   company_address: '',
   company_phone: '',
   loaded: false,

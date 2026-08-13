@@ -406,3 +406,69 @@ def register_transaction_api(app):
             return jsonify({'master': master, 'details': details})
         except Exception as e:
             return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/queue/export-excel')
+    @role_required(['ga', 'finance', 'admin'])
+    def api_queue_export_excel():
+        """Export antrean transaksi (tab aktif) ke file Excel (v2.21)."""
+        try:
+            from io import BytesIO
+            from openpyxl import Workbook
+            from openpyxl.styles import Font, PatternFill, Alignment
+
+            tab = request.args.get('tab', 'ga')
+            status_map = {
+                'ga': 'pending',
+                'finance': 'verified_ga',
+                'confirm': 'os_finance',
+                'archive': 'archived',
+            }
+            status = status_map.get(tab, 'pending')
+
+            conn = get_db_connection()
+            if not conn: return jsonify({'error': 'DB error'}), 500
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(
+                "SELECT id, display_id, created_at, nopol, driver_name, bbm_type, "
+                "nominal, liter, odo_km, km_per_liter, status FROM transactions "
+                "WHERE status=%s ORDER BY created_at DESC LIMIT 500", (status,))
+            rows = cursor.fetchall()
+            cursor.close(); conn.close()
+
+            wb = Workbook()
+            ws = wb.active
+            ws.title = 'Antrean ' + tab.upper()
+            headers = ['ID', 'Display', 'Tanggal', 'Nopol', 'Driver', 'BBM',
+                       'Nominal', 'Liter', 'ODO', 'KM/L', 'Status']
+            ws.append(headers)
+            hdr_fill = PatternFill('solid', fgColor='1F2937')
+            for c in ws[1]:
+                c.font = Font(bold=True, color='FFFFFF')
+                c.fill = hdr_fill
+                c.alignment = Alignment(horizontal='center')
+            for r in rows:
+                ws.append([
+                    r.get('id'), r.get('display_id'),
+                    (r.get('created_at') or '').strftime('%d-%m-%Y %H:%M') if hasattr(r.get('created_at'), 'strftime') else r.get('created_at'),
+                    r.get('nopol'), r.get('driver_name'), r.get('bbm_type'),
+                    float(r.get('nominal') or 0), float(r.get('liter') or 0),
+                    int(r.get('odo_km') or 0), float(r.get('km_per_liter') or 0),
+                    r.get('status'),
+                ])
+            for col in ws.columns:
+                letter = col[0].column_letter
+                ws.column_dimensions[letter].width = max(12, max((len(str(c.value or '')) for c in col), default=8) + 2)
+            for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=7, max_col=9):
+                for c in row:
+                    c.number_format = '#,##0'
+
+            buf = BytesIO()
+            wb.save(buf)
+            buf.seek(0)
+            from flask import make_response
+            resp = make_response(buf.getvalue())
+            resp.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            resp.headers['Content-Disposition'] = f'attachment; filename=antrean_{tab}_{datetime.now().strftime("%Y%m%d_%H%M")}.xlsx'
+            return resp
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500

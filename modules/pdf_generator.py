@@ -11,7 +11,7 @@ from modules.company_identity import get_company_identity
 # ============================================================
 COMPANY_NAME = 'PT BESTPROFIT FUTURES'
 COMPANY_SUBTITLE = 'Sistem Operasional Kantor | Surabaya'
-SYSTEM_VERSION = 'BPF WorkHub v2.20.2'
+SYSTEM_VERSION = 'BPF WorkHub v2.21.0'
 LOGO_FILENAMES = ['icon-512.png', 'icon-192.png']
 PHOTO_FIELDS = [
     ('foto_odo_sebelum', 'ODO Sebelum'),
@@ -297,6 +297,19 @@ class BPFBasePDF(FPDF):
         if not text:
             return ''
         return re.sub(r'[^\x20-\x7E\n\r\t]', '', str(text)).strip()
+
+    def _fmt_dt(self, v):
+        if v and hasattr(v, 'strftime'):
+            return v.strftime('%d-%m-%Y')
+        v = str(v or '-')
+        return v[:10] if len(v) > 10 else v
+
+    def _fmt_money(self, v):
+        try:
+            f = float(v or 0)
+            return 'Rp {:,.0f}'.format(f) if f else '-'
+        except (TypeError, ValueError):
+            return '-'
 
 
 # ============================================================
@@ -872,15 +885,80 @@ class AssetReportPDF(BPFBasePDF):
             fill = not fill
         self.ln(3)
 
-    def _fmt_dt(self, v):
-        if v and hasattr(v, 'strftime'):
-            return v.strftime('%d-%m-%Y')
-        v = str(v or '-')
-        return v[:10] if len(v) > 10 else v
 
-    def _fmt_money(self, v):
-        try:
-            f = float(v or 0)
-            return 'Rp {:,.0f}'.format(f) if f else '-'
-        except (TypeError, ValueError):
-            return '-'
+
+# ============================================================
+# LAPORAN KONSOLIDASI LINTAS CABANG (v2.21)
+# Agregasi semua DB cabang + master dalam satu dokumen resmi
+# ============================================================
+class ConsolidatedReportPDF(BPFBasePDF):
+    """Konsolidasi statistik & transaksi terbaru dari SEMUA cabang.
+
+    Berguna untuk HQ/multi-cabang: satu PDF berisi ringkasan per cabang
+    (transaksi, kunjungan, user, nominal BBM) + baris transaksi terbaru
+    dari tiap DB cabang — kop surat & identitas mengikuti cabang aktif.
+    """
+
+    def __init__(self, title='LAPORAN KONSOLIDASI CABANG'):
+        super().__init__(orientation='L', unit='mm', format='A4')
+        self._title = title
+        self.set_auto_page_break(auto=True, margin=15)
+
+    def header(self):
+        super().header()
+        self.set_font(self._font(), 'B', 11)
+        self.set_text_color(*INK)
+        self.cell(0, 6, self.clean_text(self._title), align='C', new_x='LMARGIN', new_y='NEXT')
+        self.ln(2)
+
+    def generate(self, branches, latest_by_branch, generated_by=''):
+        """branches: hasil branch_stats(); latest_by_branch: {code: [tx...]}."""
+        self.cell(0, 4.5, f'Periode: {date.today().isoformat()}', new_x='LMARGIN', new_y='NEXT')
+        self.ln(2)
+        self._draw_summary(branches)
+        self._draw_latest(latest_by_branch)
+        self._signature_block(generated_by, 'Administrator', role='ADMIN')
+
+    def _draw_summary(self, branches):
+        self.section_title('RINGKASAN PER CABANG')
+        if not branches:
+            self.set_font(self._font(), 'I', 10)
+            self.cell(0, 8, 'Belum ada cabang terdaftar.', align='C', new_x='LMARGIN', new_y='NEXT')
+            return
+        headers = ['KODE', 'CABANG', 'TRANSAKSI', 'KUNJUNGAN HARI INI', 'USER', 'STATUS']
+        widths = [16, 70, 26, 40, 20, 22]
+        aligns = ['C', 'L', 'C', 'C', 'C', 'C']
+        self._table_header(headers, widths)
+        fill = False
+        for b in branches:
+            self._table_row([
+                b.get('code', '-'), b.get('name', '-'), b.get('transactions', 0),
+                b.get('appointments_today', 0), b.get('users', 0),
+                'Aktif' if b.get('is_active') else 'Nonaktif',
+            ], widths, aligns=aligns, fill=fill)
+            fill = not fill
+        self.ln(3)
+
+    def _draw_latest(self, latest_by_branch):
+        self.section_title('TRANSAKSI BBM TERBARU (maks. 5 per cabang)')
+        headers = ['CABANG', 'ID', 'DRIVER', 'NOPOL', 'BBM', 'NOMINAL', 'LITER', 'TANGGAL']
+        widths = [16, 30, 34, 22, 18, 28, 14, 34]
+        aligns = ['C', 'C', 'L', 'C', 'C', 'R', 'C', 'C']
+        self._table_header(headers, widths)
+        fill = False
+        any_row = False
+        for code, txs in (latest_by_branch or {}).items():
+            for t in (txs or [])[:5]:
+                any_row = True
+                self._table_row([
+                    code, t.get('display_id', '-'), t.get('driver_name', '-'),
+                    t.get('nopol', '-'), t.get('bbm_type', '-'),
+                    self._fmt_money(t.get('nominal')),
+                    f"{float(t.get('liter', 0)):.1f}L",
+                    t.get('created_at', '').strftime('%d-%m-%Y %H:%M') if hasattr(t.get('created_at'), 'strftime') else t.get('created_at', '-'),
+                ], widths, aligns=aligns, fill=fill)
+                fill = not fill
+        if not any_row:
+            self.set_font(self._font(), 'I', 9)
+            self.cell(0, 8, 'Belum ada transaksi BBM terarsip.', align='C', new_x='LMARGIN', new_y='NEXT')
+        self.ln(3)
