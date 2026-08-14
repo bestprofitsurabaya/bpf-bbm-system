@@ -624,6 +624,7 @@ ROLE_HOME = {
     'ga': '/app/ga',             # v2.8: dashboard khusus GA (antrean klaim + kasbon + trip)
     'receptionist': '/app/receptionist',  # v2.16: sistem pelamar kerja (verifikasi & kehadiran)
     'traineer': '/app/traineer',          # v2.16: pantau rekrutan (upline)
+    'ga_hr': '/app/ga-hr',                # v2.22: data overtime (Driver + OB/Security)
 }
 
 

@@ -12,6 +12,7 @@ export const ROLE_META = {
   ob:           { label: 'OB',           home: '/water',        color: '#0d9488', icon: '🚰' },
   receptionist: { label: 'Receptionist', home: '/receptionist', color: '#db2777', icon: '🪪' },
   traineer:     { label: 'Traineer',     home: '/traineer',     color: '#b45309', icon: '🎯' },
+  ga_hr:        { label: 'GA HR',        home: '/ga-hr',        color: '#7e22ce', icon: '⏰' },
 }
 
 export const useAuthStore = defineStore('auth', {

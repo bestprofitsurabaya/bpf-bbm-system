@@ -96,10 +96,11 @@ def ensure_appointments_schema(conn=None):
 
         # --- users: extend role enum (v2.4: role 'driver' untuk login PIN PWA driver;
         # v2.6: role 'ob' untuk Office Boy — pengajuan pembelian air minum;
-        # v2.16: role 'receptionist' & 'traineer' — sistem pelamar kerja) ---
+        # v2.16: role 'receptionist' & 'traineer' — sistem pelamar kerja;
+        # v2.22: role 'ga_hr' — halaman khusus GA HR untuk data overtime) ---
         _run("""
             ALTER TABLE users
-            MODIFY role ENUM('admin','ga','finance','marketing','chief_driver','driver','ob','receptionist','traineer') NOT NULL DEFAULT 'ga'
+            MODIFY role ENUM('admin','ga','finance','marketing','chief_driver','driver','ob','receptionist','traineer','ga_hr') NOT NULL DEFAULT 'ga'
         """, cursor, "users.role enum")
 
         # --- users: team_name column ---

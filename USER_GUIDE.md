@@ -393,13 +393,35 @@ Semua perubahan papan berjalan realtime — saat driver menyelesaikan tugas, sta
 
 ---
 
+## 11b. Untuk GA HR — Data Overtime ⏰
+
+> **Kamu adalah GA HR.** Halaman **⏰ Overtime** (`/app/ga-hr`) menampilkan dua data overtime: **Driver** (dari Google Sheet) dan **OB/Security** (form publik).
+
+### Tab 🚗 Driver
+
+- Data ditarik dari Google Sheet lama (diisi Google Form). Klik **🔄 Refresh dari Google Sheet** untuk menyinkronkan — baris baru ditambahkan, baris lama diperbarui.
+- Filter **tanggal** & **pencarian** nama/keterangan/email.
+- Tombol **⚙️ Sumber Data**: URL yang dibaca server. Bila sheet **private**, ganti dengan URL Google Apps Script Web App (template: `scripts/apps_script_overtime_driver.gs`) supaya refresh tetap berjalan tanpa membuka akses sheet.
+
+### Tab 🧑‍🔧 OB & Security
+
+- Data lama (546 baris) sudah dimigrasikan penuh; baris baru masuk lewat **form publik**.
+- Filter posisi (OB/Security), tanggal, dan pencarian.
+
+### Form Publik (tanpa login)
+
+- Bagikan tautan **`/app/overtime-form`** ke karyawan OB/Security — mereka mengisi sendiri: dropdown **Posisi** (OB/Security) & **Nama** (sesuai data yang ada), tanggal, jam mulai/selesai, keterangan.
+- Setiap pengiriman mendapat nomor bukti `OTL-*` dan langsung tampil di dashboard GA HR.
+
+---
+
 ## 12. Untuk Admin — Pengaturan Sistem ⚙️
 
 > **Kamu adalah Admin.** Kamu memegang kunci utama: membuat akun, mengatur nama untuk tanda terima, dan memantau jejak audit.
 
 ### 11.1 Manajemen User (Halaman Users)
 
-- **Membuat akun baru** — pilih peran (Admin, GA, Finance, Marketing, Chief Driver, Driver, OB, **Receptionist**, **Traineer**), isi nama & PIN.
+- **Membuat akun baru** — pilih peran (Admin, GA, Finance, Marketing, Chief Driver, Driver, OB, **Receptionist**, **Traineer**, **GA HR**), isi nama & PIN.
 - **Mengganti nama** — misalnya mengganti nama placeholder OB dengan nama asli. Nama ini yang tampil di dokumen (mis. PDF tanda terima air minum).
 - **Reset PIN** — kalau user lupa PIN.
 - **Nonaktifkan/Aktifkan** — akun yang dinonaktifkan **tidak bisa login** (tanpa harus dihapus, supaya jejak datanya tetap aman).

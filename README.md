@@ -1,4 +1,4 @@
-# 🏢 BPF WorkHub v2.21.0 (SPA Vue 3 penuh — 100% Vue)
+# 🏢 BPF WorkHub v2.22.0 (SPA Vue 3 penuh — 100% Vue)
 
 **Sistem Manajemen Armada, Klaim BBM, Kasbon, Log Perjalanan, Appointment & Air Minum**  
 **PT. Bestprofit Futures - Surabaya**
@@ -6,6 +6,18 @@
 ---
 
 Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pengarsipan klaim BBM, **pengajuan kasbon dengan kode unik**, dan log perjalanan harian (logsheet) dengan workflow GA → Finance → Archive. Dilengkapi **sistem appointment canggih** (Marketing → Chief Driver → Log Perjalanan), deteksi anomali Machine Learning, GPS tracking, **watermark foto otomatis**, PIN security, **session-based login & role-based access**, **CSRF protection**, **notifikasi real-time**, import Excel, audit trail, Chart.js visualization, **PWA offline-first**, dan **WebSocket real-time**.
+
+---
+
+## 🆕 Fitur Terbaru v2.22.0 — Sistem Overtime (GA HR)
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **⏰ Role & halaman GA HR** | Role baru `ga_hr` dengan dashboard sendiri `/app/ga-hr` (menu otomatis; akun dibuat Admin di `/app/users`) |
+| **🚗 Overtime Driver** | Data dari Google Sheet read-only (diisi Google Form lama) → tabel `overtime_driver`; tombol **🔄 Refresh** menarik & meng-upsert data; URL sumber bisa diatur (CSV publik ATAU Google Apps Script Web App untuk sheet private) |
+| **🧑‍🔧 Overtime OB/Security** | **546 baris sheet lama dimigrasikan** (407 OB · 139 Security, nama dinormalisasi dari typo) + **form publik `/app/overtime-form`** tanpa login — dropdown Posisi & Nama sesuai data, tanggal, jam, keterangan; rate-limit anti spam |
+| **🔐 Kontrol akses** | Endpoint overtime khusus `ga_hr`/`admin` (403 untuk role lain, 401 anonim); audit log `overtime_submit` / `overtime_driver_refresh` / `overtime_config` |
+| **🧪 Test** | 226 pytest (18 baru: `tests/test_overtime.py`) + 82 Vitest — semua hijau, terverifikasi live |
 
 ---
 

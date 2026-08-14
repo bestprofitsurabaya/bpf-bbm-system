@@ -962,3 +962,88 @@ class ConsolidatedReportPDF(BPFBasePDF):
             self.set_font(self._font(), 'I', 9)
             self.cell(0, 8, 'Belum ada transaksi BBM terarsip.', align='C', new_x='LMARGIN', new_y='NEXT')
         self.ln(3)
+
+
+class OvertimeReportPDF(BPFBasePDF):
+    """Laporan Overtime (v2.22) — GA HR: Driver atau OB/Security.
+
+    Satu laporan resmi berlogo BPF untuk satu modul (driver / ob_security)
+    dalam rentang tanggal, opsional difilter posisi/nama — TTD GA HR.
+    """
+
+    def __init__(self, title='LAPORAN OVERTIME'):
+        super().__init__(orientation='L', unit='mm', format='A4')
+        self._title = title
+        self.set_auto_page_break(auto=True, margin=15)
+
+    def header(self):
+        super().header()
+        self.set_font(self._font(), 'B', 11)
+        self.set_text_color(*INK)
+        self.cell(0, 6, self.clean_text(self._title), align='C', new_x='LMARGIN', new_y='NEXT')
+        self.ln(2)
+
+    def generate(self, rows, modul='driver', date_label='', filters=None, generated_by=''):
+        """rows: dict rows dari tabel overtime_driver / overtime_ob_security."""
+        self.add_page()
+        modul_label = 'Overtime DRIVER' if modul == 'driver' else 'Overtime OB & SECURITY'
+        self.set_font(self._font(), 'B', 8)
+        self.set_text_color(*INK)
+        self.cell(0, 5, f'Modul: {modul_label}', new_x='LMARGIN', new_y='NEXT')
+        self.cell(0, 5, f'Periode: {self.clean_text(date_label or "-")}', new_x='LMARGIN', new_y='NEXT')
+        if filters:
+            for k, v in filters.items():
+                if v:
+                    self.set_font(self._font(), '', 7)
+                    self.set_text_color(*GRAY_LABEL)
+                    self.cell(0, 4.5, f'{k}: {self.clean_text(str(v))}', new_x='LMARGIN', new_y='NEXT')
+        self.ln(2)
+        self.set_text_color(*INK)
+
+        if modul == 'driver':
+            self._draw_driver(rows)
+        else:
+            self._draw_ob_security(rows)
+
+        if self.get_y() + 40 > self.h - 25:
+            self.add_page()
+        self.ln(4)
+        self.set_font(self._font(), '', 8)
+        self.set_text_color(*INK_SOFT)
+        self.cell(0, 5, f'Total catatan pada laporan ini: {len(rows)}', new_x='LMARGIN', new_y='NEXT')
+        self.ln(10)
+        self._signature_block(generated_by, 'General Affairs HR', role='GA HR')
+        self.set_text_color(*INK)
+
+    def _draw_driver(self, rows):
+        headers = ['NO', 'TANGGAL', 'NAMA', 'WAKTU', 'KETERANGAN', 'EMAIL']
+        widths = [8, 26, 50, 40, 90, 55]
+        aligns = ['C', 'C', 'L', 'C', 'L', 'L']
+        self._table_header(headers, widths)
+        fill = False
+        for idx, r in enumerate(rows, 1):
+            self._table_row([
+                idx, self._fmt_dt(r.get('tanggal')), r.get('nama', '-'),
+                self._waktu(r), r.get('keterangan', '-'), r.get('email', '-'),
+            ], widths, aligns=aligns, fill=fill)
+            fill = not fill
+        self.ln(3)
+
+    def _draw_ob_security(self, rows):
+        headers = ['NO', 'TANGGAL', 'NAMA', 'POSISI', 'WAKTU', 'KETERANGAN']
+        widths = [8, 28, 55, 30, 40, 125]
+        aligns = ['C', 'C', 'L', 'C', 'C', 'L']
+        self._table_header(headers, widths)
+        fill = False
+        for idx, r in enumerate(rows, 1):
+            self._table_row([
+                idx, self._fmt_dt(r.get('tanggal')), r.get('nama', '-'),
+                r.get('posisi', '-'), self._waktu(r), r.get('keterangan', '-'),
+            ], widths, aligns=aligns, fill=fill)
+            fill = not fill
+        self.ln(3)
+
+    def _waktu(self, r):
+        a = r.get('waktu_mulai') or '-'
+        b = r.get('waktu_selesai') or ''
+        return f'{a} – {b}' if b else a

@@ -63,6 +63,14 @@ for _attempt in range(5):
         break
     _time.sleep(3)
 
+# Sistem Overtime (v2.22): tabel overtime_driver & overtime_ob_security
+from modules.overtime_schema import ensure_overtime_schema
+for _attempt in range(5):
+    _ok = ensure_overtime_schema()
+    if _ok:
+        break
+    _time.sleep(3)
+
 # Multi-cabang (v2.19.2): tabel branches + kolom users.branch_code + cabang utama,
 # lalu sinkronkan skema untuk setiap cabang aktif yang punya database sendiri.
 from modules import branch_manager as bm
@@ -93,6 +101,7 @@ from modules.routes_water import register_water_routes
 from modules.routes_applicants import register_applicant_routes
 from modules.routes_assets import register_asset_routes
 from modules.routes_branches import register_branch_routes
+from modules.routes_overtime import register_overtime_routes
 from modules.routes_spa import register_spa_routes
 from modules.security import register_health_routes
 
@@ -111,6 +120,7 @@ register_water_routes(app)
 register_applicant_routes(app)
 register_asset_routes(app)
 register_branch_routes(app)
+register_overtime_routes(app)
 register_spa_routes(app)
 register_health_routes(app)
 

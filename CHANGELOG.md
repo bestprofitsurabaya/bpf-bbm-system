@@ -6,6 +6,37 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.22.0] - 2026-08-14
+
+### ⏰ Sistem Overtime — GA HR
+
+- **Role baru `ga_hr`** (GA HR) dengan halaman sendiri `/app/ga-hr` — akun dibuat Admin di Manajemen User (`/app/users`), menu & dashboard otomatis muncul.
+
+### 🚗 Overtime Driver (sinkronisasi Google Sheet)
+
+- Tabel `overtime_driver` — data ditarik dari Google Sheet read-only (diisi Google Form lama) via tombol **🔄 Refresh dari Google Sheet** di dashboard GA HR. Sinkronisasi upsert idempoten (kunci = nomor baris sheet).
+- URL sumber data bisa diatur di **⚙️ Sumber Data** (modal di dashboard): CSV publik `…/gviz/tq?tqx=out:csv` ATAU URL Google Apps Script Web App (solusi untuk sheet PRIVATE — script dijalankan sebagai pemilik akun, sheet tetap aman).
+- Pemetaan kolom toleran ejaan (Timestamp, Nama, Tanggal, Waktu Mulai/Selesai, Keterangan, foto) + parsing jam 12 jam (`6:29:00 PM` → `18:29`).
+
+### 🧑‍🔧 Overtime OB & Security (migrasi penuh + form publik)
+
+- Tabel `overtime_ob_security` — **546 baris data sheet lama dimigrasikan** (407 OB · 139 Security; nama di-normalisasi dari typo: `Faisool` → `Faisol`, dll).
+- **Form publik tanpa login** di `/app/overtime-form` — dropdown **Posisi** (OB/Security) & **Nama** (sesuai data yang ada), tanggal, waktu mulai/selesai, keterangan (datalist), rate-limit anti spam 10/menit/IP.
+- Pemetaan posisi sesuai konfirmasi user (14/8/2026): **Muhajir = Security**, Edwin P/Febri/Faisol = OB.
+
+### 🔐 Keamanan & kontrol akses
+
+- Endpoint overtime hanya untuk role `ga_hr` & `admin` (403 untuk role lain); form publik dibatasi rate-limit; audit log `overtime_submit` / `overtime_driver_refresh` / `overtime_config`.
+- `users.role` ENUM diperluas (migrasi otomatis di startup), daftar role valid `/api/users/sync` diperbarui.
+
+### 📄 Laporan PDF Overtime
+
+- **`GET /api/overtime/report?modul=driver|ob`** → `OvertimeReportPDF` baru (kop & logo BPF, TTD GA HR) — tombol **📄 PDF** di tiap tab dashboard GA HR, mengikuti filter tanggal/posisi/nama yang aktif.
+
+### 🧪 Pengujian
+
+- **21 pytest baru** (`tests/test_overtime.py`): pemetaan header sheet, parsing tanggal/jam, normalisasi nama, tebak posisi, fetch CSV & JSON Apps Script, role GA HR, PDF driver & OB/Security. SPA di-build, **verifikasi browser nyata 9/9** (`frontend/scripts/verify_overtime_ui.mjs`: form publik dropdown Posisi/Nama + submit OTL-*, dashboard GA HR statistik & tab data migrasi, role GA → 403, 0 error konsol).
+
 ## [2.21.0] - 2026-08-13
 
 ### 🔐 Keamanan & Observabilitas
