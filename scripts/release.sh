@@ -15,7 +15,7 @@ set -euo pipefail
 
 TAG="${1:-}"
 TITLE="${2:-}"
-REPO="bestprofitsurabaya/bpf-bbm-system"
+REPO="bestprofitsurabaya/bpf-workhub"
 CHANGELOG="CHANGELOG.md"
 
 if [ -z "$TAG" ]; then
