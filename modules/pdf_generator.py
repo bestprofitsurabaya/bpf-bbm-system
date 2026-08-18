@@ -1016,15 +1016,16 @@ class OvertimeReportPDF(BPFBasePDF):
         self.set_text_color(*INK)
 
     def _draw_driver(self, rows):
-        headers = ['NO', 'TANGGAL', 'NAMA', 'WAKTU', 'KETERANGAN', 'EMAIL']
-        widths = [8, 26, 50, 40, 90, 55]
-        aligns = ['C', 'C', 'L', 'C', 'L', 'L']
+        headers = ['NO', 'TANGGAL', 'NAMA', 'NO. KENDARAAN', 'WAKTU', 'KETERANGAN']
+        widths = [8, 26, 50, 34, 36, 113]
+        aligns = ['C', 'C', 'L', 'C', 'C', 'L']
         self._table_header(headers, widths)
         fill = False
         for idx, r in enumerate(rows, 1):
             self._table_row([
                 idx, self._fmt_dt(r.get('tanggal')), r.get('nama', '-'),
-                self._waktu(r), r.get('keterangan', '-'), r.get('email', '-'),
+                r.get('no_kendaraan', '-'), self._waktu(r),
+                r.get('keterangan', '-'),
             ], widths, aligns=aligns, fill=fill)
             fill = not fill
         self.ln(3)

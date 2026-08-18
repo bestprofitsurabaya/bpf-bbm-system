@@ -3,13 +3,22 @@
 Dipakai bersama oleh:
 - modules/routes_overtime.py  (refresh sinkronisasi + form publik OB/Security)
 - scripts/migrate_overtime_ob_security.py (migrasi penuh data lama)
+- scripts/migrate_overtime_driver.py (migrasi penuh data Driver via Apps Script)
 
 Fokus: memetakan kolom Google Sheet (header bebas, sering berganti ejaan)
 ke field database secara toleran, plus parsing tanggal (M/D/YYYY) & jam
 (12 jam: "6:29:00 PM") seperti format response Google Form.
+
+Khusus sheet DRIVER via Google Apps Script: nilai dikirim sebagai ISO 8601
+UTC (mis. "2020-12-12T07:08:54.000Z" / "1899-12-30T11:47:56.000Z"). Karena
+sheet diisi dalam zona WIB (UTC+7), semua nilai UTC dikonversi +7 jam.
 """
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
+
+# Sheet Driver diisi dalam zona WIB (Asia/Jakarta, UTC+7) — Apps Script
+# mengembalikan Date sebagai ISO UTC, jadi tambahkan 7 jam untuk nilai lokal.
+WIB_OFFSET = timedelta(hours=7)
 
 # ============================================================
 # Normalisasi teks
@@ -36,12 +45,22 @@ HEADER_MAP = {
     'email': ['emailaddress', 'email', 'alamatemail'],
     'nama': ['namalengkap', 'nama', 'name', 'namakaryawan', 'karyawan', 'namapegawai'],
     'tanggal': ['tanggal', 'date', 'tanggalovertime', 'haritanggal'],
-    'waktu_mulai': ['waktumulaiovertime', 'waktumulai', 'mulai', 'starttime', 'jamawal', 'jammulai', 'waktuawal'],
-    'waktu_selesai': ['waktuselesaiovertime', 'waktuselesai', 'selesai', 'endtime', 'jamakhir', 'jamselesai', 'waktuakhir'],
+    'waktu_mulai': ['waktumulaiovertime', 'waktumulai', 'mulai', 'starttime', 'jamawal', 'jammulai', 'waktuawal',
+                    'dariin', 'dari', 'jammasuk'],
+    'waktu_selesai': ['waktuselesaiovertime', 'waktuselesai', 'selesai', 'endtime', 'jamakhir', 'jamselesai', 'waktuakhir',
+                      'sampaiout', 'sampai', 'jamkeluar'],
     'keterangan': ['keterangan', 'notes', 'note', 'catatan', 'deskripsi', 'shift', 'uraian'],
-    'foto_mulai': ['uploadfotomulaiot', 'fotomulai', 'uploadfotomulai', 'fotoawal'],
-    'foto_selesai': ['uploadfotoselesaiot', 'fotoselesai', 'uploadfotoselesai', 'fotoakhir'],
+    'foto_mulai': ['uploadfotomulaiot', 'fotomulai', 'uploadfotomulai', 'fotoawal',
+                   'fotoselfieoffice', 'fotoselfie', 'selfieoffice'],
+    'foto_selesai': ['uploadfotoselesaiot', 'fotoselesai', 'uploadfotoselesai', 'fotoakhir',
+                     'fotoditujuan', 'fototujuan', 'ditujuan'],
     'posisi': ['posisi', 'jabatan', 'bagian', 'divisi'],
+    # --- kolom khusus sheet DRIVER (Google Form lama) ---
+    'no_kendaraan': ['nokendaraan', 'noplat', 'nopol', 'nomorkendaraan', 'nokendaraanot'],
+    'broker': ['namabrokermarketing', 'broker', 'marketing', 'namabroker'],
+    'manager': ['namamanagerteamleader', 'manager', 'teamleader', 'namamanager'],
+    'doc_url': ['mergeddocurlotdriver', 'mergedocurl', 'mergedoclink', 'linkmergedoc',
+                'mergeddocurl'],
 }
 
 
@@ -104,6 +123,68 @@ def parse_date_mdy(value):
         return datetime(int(m.group(3)), int(m.group(1)), int(m.group(2))).date().isoformat()
     except ValueError:
         return None
+
+
+def parse_iso_dt(value):
+    """ISO 8601 UTC ('2020-12-12T07:08:54.000Z') -> datetime WIB (+7 jam).
+
+    Dipakai untuk nilai dari Google Apps Script Web App (sheet DRIVER),
+    termasuk nilai waktu murni ('1899-12-30T11:47:56.000Z' = basis epoch
+    Google Sheets). None bila bukan format ISO UTC.
+    """
+    s = clean(value)
+    if not s:
+        return None
+    m = re.match(r'^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?Z$', s)
+    if not m:
+        return None
+    try:
+        dt = datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)),
+                      int(m.group(4)), int(m.group(5)), int(m.group(6) or 0))
+    except ValueError:
+        return None
+    return dt + WIB_OFFSET
+
+
+def parse_date_any(value):
+    """Tanggal dari format apa pun: ISO UTC -> WIB, M/D/YYYY, atau YYYY-MM-DD."""
+    s = clean(value)
+    if not s:
+        return None
+    dt = parse_iso_dt(s)
+    if dt:
+        return dt.date().isoformat()
+    m = re.match(r'^(\d{4})-(\d{2})-(\d{2})', s)
+    if m:
+        try:
+            return datetime(int(m.group(1)), int(m.group(2)),
+                            int(m.group(3))).date().isoformat()
+        except ValueError:
+            pass
+    return parse_date_mdy(s)
+
+
+def parse_time_any(value):
+    """Jam dari format apa pun: ISO UTC ('1899-12-30T07:24:56Z') -> HH:MM WIB,
+    atau jam 12/24 jam biasa. None bila tidak dikenal."""
+    s = clean(value)
+    if not s:
+        return None
+    dt = parse_iso_dt(s)
+    if dt:
+        return dt.strftime('%H:%M')
+    return parse_time_12h(s)
+
+
+def parse_submitted_at_any(value):
+    """Timestamp submit: ISO UTC -> WIB ('YYYY-MM-DD HH:MM:SS'), atau format lama."""
+    s = clean(value)
+    if not s:
+        return None
+    dt = parse_iso_dt(s)
+    if dt:
+        return dt.strftime('%Y-%m-%d %H:%M:%S')
+    return parse_submitted_at(s)
 
 
 def parse_time_12h(value):
@@ -179,3 +260,39 @@ SECURITY_NAMES = {'muhajir'}
 def guess_position(nama):
     """Tebak posisi dari nama. 'Security' untuk daftar keamanan, default 'OB'."""
     return 'Security' if norm_key(nama) in SECURITY_NAMES else 'OB'
+
+
+# ============================================================
+# Baris sheet DRIVER -> dict siap insert/upsert ke overtime_driver
+# ============================================================
+def normalize_driver_row(row, headers, idx, n):
+    """Ubah satu baris sheet Driver menjadi dict kolom DB (atau None bila
+    nama kosong / baris kosong). `n` = indeks baris 0-based; sheet_row = n+2
+    (baris 1 di spreadsheet = header).
+
+    Kolom baru (v2.22.1): no_kendaraan, broker, manager, doc_url.
+    """
+    def g(field):
+        i = idx.get(field)
+        return clean(row.get(headers[i], '')) if i is not None and i < len(headers) else ''
+
+    nama = g('nama')
+    if not nama:
+        return None
+    return {
+        'sheet_row': n + 2,
+        'submitted_at': parse_submitted_at_any(g('submitted_at')),
+        'email': g('email')[:150],
+        'nama': nama[:150],
+        'tanggal': parse_date_any(g('tanggal')),
+        'waktu_mulai': (parse_time_any(g('waktu_mulai')) or g('waktu_mulai'))[:20],
+        'waktu_selesai': (parse_time_any(g('waktu_selesai')) or g('waktu_selesai'))[:20],
+        'keterangan': g('keterangan')[:500],
+        'foto_mulai': g('foto_mulai')[:600],
+        'foto_selesai': g('foto_selesai')[:600],
+        'notes': g('notes')[:500],
+        'no_kendaraan': g('no_kendaraan')[:30],
+        'broker': g('broker')[:150],
+        'manager': g('manager')[:150],
+        'doc_url': g('doc_url')[:600],
+    }

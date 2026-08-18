@@ -6,6 +6,37 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.22.1] - 2026-08-18
+
+### 🚗 Migrasi penuh Overtime DRIVER (sheet private tanpa akses pemilik)
+
+- **8.665 baris overtime Driver (2020–2026) berhasil dimigrasikan** dari Google Sheet via URL Google Apps Script Web App — tabel `overtime_driver` yang tadinya 0 kini penuh (100 baris kosong sheet dilewati).
+- **Solusi sheet PRIVATE tanpa akun pemilik**: cukup akun Google yang SUDAH punya akses (termasuk view/read-only) membuat **script standalone** di `script.google.com` dari template `scripts/apps_script_overtime_driver.gs`, deploy sebagai Web App (*Execute as: Me*, *Who has access: Anyone*). Script dieksekusi atas nama akun itu → bisa membaca sheet private → hasil JSON publik; sheet tetap private, pemilik tidak perlu dilibatkan.
+- **Parser ISO UTC → WIB (+7 jam)**: Apps Script mengirim nilai sebagai ISO 8601 UTC (`2020-12-12T07:08:54.000Z`, waktu murni `1899-12-30T11:47:56.000Z`); semua tanggal & jam dikonversi ke zona WIB sheet (`parse_iso_dt` / `parse_date_any` / `parse_time_any` / `parse_submitted_at_any`).
+- **Kolom lengkap sheet Driver** kini tersimpan: `no_kendaraan`, `broker` (Nama Broker/Marketing), `manager` (Nama Manager/Team leader), `doc_url` (Merged Doc URL) — tampil di tabel dashboard & PDF laporan Driver, dan ikut dicari di filter.
+- **`scripts/migrate_overtime_driver.py`** — migrasi massal idempoten (kunci `sheet_row`), menerima URL Web App / CSV / gviz, opsi `--reset`. Dipakai juga untuk sinkronisasi penuh berikutnya.
+- Tombol **🔄 Refresh dari Google Sheet** di dashboard GA HR kini bekerja memakai URL Web App tersebut (`system_config.overtime_driver_sheet_url` diisi).
+- **Auto-refresh saat login & logout** — data Driver otomatis disinkronkan di background setiap kali user `ga_hr`/`admin` login atau logout (fire-and-forget via thread pool, login tetap cepat; debounce 30 dtk anti-spam ke Google). Logika refresh dipindah ke `_do_refresh_driver()` yang dipakai bersama tombol manual & auto; audit log `overtime_driver_refresh` tetap tercatat.
+
+### 🔔 Notifikasi data overtime baru
+
+- **GA HR/Admin dapat notifikasi realtime** (bell 🔔) saat sinkronisasi sheet menemukan data Driver baru ATAU ada submit baru dari form publik OB/Security — event `overtime_new` ke room `ga_hr_board`, tersimpan di tabel `notifications` (`push_overtime_notification`).
+
+### ✏️ Edit & hapus data overtime (dashboard)
+
+- Tombol **✏️ Edit** & **🗑️ Hapus** di setiap baris tab Driver & OB/Security — GA HR bisa mengoreksi typo/kesalahan data langsung dari dashboard (modal edit: nama, kendaraan, tanggal, jam, keterangan, broker/manager, posisi untuk OB).
+- Endpoint `PATCH/DELETE /api/overtime/<driver|ob>/<id>` (role `ga_hr`/`admin`, 404 bila tidak ada) + audit log `overtime_update` / `overtime_delete`.
+
+### 🧹 Pembersihan data
+
+- **13 baris Driver dengan tahun typo dikoreksi** (bukti dari baris tetangga sheet): 1921→2021, 2923→2023, 2033→2023, 2004→2024, 2029→2026 — rentang data kini wajar 2020-12-12 s/d 2026-08-30.
+- **Akun demo `ga_hr_officer`** (PIN `123456`, role `ga_hr`) dibuat untuk pengujian nyata tim GA.
+
+### 🧪 Pengujian
+
+- **243 pytest** (17 baru: header sheet Driver, parser ISO→WIB, `normalize_driver_row`, migrasi, role-gating & debounce auto-refresh, validasi modul/kolom/posisi CRUD) + **82 Vitest** — semua hijau. SPA di-build, app di-restart, verifikasi live: login GA HR (`ga_hr_officer` → home `/app/ga-hr`), auto-refresh saat login/logout, PATCH edit (terverifikasi di DB), DELETE + 404, audit log `overtime_update`/`overtime_delete`, notifikasi tersimpan, `/api/overtime/stats` (Driver 8.665 · OB/Security 546), halaman `/app/ga-hr` HTTP 200.
+- **Verifikasi browser nyata 16/16** (`frontend/scripts/verify_ga_hr_full.mjs`, Chrome via puppeteer): login GA HR → dashboard & statistik → tombol Refresh/Sumber Data/PDF → tombol ✏️/🗑️ di Driver & OB/Security → modal edit terbuka (kolom lengkap) → **simpan edit sukses (PATCH) + revert otomatis** → konfirmasi hapus muncul (dibatalkan, data aman) → bell 🔔 → **notifikasi realtime end-to-end** (form publik diisi di tab kedua → badge bell GA HR muncul) → role GA ditolak 403 → **0 error konsol, 0 data uji tersisa**.
+
 ## [2.22.0] - 2026-08-14
 
 ### ⏰ Sistem Overtime — GA HR

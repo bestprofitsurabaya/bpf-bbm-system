@@ -47,12 +47,26 @@ def ensure_overtime_schema(conn=None):
                 foto_mulai VARCHAR(600) DEFAULT '',
                 foto_selesai VARCHAR(600) DEFAULT '',
                 notes VARCHAR(500) DEFAULT '',
+                no_kendaraan VARCHAR(30) DEFAULT '',
+                broker VARCHAR(150) DEFAULT '',
+                manager VARCHAR(150) DEFAULT '',
+                doc_url VARCHAR(600) DEFAULT '',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_otd_tanggal (tanggal),
                 INDEX idx_otd_nama (nama)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """, cursor, "overtime_driver")
+
+        # v2.22.1: kolom baru untuk data Driver lengkap (NO KENDARAAN, broker,
+        # manager, dokumen merge). Guarded — aman bila tabel sudah dibuat duluan.
+        for col, ddl in (
+            ('no_kendaraan', "ALTER TABLE overtime_driver ADD COLUMN no_kendaraan VARCHAR(30) DEFAULT ''"),
+            ('broker', "ALTER TABLE overtime_driver ADD COLUMN broker VARCHAR(150) DEFAULT ''"),
+            ('manager', "ALTER TABLE overtime_driver ADD COLUMN manager VARCHAR(150) DEFAULT ''"),
+            ('doc_url', "ALTER TABLE overtime_driver ADD COLUMN doc_url VARCHAR(600) DEFAULT ''"),
+        ):
+            _run(ddl, cursor, f"overtime_driver.{col}")
 
         # --- overtime_ob_security: migrasi penuh + submit form publik ---
         _run("""

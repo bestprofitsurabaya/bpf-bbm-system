@@ -13,7 +13,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from modules.overtime_helpers import (clean, norm_key, map_headers,
                                       parse_date_mdy, parse_time_12h,
                                       parse_submitted_at, normalize_name,
-                                      guess_position)
+                                      guess_position, parse_iso_dt,
+                                      parse_date_any, parse_time_any,
+                                      parse_submitted_at_any,
+                                      normalize_driver_row)
 from modules.helpers import home_for_role, ROLE_HOME
 
 
@@ -51,6 +54,33 @@ class TestHeaderMapping:
         assert m['nama'] == 2
         assert 'score' not in m
 
+    def test_headers_driver_sheet(self):
+        """Header asli sheet DRIVER (Google Form lama, v2.22.1)."""
+        m = map_headers([
+            'Timestamp', 'NO FORM', 'Email Address', 'NAMA LENGKAP',
+            'NO KENDARAAN', 'Tanggal Overtime', 'Dari / IN', 'Sampai / OUT',
+            'Nama Broker / Marketing', 'Nama Manager / Team leader',
+            'KETERANGAN', 'FOTO SELFIE @OFFICE', 'FOTO DI TUJUAN',
+            'photoid1', 'photoid2',
+            'Merged Doc ID - OT DRIVER', 'Merged Doc URL - OT DRIVER',
+            'Link to merged Doc - OT DRIVER', 'Document Merge Status - OT DRIVER',
+        ])
+        assert m['submitted_at'] == 0
+        assert m['email'] == 2
+        assert m['nama'] == 3
+        assert m['no_kendaraan'] == 4
+        assert m['tanggal'] == 5
+        assert m['waktu_mulai'] == 6
+        assert m['waktu_selesai'] == 7
+        assert m['broker'] == 8
+        assert m['manager'] == 9
+        assert m['keterangan'] == 10
+        assert m['foto_mulai'] == 11
+        assert m['foto_selesai'] == 12
+        assert m['doc_url'] == 16
+        assert 'noform' not in m
+        assert 'photoid1' not in m
+
 
 class TestDateParsing:
     def test_parse_date_mdy(self):
@@ -72,6 +102,36 @@ class TestDateParsing:
     def test_parse_submitted_at(self):
         assert parse_submitted_at('1/5/2026 20:32:44') == '2026-01-05 20:32:44'
         assert parse_submitted_at('') is None
+
+    def test_parse_iso_dt_utc_ke_wib(self):
+        """Apps Script mengirim ISO UTC; sheet WIB => +7 jam."""
+        dt = parse_iso_dt('2020-12-12T07:08:54.000Z')
+        assert dt is not None
+        assert dt.strftime('%Y-%m-%d %H:%M:%S') == '2020-12-12 14:08:54'
+        # Tanggal overtime tengah malam WIB = 17:00 UTC hari sebelumnya
+        dt2 = parse_iso_dt('2020-12-11T17:00:00.000Z')
+        assert dt2.strftime('%Y-%m-%d') == '2020-12-12'
+        # Nilai waktu murni (epoch Google Sheets)
+        dt3 = parse_iso_dt('1899-12-30T07:24:56.000Z')
+        assert dt3.strftime('%H:%M') == '14:24'
+        assert parse_iso_dt('') is None
+        assert parse_iso_dt('abc') is None
+
+    def test_parse_date_any(self):
+        assert parse_date_any('2020-12-11T17:00:00.000Z') == '2020-12-12'
+        assert parse_date_any('1/5/2026') == '2026-01-05'
+        assert parse_date_any('2026-08-14') == '2026-08-14'
+        assert parse_date_any('') is None
+
+    def test_parse_time_any(self):
+        assert parse_time_any('1899-12-30T07:24:56.000Z') == '14:24'
+        assert parse_time_any('6:29:00 PM') == '18:29'
+        assert parse_time_any('') is None
+
+    def test_parse_submitted_at_any(self):
+        assert parse_submitted_at_any('2020-12-12T07:08:54.000Z') == '2020-12-12 14:08:54'
+        assert parse_submitted_at_any('1/5/2026 20:32:44') == '2026-01-05 20:32:44'
+        assert parse_submitted_at_any('') is None
 
 
 # ============================================================
@@ -190,6 +250,144 @@ class TestClean:
     def test_normalisasi_spasi(self):
         assert clean('  Edwin   P  ') == 'Edwin P'
         assert clean('') == ''
+
+
+# ============================================================
+# Auto-refresh saat login/logout (v2.22.1)
+# ============================================================
+class TestAutoRefresh:
+    def test_hanya_role_ga_hr_dan_admin(self):
+        import modules.routes_overtime as ro
+        submitted = []
+        ro._last_auto_refresh['ts'] = 0.0
+
+        def fake_submit(fn):
+            submitted.append(fn)
+        ro.production_pool_executor.submit = fake_submit
+
+        ro.trigger_driver_refresh_async('driver', 'Andi')
+        ro.trigger_driver_refresh_async('ob', 'Budi')
+        assert submitted == []  # role lain tidak memicu refresh
+
+        ro.trigger_driver_refresh_async('ga_hr', 'GA HR')
+        ro.trigger_driver_refresh_async('admin', 'Admin')
+        assert len(submitted) == 1  # debounce: hanya 1x dalam 30 detik
+
+    def test_debounce_ulang_setelah_interval(self):
+        import modules.routes_overtime as ro
+        submitted = []
+        ro._last_auto_refresh['ts'] = 0.0
+
+        def fake_submit(fn):
+            submitted.append(fn)
+        ro.production_pool_executor.submit = fake_submit
+
+        ro.trigger_driver_refresh_async('admin', 'Admin')
+        assert len(submitted) == 1
+        # Simulasi sudah lewat 30 detik -> boleh refresh lagi
+        ro._last_auto_refresh['ts'] = 0.0
+        ro.trigger_driver_refresh_async('admin', 'Admin')
+        assert len(submitted) == 2
+
+    def test_do_refresh_driver_url_kosong_raise(self):
+        """Tanpa URL sumber, _do_refresh_driver menolak dengan ValueError."""
+        import modules.routes_overtime as ro
+        import pytest
+
+        class FakeCursor:
+            def __init__(self, val):
+                self._val = val
+            def execute(self, *a, **k):
+                pass
+            def fetchone(self):
+                return {'config_value': self._val}
+            def close(self):
+                pass
+
+        class FakeConn:
+            def cursor(self, *a, **k):
+                return FakeCursor('')
+            def close(self):
+                pass
+
+        ro.get_db_connection = lambda: FakeConn()
+        with pytest.raises(ValueError):
+            ro._do_refresh_driver()
+
+
+# ============================================================
+# Edit & hapus data overtime (v2.22.1)
+# ============================================================
+class TestOvertimeCrud:
+    def test_modul_valid(self):
+        import modules.routes_overtime as ro
+        assert set(ro._OT_TABLES) == {'driver', 'ob'}
+        assert ro._OT_TABLES['driver'] == 'overtime_driver'
+        assert ro._OT_TABLES['ob'] == 'overtime_ob_security'
+
+    def test_kolom_driver_dan_ob(self):
+        import modules.routes_overtime as ro
+        assert 'no_kendaraan' in ro._OT_COLUMNS['driver']
+        assert 'broker' in ro._OT_COLUMNS['driver']
+        assert 'manager' in ro._OT_COLUMNS['driver']
+        assert 'posisi' in ro._OT_COLUMNS['ob']
+        assert 'no_kendaraan' not in ro._OT_COLUMNS['ob']
+
+    def test_posisi_hanya_ob_security(self):
+        """Posisi selain OB/Security ditolak (validasi server)."""
+        assert ('OB' in __import__('modules.routes_overtime', fromlist=['POSITIONS']).POSITIONS)
+        assert ('Security' in __import__('modules.routes_overtime', fromlist=['POSITIONS']).POSITIONS)
+        assert 'Manager' not in __import__('modules.routes_overtime', fromlist=['POSITIONS']).POSITIONS
+
+
+# ============================================================
+# Normalisasi baris sheet DRIVER -> dict DB (v2.22.1)
+# ============================================================
+class TestNormalizeDriverRow:
+    HEADERS = ['Timestamp', 'NO FORM', 'Email Address', 'NAMA LENGKAP',
+               'NO KENDARAAN', 'Tanggal Overtime', 'Dari / IN', 'Sampai / OUT',
+               'Nama Broker / Marketing', 'Nama Manager / Team leader',
+               'KETERANGAN', 'Merged Doc URL - OT DRIVER']
+
+    def _norm(self, row, n=0):
+        idx = map_headers(self.HEADERS)
+        return normalize_driver_row(row, self.HEADERS, idx, n)
+
+    def test_baris_lengkap(self):
+        row = {
+            'Timestamp': '2020-12-12T07:08:54.000Z',
+            'NO FORM': 3,
+            'Email Address': 'mahesta45@gmail.com',
+            'NAMA LENGKAP': 'Mandar mahesta prasetya',
+            'NO KENDARAAN': 'W 6283 TV',
+            'Tanggal Overtime': '2020-12-11T17:00:00.000Z',
+            'Dari / IN': '1899-12-30T07:24:56.000Z',
+            'Sampai / OUT': '1899-12-30T10:47:56.000Z',
+            'Nama Broker / Marketing': 'Silva',
+            'Nama Manager / Team leader': 'Derry',
+            'KETERANGAN': 'Edukasi',
+            'Merged Doc URL - OT DRIVER': 'https://drive.google.com/file/d/1W6c/view',
+        }
+        out = self._norm(row)
+        assert out is not None
+        assert out['sheet_row'] == 2
+        assert out['submitted_at'] == '2020-12-12 14:08:54'
+        assert out['nama'] == 'Mandar mahesta prasetya'
+        assert out['no_kendaraan'] == 'W 6283 TV'
+        assert out['tanggal'] == '2020-12-12'
+        assert out['waktu_mulai'] == '14:24'
+        assert out['waktu_selesai'] == '17:47'
+        assert out['broker'] == 'Silva'
+        assert out['manager'] == 'Derry'
+        assert out['keterangan'] == 'Edukasi'
+        assert out['doc_url'] == 'https://drive.google.com/file/d/1W6c/view'
+
+    def test_baris_kosong_dilewati(self):
+        assert self._norm({'NAMA LENGKAP': ''}) is None
+
+    def test_sheet_row_urut(self):
+        out = self._norm({'NAMA LENGKAP': 'Andi'}, n=4)
+        assert out['sheet_row'] == 6
 
 
 # ============================================================

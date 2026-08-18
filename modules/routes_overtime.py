@@ -5,8 +5,9 @@ Dua modul overtime:
    Form lama). GA HR menekan tombol "Refresh" → server mengambil CSV/JSON dari
    URL sumber (system_config.overtime_driver_sheet_url) lalu upsert ke tabel
    `overtime_driver`. URL default = CSV export sheet (publik). Bila sheet
-   private, GA HR mengganti URL dengan Google Apps Script Web App (jalankan
-   sebagai pemilik akun → sheet tetap private, hasil JSON terbaca publik).
+   private, GA HR mengganti URL dengan Google Apps Script Web App (cukup
+   akun Google mana pun yang SUDAH punya akses ke sheet — termasuk view/read-
+   only — deploy script standalone; sheet tetap private, hasil JSON publik).
 2. **Overtime OB & SECURITY** — data dimigrasi penuh dari sheet lama (546 baris)
    + form publik baru (tanpa login) dengan dropdown Posisi & Nama.
 
@@ -22,13 +23,26 @@ from datetime import datetime, date
 from flask import request, jsonify, make_response
 from modules.config import get_db_connection
 from modules.helpers import (role_required, log_activity_async,
-                             generate_display_id)
+                             generate_display_id, production_pool_executor)
 from modules.overtime_helpers import (clean, map_headers, parse_date_mdy,
                                       parse_time_12h, parse_submitted_at,
-                                      normalize_name, guess_position)
+                                      parse_date_any, parse_time_any,
+                                      parse_submitted_at_any,
+                                      normalize_name, guess_position,
+                                      normalize_driver_row)
 from modules.pdf_generator import OvertimeReportPDF
 
 POSITIONS = ('OB', 'Security')
+
+# Tabel & kolom yang boleh diedit/dihapus GA HR (v2.22.1) — didefinisikan di
+# level modul agar bisa diuji & dipakai ulang.
+_OT_TABLES = {'driver': 'overtime_driver', 'ob': 'overtime_ob_security'}
+_OT_COLUMNS = {
+    'driver': ('nama', 'no_kendaraan', 'tanggal', 'waktu_mulai', 'waktu_selesai',
+               'keterangan', 'broker', 'manager', 'email'),
+    'ob': ('nama', 'posisi', 'tanggal', 'waktu_mulai', 'waktu_selesai',
+           'keterangan', 'email'),
+}
 
 # Rate limit form publik: maks 10 submit / 10 menit per IP (anti spam).
 _SUBMIT_MAX = 10
@@ -105,6 +119,72 @@ def _set_refresh_meta(conn, summary):
     cursor.close()
 
 
+# Auto-refresh saat login/logout (v2.22.1): sinkronisasi sheet Driver dijalankan
+# di background (fire-and-forget) supaya login tetap cepat. Debounce 30 detik
+# mencegah spam ke Google Apps Script bila user login/logout berulang cepat.
+_last_auto_refresh = {'ts': 0.0}
+_AUTO_REFRESH_MIN_INTERVAL = 30  # detik
+
+
+def _do_refresh_driver():
+    """Jalankan sinkronisasi penuh sheet Driver. Raise bila gagal.
+
+    Dipakai bersama oleh endpoint Refresh (GA HR) dan auto-refresh login/logout.
+    Return dict hasil: {'added', 'updated', 'skipped', 'total_rows', 'summary'}.
+    """
+    conn = get_db_connection()
+    if not conn:
+        raise RuntimeError('DB error')
+    try:
+        url = _get_sheet_url(conn)
+        if not url:
+            raise ValueError('URL sumber sheet belum diatur. Set di Pengaturan Sumber Data.')
+        rows = _fetch_sheet_rows(url)
+        result = _upsert_driver_rows(conn, rows)
+        summary = (f"{result['added']} baru, {result['updated']} diperbarui, "
+                   f"{result['skipped']} dilewati (dari {result['total_rows']} baris)")
+        _set_refresh_meta(conn, summary)
+        # v2.22.1: beri tahu GA HR bila ada data overtime DRIVER baru dari sheet
+        if result.get('added', 0) > 0:
+            try:
+                from modules.notifications import push_overtime_notification
+                push_overtime_notification(
+                    'overtime_new', 'driver_sync',
+                    f'{result["added"]} data overtime Driver baru dari Google Sheet',
+                    ref_id=None, count=result['added'])
+            except Exception as ne:
+                print(f"[overtime-notif] {ne}")
+        return {'status': 'success', **result, 'summary': summary}
+    finally:
+        conn.close()
+
+
+def trigger_driver_refresh_async(role, full_name, ip=None):
+    """Auto-refresh sheet Driver di background saat login/logout.
+
+    Hanya untuk role yang melihat data overtime (ga_hr & admin); role lain
+    dilewati. Debounce 30 detik agar tidak memukul Google Apps Script berulang
+    kali dalam waktu singkat. Gagal diam-diam (dicatat ke stdout) — login/logout
+    tidak boleh terganggu oleh error sinkronisasi.
+    """
+    if role not in ('ga_hr', 'admin'):
+        return
+    now = time.time()
+    if now - _last_auto_refresh['ts'] < _AUTO_REFRESH_MIN_INTERVAL:
+        return
+    _last_auto_refresh['ts'] = now
+
+    def _run():
+        try:
+            result = _do_refresh_driver()
+            log_activity_async(None, 'overtime_driver_refresh', role, full_name,
+                               new_data=result, ip=ip)
+        except Exception as e:
+            print(f"[overtime-auto-refresh] {e}")
+
+    production_pool_executor.submit(_run)
+
+
 def _fetch_sheet_rows(url):
     """Ambil baris data dari URL sumber. Support CSV (export/gviz) & JSON
     (Google Apps Script Web App: {"rows": [{...}]}). Return list[dict]."""
@@ -124,40 +204,39 @@ def _fetch_sheet_rows(url):
 
 
 def _upsert_driver_rows(conn, rows):
-    """Upsert baris sheet ke overtime_driver (kunci: sheet_row = baris sheet)."""
+    """Upsert baris sheet ke overtime_driver (kunci: sheet_row = baris sheet).
+
+    Kolom tambahan (v2.22.1): no_kendaraan, broker, manager, doc_url.
+    """
     cursor = conn.cursor(dictionary=True)
     added = updated = skipped = 0
     if rows:
         headers = list(rows[0].keys())
         idx = map_headers(headers)
         for n, r in enumerate(rows):
-            sheet_row = n + 2  # baris 1 = header di spreadsheet
-            def g(field):
-                i = idx.get(field)
-                return clean(r[headers[i]]) if i is not None and i < len(headers) else ''
-            nama = g('nama')
-            if not nama:
+            row = normalize_driver_row(r, headers, idx, n)
+            if not row:
                 skipped += 1
                 continue
-            tanggal = parse_date_mdy(g('tanggal')) or (g('tanggal') or '')[:10]
             cursor.execute(
                 """INSERT INTO overtime_driver
                    (sheet_row, submitted_at, email, nama, tanggal, waktu_mulai,
-                    waktu_selesai, keterangan, foto_mulai, foto_selesai, notes)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    waktu_selesai, keterangan, foto_mulai, foto_selesai, notes,
+                    no_kendaraan, broker, manager, doc_url)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                    ON DUPLICATE KEY UPDATE
                      submitted_at=VALUES(submitted_at), email=VALUES(email),
                      nama=VALUES(nama), tanggal=VALUES(tanggal),
                      waktu_mulai=VALUES(waktu_mulai), waktu_selesai=VALUES(waktu_selesai),
                      keterangan=VALUES(keterangan), foto_mulai=VALUES(foto_mulai),
-                     foto_selesai=VALUES(foto_selesai), notes=VALUES(notes)""",
-                (sheet_row,
-                 parse_submitted_at(g('submitted_at')) or None,
-                 g('email')[:150], nama[:150], tanggal or None,
-                 (parse_time_12h(g('waktu_mulai')) or g('waktu_mulai'))[:20],
-                 (parse_time_12h(g('waktu_selesai')) or g('waktu_selesai'))[:20],
-                 g('keterangan')[:500], g('foto_mulai')[:600],
-                 g('foto_selesai')[:600], g('notes')[:500]))
+                     foto_selesai=VALUES(foto_selesai), notes=VALUES(notes),
+                     no_kendaraan=VALUES(no_kendaraan), broker=VALUES(broker),
+                     manager=VALUES(manager), doc_url=VALUES(doc_url)""",
+                (row['sheet_row'], row['submitted_at'], row['email'],
+                 row['nama'], row['tanggal'], row['waktu_mulai'],
+                 row['waktu_selesai'], row['keterangan'], row['foto_mulai'],
+                 row['foto_selesai'], row['notes'], row['no_kendaraan'],
+                 row['broker'], row['manager'], row['doc_url']))
             # rowcount: 1 = insert baru, 2 = update baris lama (MySQL)
             if cursor.rowcount == 1:
                 added += 1
@@ -252,6 +331,15 @@ def register_overtime_routes(app):
             log_activity_async(None, 'overtime_submit', 'public', nama,
                                new_data={'display_id': display_id, 'posisi': posisi},
                                ip=ip)
+            # v2.22.1: beri tahu GA HR ada overtime OB/Security baru dari form publik
+            try:
+                from modules.notifications import push_overtime_notification
+                push_overtime_notification(
+                    'overtime_new', 'ob_form',
+                    f'{posisi} {nama} mengisi overtime baru — No. {display_id}',
+                    ref_id=display_id, count=1)
+            except Exception as ne:
+                print(f"[overtime-notif] {ne}")
             cursor.close(); conn.close()
             return jsonify({'status': 'success', 'display_id': display_id,
                             'msg': f'Overtime {posisi} tercatat! No. {display_id}'})
@@ -276,8 +364,9 @@ def register_overtime_routes(app):
                 where.append('tanggal <= %s'); params.append(d_to.isoformat())
             if search:
                 like = f'%{search}%'
-                where.append('(nama LIKE %s OR keterangan LIKE %s OR email LIKE %s)')
-                params += [like] * 3
+                where.append('(nama LIKE %s OR keterangan LIKE %s OR email LIKE %s '
+                             'OR no_kendaraan LIKE %s OR broker LIKE %s OR manager LIKE %s)')
+                params += [like] * 6
             if nama:
                 where.append('nama LIKE %s'); params.append(f'%{nama}%')
 
@@ -307,18 +396,11 @@ def register_overtime_routes(app):
     @role_required(['ga_hr', 'admin'])
     def api_overtime_driver_refresh():
         try:
-            conn = get_db_connection()
-            if not conn:
-                return jsonify({'status': 'error', 'msg': 'DB error'}), 500
-            url = _get_sheet_url(conn)
-            if not url:
-                cursor = conn.cursor(); cursor.close(); conn.close()
-                return jsonify({'status': 'error',
-                                'msg': 'URL sumber sheet belum diatur. Set di Pengaturan Sumber Data.'}), 400
             try:
-                rows = _fetch_sheet_rows(url)
+                result = _do_refresh_driver()
+            except ValueError as ve:
+                return jsonify({'status': 'error', 'msg': str(ve)}), 400
             except Exception as fe:
-                cursor = conn.cursor(); cursor.close(); conn.close()
                 return jsonify({
                     'status': 'error',
                     'msg': 'Gagal mengambil data dari Google Sheet. '
@@ -326,15 +408,10 @@ def register_overtime_routes(app):
                            'URL memakai Google Apps Script Web App (lihat petunjuk).',
                     'detail': str(fe)[:300],
                 }), 502
-            result = _upsert_driver_rows(conn, rows)
-            summary = (f"{result['added']} baru, {result['updated']} diperbarui, "
-                       f"{result['skipped']} dilewati (dari {result['total_rows']} baris)")
-            _set_refresh_meta(conn, summary)
             user = _current_user()
             log_activity_async(None, 'overtime_driver_refresh', user['role'],
                                user['full_name'], new_data=result, ip=request.remote_addr)
-            conn.close()
-            return jsonify({'status': 'success', **result, 'summary': summary})
+            return jsonify(result)
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500
 
@@ -521,5 +598,99 @@ def register_overtime_routes(app):
                                new_data={'sheet_url': url[:120]}, ip=request.remote_addr)
             cursor.close(); conn.close()
             return jsonify({'status': 'success', 'msg': 'URL sumber data diperbarui'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    # ================================================================
+    # GA HR — edit & hapus data overtime (Driver / OB-Security)
+    # ================================================================
+    def _ot_row(modul, row_id):
+        """Ambil satu baris overtime utk keperluan edit/hapus. Return dict/None."""
+        conn = get_db_connection()
+        if not conn:
+            return None
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(f"SELECT * FROM {_OT_TABLES[modul]} WHERE id=%s", (row_id,))
+        row = cursor.fetchone()
+        cursor.close(); conn.close()
+        return _serialize(row) if row else None
+
+    @app.route('/api/overtime/<modul>/<int:row_id>', methods=['PATCH'])
+    @role_required(['ga_hr', 'admin'])
+    def api_overtime_update(modul, row_id):
+        try:
+            if modul not in _OT_TABLES:
+                return jsonify({'status': 'error', 'msg': 'Modul harus driver atau ob'}), 400
+            old = _ot_row(modul, row_id)
+            if not old:
+                return jsonify({'status': 'error', 'msg': 'Data tidak ditemukan'}), 404
+
+            data = request.get_json(silent=True) or {}
+            sets, params = [], []
+            for col in _OT_COLUMNS[modul]:
+                if col not in data:
+                    continue
+                val = clean(str(data[col]))
+                if col == 'tanggal':
+                    val = parse_date_any(val) or val
+                elif col == 'posisi':
+                    if val not in POSITIONS:
+                        return jsonify({'status': 'error',
+                                        'msg': 'Posisi harus OB atau Security'}), 400
+                elif col in ('waktu_mulai', 'waktu_selesai'):
+                    val = (parse_time_any(val) or val)[:20]
+                elif col == 'email':
+                    val = val[:150]
+                elif col in ('keterangan',):
+                    val = val[:500]
+                elif col in ('nama', 'broker', 'manager'):
+                    val = val[:150]
+                elif col == 'no_kendaraan':
+                    val = val[:30]
+                sets.append(f'{col}=%s'); params.append(val)
+            if not sets:
+                return jsonify({'status': 'error', 'msg': 'Tidak ada kolom yang diubah'}), 400
+
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'status': 'error', 'msg': 'DB error'}), 500
+            cursor = conn.cursor()
+            cursor.execute(
+                f"UPDATE {_OT_TABLES[modul]} SET {', '.join(sets)} WHERE id=%s",
+                params + [row_id])
+            conn.commit()
+            user = _current_user()
+            log_activity_async(None, 'overtime_update', user['role'], user['full_name'],
+                               old_data={'id': row_id, 'modul': modul},
+                               new_data={'id': row_id, 'modul': modul,
+                                         'changes': {c: clean(str(data[c])) for c in _OT_COLUMNS[modul] if c in data}},
+                               ip=request.remote_addr)
+            cursor.close(); conn.close()
+            return jsonify({'status': 'success', 'msg': 'Data overtime diperbarui'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'msg': str(e)}), 500
+
+    @app.route('/api/overtime/<modul>/<int:row_id>', methods=['DELETE'])
+    @role_required(['ga_hr', 'admin'])
+    def api_overtime_delete(modul, row_id):
+        try:
+            if modul not in _OT_TABLES:
+                return jsonify({'status': 'error', 'msg': 'Modul harus driver atau ob'}), 400
+            old = _ot_row(modul, row_id)
+            if not old:
+                return jsonify({'status': 'error', 'msg': 'Data tidak ditemukan'}), 404
+            conn = get_db_connection()
+            if not conn:
+                return jsonify({'status': 'error', 'msg': 'DB error'}), 500
+            cursor = conn.cursor()
+            cursor.execute(f"DELETE FROM {_OT_TABLES[modul]} WHERE id=%s", (row_id,))
+            conn.commit()
+            user = _current_user()
+            log_activity_async(None, 'overtime_delete', user['role'], user['full_name'],
+                               old_data={'id': row_id, 'modul': modul,
+                                         'nama': old.get('nama'), 'tanggal': str(old.get('tanggal'))},
+                               ip=request.remote_addr)
+            cursor.close(); conn.close()
+            return jsonify({'status': 'success', 'msg': 'Data overtime dihapus'})
         except Exception as e:
             return jsonify({'status': 'error', 'msg': str(e)}), 500

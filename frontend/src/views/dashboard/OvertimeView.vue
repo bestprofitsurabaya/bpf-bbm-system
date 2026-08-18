@@ -28,6 +28,13 @@ const showConfig = ref(false)
 const cfgUrl = ref('')
 const cfgSaving = ref(false)
 
+// Edit & hapus data overtime
+const editModul = ref('driver')
+const editing = ref(null)   // row asli
+const editForm = ref({})    // salinan utk diedit
+const savingEdit = ref(false)
+const confirmDel = ref(null) // { modul, id, nama } utk konfirmasi hapus
+
 const formLink = window.location.origin + '/app/overtime-form'
 
 async function loadStats() {
@@ -123,6 +130,51 @@ function fmtWaktu(r) {
   return b ? `${a} – ${b}` : a
 }
 
+function openEdit(r, modul) {
+  editModul.value = modul
+  editing.value = r
+  editForm.value = {
+    nama: r.nama || '',
+    posisi: r.posisi || '',
+    no_kendaraan: r.no_kendaraan || '',
+    tanggal: r.tanggal || '',
+    waktu_mulai: r.waktu_mulai || '',
+    waktu_selesai: r.waktu_selesai || '',
+    keterangan: r.keterangan || '',
+    broker: r.broker || '',
+    manager: r.manager || '',
+    email: r.email || '',
+  }
+}
+
+async function saveEdit() {
+  if (!editing.value) return
+  savingEdit.value = true
+  try {
+    const body = {}
+    for (const k of ['nama', 'posisi', 'no_kendaraan', 'tanggal', 'waktu_mulai', 'waktu_selesai', 'keterangan', 'broker', 'manager', 'email']) {
+      if (k in editForm.value) body[k] = editForm.value[k]
+    }
+    await api(`/api/overtime/${editModul.value}/${editing.value.id}`, { method: 'PATCH', body })
+    editing.value = null
+    await loadTab()
+  } catch (e) { alert('❌ ' + e.message) } finally { savingEdit.value = false }
+}
+
+function askDelete(r, modul) {
+  confirmDel.value = { modul, id: r.id, nama: r.nama || '', display: r.display_id || `#${r.id}` }
+}
+
+async function doDelete() {
+  if (!confirmDel.value) return
+  const { modul, id } = confirmDel.value
+  try {
+    await api(`/api/overtime/${modul}/${id}`, { method: 'DELETE' })
+    confirmDel.value = null
+    await Promise.all([loadTab(), loadStats()])
+  } catch (e) { alert('❌ ' + e.message) }
+}
+
 onMounted(() => {
   loadStats()
   loadTab()
@@ -163,7 +215,7 @@ watch(tab, loadTab)
           <input class="input" type="date" v-model="dFrom" @change="loadDriver" />
           <span class="muted">s/d</span>
           <input class="input" type="date" v-model="dTo" @change="loadDriver" />
-          <input class="input grow" v-model="dSearch" placeholder="🔍 Cari nama / keterangan / email…" @keyup.enter="loadDriver" />
+          <input class="input grow" v-model="dSearch" placeholder="🔍 Cari nama / kendaraan / broker / keterangan…" @keyup.enter="loadDriver" />
           <button class="btn" @click="loadDriver">🔍 Cari</button>
           <button class="btn" :disabled="refreshing" @click="doRefresh">{{ refreshing ? '⏳ Menyinkronkan…' : '🔄 Refresh dari Google Sheet' }}</button>
           <button class="btn" @click="openConfig">⚙️ Sumber Data</button>
@@ -175,16 +227,21 @@ watch(tab, loadTab)
           <div class="muted" style="font-size:12px;margin:8px 0;">{{ dList.length }} catatan ditampilkan</div>
           <div class="table-wrap">
             <table class="tbl">
-              <thead><tr><th>Tanggal</th><th>Nama</th><th>Waktu</th><th>Keterangan</th><th>Email</th></tr></thead>
+              <thead><tr><th>Tanggal</th><th>Nama</th><th>No. Kendaraan</th><th>Waktu</th><th>Keterangan</th><th>Broker / Manager</th><th></th></tr></thead>
               <tbody>
-                <tr v-for="r in dList" :key="r.id">
+                <tr v-for="r in dList" :key="r.id" :data-id="r.id">
                   <td>{{ r.tanggal || '—' }}</td>
                   <td><b>{{ r.nama }}</b></td>
+                  <td class="muted">{{ r.no_kendaraan || '—' }}</td>
                   <td>{{ fmtWaktu(r) }}</td>
                   <td class="muted">{{ r.keterangan || '—' }}</td>
-                  <td class="muted">{{ r.email || '—' }}</td>
+                  <td class="muted">{{ (r.broker || r.manager) ? (r.broker || '—') + ' / ' + (r.manager || '—') : '—' }}</td>
+                  <td class="row-actions">
+                    <button class="btn btn-xs" title="Edit" aria-label="Edit data" @click="openEdit(r, 'driver')">✏️</button>
+                    <button class="btn btn-xs btn-danger" title="Hapus" aria-label="Hapus data" @click="askDelete(r, 'driver')">🗑️</button>
+                  </td>
                 </tr>
-                <tr v-if="!dList.length"><td colspan="5" class="empty">Belum ada data — klik 🔄 Refresh untuk menarik data dari Google Sheet.</td></tr>
+                <tr v-if="!dList.length"><td colspan="7" class="empty">Belum ada data — klik 🔄 Refresh untuk menarik data dari Google Sheet.</td></tr>
               </tbody>
             </table>
           </div>
@@ -212,7 +269,7 @@ watch(tab, loadTab)
           <div class="muted" style="font-size:12px;margin:8px 0;">{{ oList.length }} catatan ditampilkan</div>
           <div class="table-wrap">
             <table class="tbl">
-              <thead><tr><th>No.</th><th>Tanggal</th><th>Nama</th><th>Posisi</th><th>Waktu</th><th>Keterangan</th><th>Sumber</th></tr></thead>
+              <thead><tr><th>No.</th><th>Tanggal</th><th>Nama</th><th>Posisi</th><th>Waktu</th><th>Keterangan</th><th>Sumber</th><th></th></tr></thead>
               <tbody>
                 <tr v-for="r in oList" :key="r.id">
                   <td class="muted">{{ r.display_id }}</td>
@@ -222,8 +279,12 @@ watch(tab, loadTab)
                   <td>{{ fmtWaktu(r) }}</td>
                   <td class="muted">{{ r.keterangan || '—' }}</td>
                   <td><span class="badge badge-gray">{{ r.source === 'migrasi' ? '📥 Migrasi' : '📝 Form' }}</span></td>
+                  <td class="row-actions">
+                    <button class="btn btn-xs" title="Edit" aria-label="Edit data" @click="openEdit(r, 'ob')">✏️</button>
+                    <button class="btn btn-xs btn-danger" title="Hapus" aria-label="Hapus data" @click="askDelete(r, 'ob')">🗑️</button>
+                  </td>
                 </tr>
-                <tr v-if="!oList.length"><td colspan="7" class="empty">Belum ada data overtime OB/Security.</td></tr>
+                <tr v-if="!oList.length"><td colspan="8" class="empty">Belum ada data overtime OB/Security.</td></tr>
               </tbody>
             </table>
           </div>
@@ -231,13 +292,73 @@ watch(tab, loadTab)
       </template>
     </div>
 
+    <Modal v-if="editing" :title="'✏️ Edit Overtime ' + (editModul === 'driver' ? 'Driver' : 'OB/Security')" @close="editing = null">
+      <div class="field">
+        <label>Nama</label>
+        <input class="input" v-model="editForm.nama" placeholder="Nama karyawan" />
+      </div>
+      <div v-if="editModul === 'ob'" class="field">
+        <label>Posisi</label>
+        <select class="select" v-model="editForm.posisi">
+          <option value="OB">OB</option>
+          <option value="Security">Security</option>
+        </select>
+      </div>
+      <div v-else class="field">
+        <label>No. Kendaraan</label>
+        <input class="input" v-model="editForm.no_kendaraan" placeholder="mis. W 6283 TV" />
+      </div>
+      <div class="field">
+        <label>Tanggal</label>
+        <input class="input" type="date" v-model="editForm.tanggal" />
+      </div>
+      <div class="row" style="gap:10px;">
+        <div class="field grow">
+          <label>Waktu Mulai</label>
+          <input class="input" type="time" v-model="editForm.waktu_mulai" />
+        </div>
+        <div class="field grow">
+          <label>Waktu Selesai</label>
+          <input class="input" type="time" v-model="editForm.waktu_selesai" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Keterangan</label>
+        <input class="input" v-model="editForm.keterangan" placeholder="Keterangan…" />
+      </div>
+      <template v-if="editModul === 'driver'">
+        <div class="row" style="gap:10px;">
+          <div class="field grow">
+            <label>Broker / Marketing</label>
+            <input class="input" v-model="editForm.broker" />
+          </div>
+          <div class="field grow">
+            <label>Manager / Team Leader</label>
+            <input class="input" v-model="editForm.manager" />
+          </div>
+        </div>
+      </template>
+      <div class="row" style="justify-content:flex-end;margin-top:12px;">
+        <button class="btn" @click="editing = null">Batal</button>
+        <button class="btn btn-primary" :disabled="savingEdit" @click="saveEdit">{{ savingEdit ? '⏳ Menyimpan…' : '💾 Simpan' }}</button>
+      </div>
+    </Modal>
+
+    <Modal v-if="confirmDel" title="🗑️ Hapus Data Overtime" @close="confirmDel = null">
+      <p style="font-size:13px;">Yakin ingin menghapus <b>{{ confirmDel.nama }}</b> ({{ confirmDel.display }})?<br />Tindakan ini tidak bisa dibatalkan.</p>
+      <div class="row" style="justify-content:flex-end;margin-top:12px;">
+        <button class="btn" @click="confirmDel = null">Batal</button>
+        <button class="btn btn-danger" @click="doDelete">🗑️ Hapus</button>
+      </div>
+    </Modal>
+
     <Modal v-if="showConfig" title="⚙️ Sumber Data Overtime Driver" @close="showConfig = false">
       <p class="muted" style="font-size:12px;margin-bottom:10px;">
         URL yang dibaca server saat tombol <b>Refresh</b> ditekan. Mendukung:
       </p>
       <ul class="cfg-list">
         <li><b>CSV publik</b> — sheet di-share "Anyone with the link" → pakai URL <code>…/gviz/tq?tqx=out:csv</code></li>
-        <li><b>Google Apps Script Web App</b> — sheet tetap private, script dijalankan sebagai akun pemilik dan mengembalikan <code>{"rows":[…]}</code> (lihat petunjuk di CHANGELOG)</li>
+        <li><b>Google Apps Script Web App</b> — sheet tetap private; cukup akun Google mana pun yang SUDAH punya akses ke sheet (termasuk view/read-only) membuat script standalone (<code>scripts/apps_script_overtime_driver.gs</code>) dan mengembalikan <code>{"rows":[…]}</code> — tidak perlu akses pemilik</li>
       </ul>
       <div class="field">
         <label>URL sumber data</label>
@@ -263,4 +384,6 @@ watch(tab, loadTab)
 .filters .input, .filters .select { max-width: 180px; }
 .cfg-list { margin: 6px 0 12px 18px; font-size: 12px; color: var(--text-2); display: grid; gap: 6px; }
 .cfg-list code { background: var(--surface-2); padding: 1px 5px; border-radius: 5px; font-size: 11px; }
+.row-actions { display: flex; gap: 4px; justify-content: flex-end; }
+.btn-xs { padding: 3px 8px; font-size: 12px; }
 </style>

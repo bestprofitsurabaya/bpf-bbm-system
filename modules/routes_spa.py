@@ -99,6 +99,13 @@ def register_spa_routes(app):
         session.permanent = True
         csrf = _ensure_csrf()
         log_activity_async(None, 'login', 'user', user['username'], ip=request.remote_addr)
+        # v2.22.1: sinkronisasi sheet Driver otomatis di background (ga_hr/admin)
+        try:
+            from modules.routes_overtime import trigger_driver_refresh_async
+            trigger_driver_refresh_async(user['role'], user['full_name'],
+                                         ip=request.remote_addr)
+        except Exception:
+            pass  # sinkronisasi gagal tidak boleh menghalangi login
         return jsonify({
             'status': 'success',
             'user': {'role': user['role'], 'user_name': user['username'], 'full_name': user['full_name'],
@@ -109,6 +116,14 @@ def register_spa_routes(app):
 
     @app.route('/api/auth/logout', methods=['POST'])
     def api_auth_logout():
+        role = session.get('user_role')
+        full_name = session.get('full_name') or session.get('user_name')
+        # v2.22.1: sinkronisasi sheet Driver otomatis di background (ga_hr/admin)
+        try:
+            from modules.routes_overtime import trigger_driver_refresh_async
+            trigger_driver_refresh_async(role, full_name, ip=request.remote_addr)
+        except Exception:
+            pass  # sinkronisasi gagal tidak boleh menghalangi logout
         session.clear()
         return jsonify({'status': 'success'})
 

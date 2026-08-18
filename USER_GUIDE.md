@@ -399,9 +399,14 @@ Semua perubahan papan berjalan realtime — saat driver menyelesaikan tugas, sta
 
 ### Tab 🚗 Driver
 
-- Data ditarik dari Google Sheet lama (diisi Google Form). Klik **🔄 Refresh dari Google Sheet** untuk menyinkronkan — baris baru ditambahkan, baris lama diperbarui.
-- Filter **tanggal** & **pencarian** nama/keterangan/email.
-- Tombol **⚙️ Sumber Data**: URL yang dibaca server. Bila sheet **private**, ganti dengan URL Google Apps Script Web App (template: `scripts/apps_script_overtime_driver.gs`) supaya refresh tetap berjalan tanpa membuka akses sheet.
+- Data ditarik dari Google Sheet lama (diisi Google Form) — **8.665 baris (2020–2026) sudah dimigrasikan** ke tabel `overtime_driver`.
+- Klik **🔄 Refresh dari Google Sheet** untuk menyinkronkan — baris baru ditambahkan, baris lama diperbarui.
+- **Otomatis**: setiap kali user GA HR atau Admin **login atau logout**, data Driver langsung disinkronkan ulang di background — tanpa perlu menekan tombol apa pun. (Refresh dibatasi maksimal 1× per 30 detik agar tidak membebani Google.)
+- **🔔 Notifikasi**: saat sinkronisasi menemukan **data Driver baru** atau ada **form publik OB/Security** yang diisi, lonceng 🔔 di pojok kanan atas langsung berbunyi (realtime).
+- **✏️ Edit & 🗑️ Hapus**: tiap baris punya tombol aksi — koreksi typo (nama, kendaraan, tanggal, jam, keterangan, broker/manager) lewat modal edit, atau hapus baris yang keliru. Semua aksi tercatat di Audit Log.
+- Filter **tanggal** & **pencarian** nama/kendaraan/broker/manager/keterangan.
+- Tombol **⚙️ Sumber Data**: URL yang dibaca server. Bila sheet **private**, ganti dengan URL Google Apps Script Web App (template: `scripts/apps_script_overtime_driver.gs`) supaya refresh tetap berjalan tanpa membuka akses sheet. **Tidak perlu akses ke akun pemilik** — cukup akun Google mana pun yang sudah punya akses (termasuk view/read-only) membuat script standalone di `script.google.com` lalu deploy sebagai Web App (*Execute as: Me*, *Who has access: Anyone*).
+- Tanggal & jam dari Apps Script (format ISO UTC) otomatis dikonversi ke **zona WIB** saat disimpan.
 
 ### Tab 🧑‍🔧 OB & Security
 
@@ -412,6 +417,31 @@ Semua perubahan papan berjalan realtime — saat driver menyelesaikan tugas, sta
 
 - Bagikan tautan **`/app/overtime-form`** ke karyawan OB/Security — mereka mengisi sendiri: dropdown **Posisi** (OB/Security) & **Nama** (sesuai data yang ada), tanggal, jam mulai/selesai, keterangan.
 - Setiap pengiriman mendapat nomor bukti `OTL-*` dan langsung tampil di dashboard GA HR.
+
+### Akun GA HR
+
+- Akun demo tersedia: **username `ga_hr_officer`, PIN `123456`** (role GA HR) — atau buat sendiri di Manajemen User (`/app/users`) oleh Admin.
+
+### Kolom di Tab Driver
+
+- **Tanggal · Nama · No. Kendaraan · Waktu · Keterangan · Broker/Manager** — No. Kendaraan, broker (Nama Broker/Marketing), dan manager (Nama Manager/Team leader) ikut tampil di tabel, laporan PDF, dan pencarian.
+
+---
+
+## 11c. Untuk GA HR — Migrasi Data Driver dari Google Sheet 📥
+
+> Kamu hanya punya akses **view (read-only)** ke sheet overtime Driver dan tidak punya akses ke akun pemilik. Tenang — tetap bisa sinkron.
+
+1. Buka **https://script.google.com** → **New project** (proyek *standalone*, jangan lewat menu sheet — itu butuh akses edit).
+2. Hapus isi `Code.gs`, tempel semua kode dari **`scripts/apps_script_overtime_driver.gs`**, lalu simpan.
+3. **Deploy** → **New deployment** → type **Web app**:
+   - *Execute as:* **Me** (akun Anda yang punya akses ke sheet)
+   - *Who has access:* **Anyone**
+4. Saat diminta izin: pilih akun yang sama → **Advanced** → *Go to … (unsafe)* → **Allow** (script hanya membaca).
+5. Salin URL `https://script.google.com/macros/s/…/exec`, tempel di dashboard GA HR → **⚙️ Sumber Data** → **Simpan**.
+6. Tekan **🔄 Refresh** — data terbaru (termasuk yang baru diisi di Google Form) langsung masuk ke WorkHub.
+
+**Kenapa bisa?** Script dieksekusi *atas nama akun Anda* (yang sudah diberi akses baca oleh pemilik), jadi bisa membaca sheet private. Hasilnya jadi JSON publik yang dibaca server WorkHub — sheet tidak pernah dibuka aksesnya.
 
 ---
 

@@ -136,3 +136,49 @@ def push_marketing_notification(username, ntype, action, message, ref_id=None):
         'created_at': created,
     }, room='marketing_' + user)
     return notif_id
+
+
+def push_overtime_notification(ntype, action, message, ref_id=None, count=0):
+    """Persist + realtime-push notifikasi untuk GA HR/Admin (tabel notifications).
+
+    Dikirim saat sinkronisasi sheet Driver menemukan data baru (v2.22.1):
+    GA HR yang sedang online menerima update langsung via room ga_hr_board;
+    yang offline tetap bisa melihatnya di daftar notifikasi setelah login.
+    """
+    notif_id = None
+    created = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor()
+            # Simpan sekali dengan driver_name='GA HR' sebagai penampung umum
+            cursor.execute(
+                "INSERT INTO notifications (driver_name, type, action, message, ref_id, created_at) "
+                "VALUES (%s, %s, %s, %s, %s, %s)",
+                ('GA HR', ntype, action, str(message)[:255], ref_id, created),
+            )
+            conn.commit()
+            notif_id = cursor.lastrowid
+    except Exception as e:
+        print(f"[notifications] push_overtime error: {e}")
+    finally:
+        if cursor:
+            try: cursor.close()
+            except Exception: pass
+        if conn:
+            try: conn.close()
+            except Exception: pass
+
+    from modules.realtime import emit_event
+    emit_event('overtime_new', {
+        'id': notif_id,
+        'type': ntype,
+        'action': action,
+        'message': str(message)[:255],
+        'ref_id': ref_id,
+        'count': count,
+        'created_at': created,
+    }, room='ga_hr_board')
+    return notif_id

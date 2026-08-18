@@ -49,6 +49,14 @@ export const useRealtimeStore = defineStore('realtime', {
             this.push(label, 'appointment_update', d)
           })
         }
+
+        // Data overtime baru (GA HR / admin) — dari sinkronisasi sheet & form publik
+        if (['ga_hr', 'admin'].includes(role)) {
+          socket.on('overtime_new', (d) => {
+            const label = d?.message || (d?.count ? `⏰ ${d.count} data overtime baru` : '⏰ Ada data overtime baru')
+            this.push(label, 'overtime_new', d)
+          })
+        }
       } catch { this.connected = false }
     },
     joinRooms(role) {
@@ -56,6 +64,9 @@ export const useRealtimeStore = defineStore('realtime', {
       try {
         if (role === 'marketing' || role === 'chief_driver') {
           socket.emit('join_room', { room: 'appointments_board' })
+        }
+        if (role === 'ga_hr' || role === 'admin') {
+          socket.emit('join_room', { room: 'ga_hr_board' })
         }
       } catch { /* noop */ }
     },

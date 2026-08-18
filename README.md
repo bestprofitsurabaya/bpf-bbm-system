@@ -1,4 +1,4 @@
-# 🏢 BPF WorkHub v2.22.0 (SPA Vue 3 penuh — 100% Vue)
+# 🏢 BPF WorkHub v2.22.1 (SPA Vue 3 penuh — 100% Vue)
 
 **Sistem Manajemen Armada, Klaim BBM, Kasbon, Log Perjalanan, Appointment & Air Minum**  
 **PT. Bestprofit Futures - Surabaya**
@@ -6,6 +6,22 @@
 ---
 
 Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pengarsipan klaim BBM, **pengajuan kasbon dengan kode unik**, dan log perjalanan harian (logsheet) dengan workflow GA → Finance → Archive. Dilengkapi **sistem appointment canggih** (Marketing → Chief Driver → Log Perjalanan), deteksi anomali Machine Learning, GPS tracking, **watermark foto otomatis**, PIN security, **session-based login & role-based access**, **CSRF protection**, **notifikasi real-time**, import Excel, audit trail, Chart.js visualization, **PWA offline-first**, dan **WebSocket real-time**.
+
+---
+
+## 🆕 Fitur Terbaru v2.22.1 — Migrasi Penuh Overtime Driver
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **🚗 8.665 baris Driver dimigrasikan** | Tabel `overtime_driver` (2020–2026) kini penuh — dari Google Sheet private via **Google Apps Script Web App** |
+| **🔓 Tanpa akses pemilik** | Cukup akun dengan akses **view/read-only** deploy script standalone (`scripts/apps_script_overtime_driver.gs`) → JSON publik; sheet tetap private |
+| **🕐 Konversi WIB otomatis** | Semua nilai ISO UTC dari Apps Script dikonversi +7 jam (tanggal & jam) — data tampil benar di dashboard & PDF |
+| **📋 Kolom lengkap** | `no_kendaraan`, broker, manager, doc_url tersimpan & tampil di tabel + laporan PDF Driver, ikut dicari di filter |
+| **🔄 Refresh berfungsi** | Tombol Refresh di `/app/ga-hr` kini memakai URL Web App — sinkronisasi kapan saja tanpa buka akses sheet |
+| **🔁 Auto-refresh login/logout** | Data Driver otomatis disinkronkan di background setiap GA HR/Admin login atau logout (debounce 30 dtk anti-spam) — data selalu segar |
+| **🔔 Notifikasi data baru** | GA HR/Admin dapat notifikasi realtime saat sinkronisasi menemukan data Driver baru atau form publik OB/Security diisi |
+| **✏️ Edit & hapus** | GA HR bisa mengoreksi typo & menghapus data overtime langsung dari dashboard (modal edit + konfirmasi hapus, audit log) |
+| **🧪 Test** | 243 pytest (17 baru) + 82 Vitest + verifikasi browser 16/16 (`verify_ga_hr_full.mjs`) — hijau |
 
 ---
 
