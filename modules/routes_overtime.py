@@ -18,7 +18,7 @@ import io
 import time
 import hashlib
 import requests
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 from flask import request, jsonify, make_response
 from modules.config import get_db_connection
@@ -126,11 +126,14 @@ _last_auto_refresh = {'ts': 0.0}
 _AUTO_REFRESH_MIN_INTERVAL = 30  # detik
 
 
-def _do_refresh_driver():
-    """Jalankan sinkronisasi penuh sheet Driver. Raise bila gagal.
+def _do_refresh_driver(full_sync=False):
+    """Jalankan sinkronisasi sheet Driver. Raise bila gagal.
+
+    Mode incremental (default): hanya ambil data baru sejak refresh terakhir.
+    Mode full_sync: ambil semua data (dipakai tombol Refresh manual).
 
     Dipakai bersama oleh endpoint Refresh (GA HR) dan auto-refresh login/logout.
-    Return dict hasil: {'added', 'updated', 'skipped', 'total_rows', 'summary'}.
+    Return dict hasil: {'added', 'updated', 'skipped', 'total_rows', 'summary', 'mode'}.
     """
     conn = get_db_connection()
     if not conn:
@@ -139,9 +142,34 @@ def _do_refresh_driver():
         url = _get_sheet_url(conn)
         if not url:
             raise ValueError('URL sumber sheet belum diatur. Set di Pengaturan Sumber Data.')
-        rows = _fetch_sheet_rows(url)
+
+        # Tentukan mode: incremental (pakai since) atau full
+        since = None
+        mode = 'incremental'
+        if not full_sync:
+            # Cari waktu refresh terakhir
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT config_value FROM system_config "
+                           "WHERE config_key='overtime_driver_last_refresh'")
+            row = cursor.fetchone()
+            cursor.close()
+            if row and row.get('config_value'):
+                # Format: '2026-08-19 12:07:53 | 0 baru, ...'
+                try:
+                    last_ts = row['config_value'].split('|')[0].strip()
+                    last_dt = datetime.strptime(last_ts, '%Y-%m-%d %H:%M:%S')
+                    # Kurangi 1 jam untuk margin keamanan (clock skew)
+                    since = (last_dt - timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S')
+                except (ValueError, IndexError):
+                    pass  # Gagal parse → full sync
+
+        if not since:
+            mode = 'full'  # First time atau parse gagal → full sync
+
+        rows = _fetch_sheet_rows(url, since=since)
         result = _upsert_driver_rows(conn, rows)
-        summary = (f"{result['added']} baru, {result['updated']} diperbarui, "
+        result['mode'] = mode
+        summary = (f"{mode}: {result['added']} baru, {result['updated']} diperbarui, "
                    f"{result['skipped']} dilewati (dari {result['total_rows']} baris)")
         _set_refresh_meta(conn, summary)
         # v2.22.1: beri tahu GA HR bila ada data overtime DRIVER baru dari sheet
@@ -185,10 +213,20 @@ def trigger_driver_refresh_async(role, full_name, ip=None):
     production_pool_executor.submit(_run)
 
 
-def _fetch_sheet_rows(url):
+def _fetch_sheet_rows(url, since=None):
     """Ambil baris data dari URL sumber. Support CSV (export/gviz) & JSON
-    (Google Apps Script Web App: {"rows": [{...}]}). Return list[dict]."""
-    resp = requests.get(url, timeout=30, headers={'User-Agent': 'Mozilla/5.0'})
+    (Google Apps Script Web App: {"rows": [{...}]}).
+
+    Args:
+        url: URL sumber data (CSV export atau Apps Script Web App)
+        since: ISO datetime string untuk incremental sync (hanya ambil data baru)
+               Dokumentasi v2 Apps Script: ?since=2025-08-19T00:00:00
+    Return list[dict]."""
+    fetch_url = url
+    if since:
+        separator = '&' if '?' in url else '?'
+        fetch_url = f'{url}{separator}since={since}'
+    resp = requests.get(fetch_url, timeout=60, headers={'User-Agent': 'Mozilla/5.0'})
     resp.raise_for_status()
     text = resp.content.decode('utf-8-sig', errors='replace')
     stripped = text.lstrip()
@@ -396,8 +434,9 @@ def register_overtime_routes(app):
     @role_required(['ga_hr', 'admin'])
     def api_overtime_driver_refresh():
         try:
+            full = request.args.get('full', '0') == '1' or request.json and request.json.get('full') if request.is_json else False
             try:
-                result = _do_refresh_driver()
+                result = _do_refresh_driver(full_sync=full)
             except ValueError as ve:
                 return jsonify({'status': 'error', 'msg': str(ve)}), 400
             except Exception as fe:
