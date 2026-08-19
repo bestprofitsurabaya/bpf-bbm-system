@@ -169,7 +169,7 @@ Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, pencairan dana, pen
 | **🗺️ Output** | Board Chief Driver & daftar Marketing menampilkan jam kunjungan; nomor urut rute (#1, #2…) per driver; PWA driver menerima notifikasi rute baru |
 | **🧪 Test** | 139 pytest (33 baru: `test_route_optimizer.py`, `test_geocode.py`, validasi jam) — semua hijau |
 
-> ⚙️ **Konfigurasi opsional**: titik awal perjalanan = **Gedung Graha Bukopin, Jl. Panglima Besar Sudirman 10-18** (`DEPOT_LAT=-7.2656732`, `DEPOT_LNG=112.7449129` di docker-compose); matikan geocoding via `GEOCODE_ENABLED=0`; estimasi BBM default 12 km/liter & Rp 10.000/liter (bisa disesuaikan di `modules/route_optimizer.py`).
+> ⚙️ **Konfigurasi opsional**: titik awal perjalanan = **Graha Bukopin Lantai 11, Jl. Panglima Sudirman No. 10-18, Surabaya 60271** (`DEPOT_LAT=-7.2657205`, `DEPOT_LNG=112.7448072` di docker-compose); matikan geocoding via `GEOCODE_ENABLED=0`; estimasi BBM default 12 km/liter & Rp 10.000/liter (bisa disesuaikan di `modules/route_optimizer.py`).
 
 ---
 

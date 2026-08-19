@@ -22,10 +22,11 @@ from modules.realtime import emit_event
 from modules.geocode import geocode_address
 from modules.route_optimizer import plan_routes
 
-# Titik awal perjalanan (kantor) untuk optimasi rute — default: pusat kota
-# Surabaya (Tunjungan). Sesuaikan via env DEPOT_LAT/DEPOT_LNG bila perlu.
-DEPOT_LAT = float(os.environ.get('DEPOT_LAT', '-7.2566'))
-DEPOT_LNG = float(os.environ.get('DEPOT_LNG', '112.7424'))
+# Titik awal perjalanan (kantor) untuk optimasi rute — default: PT Bestprofit
+# Futures Surabaya, Graha Bukopin Lantai 11, Jl. Panglima Sudirman No. 10-18.
+# Sesuaikan via env DEPOT_LAT/DEPOT_LNG bila perlu.
+DEPOT_LAT = float(os.environ.get('DEPOT_LAT', '-7.2657205'))
+DEPOT_LNG = float(os.environ.get('DEPOT_LNG', '112.7448072'))
 
 # Hasil kunjungan yang dicatat driver / chief driver saat menandai selesai.
 # Data ini menjadi sumber statistik konversi marketing.
