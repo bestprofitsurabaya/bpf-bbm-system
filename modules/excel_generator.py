@@ -49,7 +49,12 @@ def generate_trip_logsheet(master, details):
     # Row 2: Company Title
     ws.merge_cells('B2:I2')
     cell = ws['B2']
-    cell.value = 'PT. BESTPROFIT FUTURES - Cab. Surabaya'
+    try:
+        from modules.company_identity import get_company_identity
+        _id = get_company_identity()
+        cell.value = f"{_id.get('company_name', 'PT BESTPROFIT FUTURES')} - {_id.get('company_subtitle', 'Surabaya')}"
+    except Exception:
+        cell.value = 'PT. BESTPROFIT FUTURES - Surabaya'
     cell.font = title_font
     cell.alignment = Alignment(horizontal='center', vertical='center')
 
@@ -230,7 +235,12 @@ def generate_appointment_report(target_date, rows):
     ws['A1'].font = title_font
     ws['A1'].alignment = Alignment(horizontal='center')
     ws.merge_cells('A2:L2')
-    ws['A2'] = f'Tanggal: {target_date}  •  PT. BESTPROFIT FUTURES - Cab. Surabaya'
+    try:
+        from modules.company_identity import get_company_identity
+        _id = get_company_identity()
+        ws['A2'] = f"Tanggal: {target_date}  •  {_id.get('company_name', 'PT BESTPROFIT FUTURES')} - {_id.get('company_subtitle', 'Surabaya')}"
+    except Exception:
+        ws['A2'] = f'Tanggal: {target_date}  •  PT. BESTPROFIT FUTURES - Surabaya'
     ws['A2'].font = subtitle_font
     ws['A2'].alignment = Alignment(horizontal='center')
 

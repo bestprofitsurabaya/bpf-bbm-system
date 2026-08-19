@@ -1,6 +1,8 @@
 # 🚀 Panduan Deployment — BPF WorkHub v2.0
 
-**PT. Bestprofit Futures — Surabaya** · Dokumen untuk Tim IT
+**PT. Bestprofit Futures — Surabaya**
+Graha Bukopin Lantai 11, Jl. Panglima Sudirman No. 10-18, Surabaya 60271
+Telp: 031-5349888 · Dokumen untuk Tim IT
 
 ---
 
@@ -508,5 +510,8 @@ ulang di sisi klien (guard router + menu terfilter). Lihat `SECURITY.md` untuk p
 
 ---
 
-**PT. Bestprofit Futures — Surabaya**  
+**PT. Bestprofit Futures — Surabaya**
+Graha Bukopin Lantai 11, Jl. Panglima Sudirman No. 10-18, Surabaya 60271
+Telp: 031-5349888
+
 BPF WorkHub v2.0 · Dikembangkan oleh **Tim IT BPF Surabaya**

@@ -51,6 +51,7 @@ loadUserOptions()
         <img :src="brandIcon" alt="BPF" />
         <h1>Formulir Pendaftaran Kerja</h1>
         <p>PT Bestprofit Futures · Surabaya</p>
+        <p style="font-size:11px;color:#6b7280;margin:0;">Graha Bukopin Lantai 11, Jl. Panglima Sudirman No. 10-18</p>
       </div>
 
       <!-- SUCCESS -->
