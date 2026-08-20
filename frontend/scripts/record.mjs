@@ -90,7 +90,7 @@ const ROLES = {
     ],
   },
   driver: {
-    user: 'RIVAN', home: '/app/driver',
+    user: 'wicak', home: '/app/driver',
     title: 'Driver PWA',
     subtitle: 'BBM · Kasbon · Trip · Rapor',
     scenes: [
@@ -98,6 +98,33 @@ const ROLES = {
       { caption: '💰 Kasbon — kode unik harian & riwayat', tab: 1 },
       { caption: '🗺️ Trip — jadwal appointment saya', tab: 2 },
       { caption: '📊 Rapor — performa km/L', tab: 3 },
+    ],
+  },
+  receptionist: {
+    user: 'receptionis', home: '/app/receptionist',
+    title: 'Receptionist',
+    subtitle: 'Verifikasi pelamar · kehadiran interview',
+    scenes: [
+      { caption: 'Daftar pelamar kerja — filter & verifikasi' },
+      { caption: 'Detail pelamar — kehadiran interview & training', goto: '/app/receptionist' },
+    ],
+  },
+  traineer: {
+    user: 'traineer_a', home: '/app/traineer',
+    title: 'Traineer / Upline',
+    subtitle: 'Pantau kehadiran rekrutan',
+    scenes: [
+      { caption: 'Rekrutan saya — kehadiran H1-H4 & status' },
+    ],
+  },
+  ga_hr: {
+    user: 'ga_hr_officer', home: '/app/ga-hr',
+    title: 'GA HR — Overtime',
+    subtitle: 'Overtime Driver & OB/Security',
+    scenes: [
+      { caption: 'Dashboard GA HR — statistik overtime' },
+      { caption: 'Data overtime Driver dari Google Sheet', goto: '/app/ga-hr' },
+      { caption: 'Data OB/Security — form publik & migrasi', goto: '/app/ga-hr' },
     ],
   },
 }

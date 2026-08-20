@@ -1,7 +1,11 @@
-# 📖 Panduan Pengguna BPF WorkHub
+# 📖 Panduan Pengguna BPF WorkHub v1.0
 
 > **Siapa pun kamu — sopir, OB, admin, atau pimpinan — panduan ini ditulis untuk kamu.**
 > Tidak perlu paham teknis. Cukup ikuti langkah-langkah sesuai bagianmu.
+>
+> **PT. Bestprofit Futures — Surabaya**
+> Graha Bukopin Lantai 11, Jl. Panglima Sudirman No. 10-18, Surabaya 60271
+> Telp: 031-5349888
 
 ---
 
@@ -549,4 +553,4 @@ Angka "receh" yang ditambahkan ke nominal kasbon (mis. Rp 100.023, bukan Rp 100.
 
 Ada pertanyaan atau kendala? Hubungi **Admin** atau **tim IT** — mereka bisa melihat riwayat sistem (Audit Log) untuk membantu menyelesaikan masalahmu dengan cepat.
 
-*Terakhir diperbarui: v2.16 — ditambah Sistem Pelamar Kerja (form publik → Receptionist → Traineer).*
+*BPF WorkHub v1.0 · Panduan Pengguna*

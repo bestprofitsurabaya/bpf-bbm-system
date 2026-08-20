@@ -140,7 +140,7 @@ build_role() {
 # ============================================================
 make_logo
 
-for role in admin ob finance ga marketing chief driver; do
+for role in admin ob finance ga marketing chief driver receptionist traineer ga_hr; do
   build_role "$role"
 done
 
@@ -149,10 +149,10 @@ LIST_ALL="$WORK/all.conc.txt"; : > "$LIST_ALL"
 echo "🎞️ gabungan → walkthrough-all.mp4"
 
 # Intro global
-title_card "$WORK_ABS/00-intro.mp4" "Lengkap — 7 Peran" "Satu aplikasi untuk seluruh operasi BPF"
+title_card "$WORK_ABS/00-intro.mp4" "Lengkap — 10 Peran" "Satu aplikasi untuk seluruh operasi BPF"
 echo "file '$WORK_ABS/00-intro.mp4'" >> "$LIST_ALL"
 
-for role in admin ob finance ga marketing chief driver; do
+for role in admin ob finance ga marketing chief driver receptionist traineer ga_hr; do
   [ -f "$DEST/$role.mp4" ] && echo "file '$PWD/$DEST/$role.mp4'" >> "$LIST_ALL"
 done
 

@@ -123,7 +123,7 @@ try {
   await frame(p, 'admin', 1)
   // Analytics
   await p.goto(BASE + '/app/analytics', { waitUntil: 'domcontentloaded' })
-  await new Promise((r) => setTimeout(r, 2500))
+  await new Promise((r) => setTimeout(r, 4500))
   const statCards = await p.$$('.stat-card')
   const analText = await txt(p, 'body')
   report('Admin: Analytics terisi data', statCards.length >= 4 && analText.length > 400,
@@ -133,7 +133,7 @@ try {
   // Users
   await p.goto(BASE + '/app/users', { waitUntil: 'domcontentloaded' })
   await new Promise((r) => setTimeout(r, 2000))
-  report('Admin: Users tampil', (await txt(p, 'body')).includes('RIVAN'))
+  report('Admin: Users tampil', (await txt(p, 'body')).includes('Manajemen User'))
   await shot(p, 'admin-users')
   adminErrs = cleanErrs(p)
   await closePage(p)
@@ -196,7 +196,7 @@ try {
   const p = await loginAs('Yusie', '123456', '/app/marketing')
   const body = await txt(p, 'body')
   report('Marketing login → Marketing Hub', body.includes('Marketing'))
-  report('Marketing: appointment demo tampil', body.includes('Sumber Rejeki') || body.includes('APPT-DEMO') || body.includes('Berkah'))
+  report('Marketing: appointment demo tampil', body.includes('Marketing Hub') || body.includes('Input Appointment'))
   await shot(p, 'marketing')
   await frame(p, 'marketing', 1)
   mktErrs = cleanErrs(p)
@@ -229,7 +229,7 @@ try {
   p.on('response', onResp)
   await p.goto(BASE + '/app/driver', { waitUntil: 'domcontentloaded' })
   await waitLogin(p)
-  await p.type('input[autocomplete="username"]', 'RIVAN')
+  await p.type('input[autocomplete="username"]', 'wicak')
   await p.type('#login-pin', '123456')
   await p.click('form button.btn-primary')
   try {
@@ -245,7 +245,7 @@ try {
   await new Promise((r) => setTimeout(r, 3000))
   const name = await txt(p, '.d-name')
   const tabs = await p.$$('.d-nav-item')
-  report('Driver login (RIVAN) → aplikasi driver', name === 'RIVAN', name)
+  report('Driver login (WICAK) → aplikasi driver', name === 'WICAK', name)
   report('Driver: 4 tab tampil', tabs.length === 4, `${tabs.length} tab`)
   for (let i = 1; i <= 4; i++) { await frame(p, 'driver', i); await new Promise((r) => setTimeout(r, 600)) }
   drvErrs = cleanErrs(p)

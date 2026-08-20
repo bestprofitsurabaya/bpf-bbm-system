@@ -1,142 +1,172 @@
-# 🎯 Lembar Latihan per Peran — BPF WorkHub
+# 🎯 Lembar Latihan per Peran — BPF WorkHub v1.0
 
-> Latihan singkat (±5–10 menit per peran) untuk gladi resik sebelum demo/meeting.
-> Tiap latihan: **langkah** → **hasil yang harus terlihat**. Kalau hasilnya tidak sesuai, berarti ada yang perlu diperiksa.
+Panduan latihan singkat (±5–10 menit per peran) untuk gladi resik sebelum demo atau meeting. Tiap latihan menjelaskan langkah yang harus dilakukan dan hasil yang diharapkan.
+
+**PT. Bestprofit Futures — Surabaya**  
+Graha Bukopin Lantai 11, Jl. Panglima Sudirman No. 10-18, Surabaya 60271  
+Telp: 031-5349888
 
 ---
 
-## 👷 OB — Pengajuan Air Minum
+## 📋 Daftar Isi
 
-| # | Langkah | Hasil yang diharapkan |
-|---|---------|------------------------|
-| 1 | Login `ob1` / PIN `123456` | Langsung masuk **Halaman Air Minum**, nama **Faisol** tampil |
+1. [OB — Pengajuan Air Minum](#1-ob--pengajuan-air-minum)
+2. [Driver — BBM, Kasbon, Trip](#2-driver--bbm-kasbon-trip)
+3. [GA — Verifikasi Klaim & Kasbon](#3-ga--verifikasi-klaim--kasbon)
+4. [Finance — Rekap & Verifikasi](#4-finance--rekap--verifikasi)
+5. [Marketing — Appointment](#5-marketing--appointment)
+6. [Chief Driver — Pembagian Tugas](#6-chief-driver--pembagian-tugas)
+7. [Receptionist — Pelamar Kerja](#7-receptionist--pelamar-kerja)
+8. [Traineer — Pantau Rekrutan](#8-traineer--pantau-rekrutan)
+9. [Admin — User & Pengaturan](#9-admin--user--pengaturan)
+10. [Daftar Periksa Sebelum Demo](#10-daftar-periksa-sebelum-demo)
+
+---
+
+## 1. OB — Pengajuan Air Minum
+
+| # | Langkah | Hasil yang Diharapkan |
+|---|---------|----------------------|
+| 1 | Login `ob1` / PIN `123456` | Langsung masuk Halaman Air Minum, nama Faisol tampil |
 | 2 | Klik **➕ Ajukan Pembelian** | Form muncul: tanggal, jumlah, jenis, merk, 2 kolom foto |
-| 3 | Pilih jenis **Galon**, merk **AQUA Galon**, isi jumlah, unggah foto | Form terisi, tombol kirim aktif |
-| 4 | Klik kirim | Pengajuan muncul di daftar dengan status **Menunggu Verifikasi** |
+| 3 | Pilih jenis Galon, merk AQUA Galon, isi jumlah, unggah foto | Form terisi, tombol kirim aktif |
+| 4 | Klik kirim | Pengajuan muncul di daftar dengan status Menunggu Verifikasi |
 | 5 | (Coba) kirim tanpa foto | Muncul peringatan foto wajib — pengajuan tidak terkirim |
 
-> 🔍 Cek: login sebagai `ob2` → harus TIDAK melihat pengajuan milik Faisol.
+> 🔍 **Cek isolasi:** login sebagai `ob2` → harus TIDAK melihat pengajuan milik Faisol.
 
 ---
 
-## 🚗 Driver — BBM, Kasbon, Trip
+## 2. Driver — BBM, Kasbon, Trip
 
-| # | Langkah | Hasil yang diharapkan |
-|---|---------|------------------------|
+| # | Langkah | Hasil yang Diharapkan |
+|---|---------|----------------------|
 | 1 | Buka `/app/driver`, login PIN | Masuk aplikasi driver, 4 tab tampil |
-| 2 | Tab **⛽ BBM** → isi klaim + foto struk | Klaim masuk antrean (cek via GA) |
-| 3 | Tab **💰 Kasbon** → ajukan nominal | Total otomatis + **kode unik** |
-| 4 | Tab **🗺️ Trip** → isi log perjalanan | Tersimpan, muncul di review GA |
-| 5 | Tab **📊 Rapor** → masukkan nopol | Tampil HEMAT / CUKUP / BOROS |
+| 2 | Tab ⛽ BBM → isi klaim + foto struk | Klaim masuk antrean (cek via GA) |
+| 3 | Tab 💰 Kasbon → ajukan nominal | Total otomatis + kode unik |
+| 4 | Tab 🗺️ Trip → isi log perjalanan | Tersimpan, muncul di review GA |
+| 5 | Tab 📊 Rapor → masukkan nopol | Tampil HEMAT / CUKUP / BOROS |
 
-> 🔍 Cek offline: matikan internet → isi data → hidupkan → tekan **🔄 Sinkron** → badge antrean hilang.
+> 🔍 **Cek offline:** matikan internet → isi data → hidupkan → tekan 🔄 Sinkron → badge antrean hilang.
 
 ---
 
-## 🧾 GA — Verifikasi Klaim & Kasbon
+## 3. GA — Verifikasi Klaim & Kasbon
 
-| # | Langkah | Hasil yang diharapkan |
-|---|---------|------------------------|
-| 1 | Login `ga_officer` / PIN `123456` | Langsung masuk **Dashboard GA** |
+| # | Langkah | Hasil yang Diharapkan |
+|---|---------|----------------------|
+| 1 | Login `ga_officer` / PIN `123456` | Langsung masuk Dashboard GA |
 | 2 | Lihat antrean klaim | Klaim demo (BPF-DEMO-…) tampil |
 | 3 | Klik **✅ Approve** satu klaim | Klaim pindah status (ke Finance) |
 | 4 | Klik **✕ Tolak** tanpa alasan | Tombol terkunci — alasan wajib |
 | 5 | Lihat kasbon menunggu approve | Kasbon DRAFT tampil dengan nominal |
-| 6 | (Opsional) buka **🛡 Verifikasi Anomali** | Modal konfirmasi muncul |
-| 7 | Buka menu **🔧 Aset & Pemeliharaan** (`/app/assets`) | Tab AC: 15 unit; tab kendaraan: 8 unit asli kantor |
-| 8 | Klik **🛠️** pada satu unit AC → isi form servis → simpan | Log tercatat + **health score otomatis** muncul |
-| 9 | Buka tab **📋 Rekomendasi** → klik **🔄 Perbarui** | Daftar rekomendasi (AC lama / komponen lewat umur) tampil |
-| 10 | Klik **📄 Laporan PDF AC / Kendaraan** | PDF resmi berlogo BPF + TTD GA terunduh |
+| 6 | (Opsional) buka 🛡 Verifikasi Anomali | Modal konfirmasi muncul |
+| 7 | Buka menu 🔧 Aset & Pemeliharaan (`/app/assets`) | Tab AC: 15 unit; tab kendaraan: 8 unit |
+| 8 | Klik 🛠️ pada satu unit AC → isi form servis → simpan | Log tercatat + health score otomatis muncul |
+| 9 | Buka tab 📋 Rekomendasi → klik 🔄 Perbarui | Daftar rekomendasi tampil |
+| 10 | Klik 📄 Laporan PDF AC / Kendaraan | PDF resmi berlogo BPF + TTD GA terunduh |
 
-> 🔍 Cek: GA mencoba buka `/app/dashboard` → **ditolak** (guard peran).
+> 🔍 **Cek akses:** GA mencoba buka `/app/dashboard` → ditolak (guard peran).
 
 ---
 
-## 💰 Finance — Rekap & Verifikasi
+## 4. Finance — Rekap & Verifikasi
 
-| # | Langkah | Hasil yang diharapkan |
-|---|---------|------------------------|
-| 1 | Login `finance_officer` / PIN `123456` | Langsung masuk **Dashboard Finance** |
-| 2 | Lihat **Rekap Air Minum** | Kartu statistik + ringkasan per OB + per jenis/merk terisi |
-| 3 | Buka **antrean verifikasi** | Pengajuan pending (WTR-DEMO-01) tampil |
-| 4 | Klik **✅ Verifikasi** → isi remark | Status jadi **Terverifikasi** |
-| 5 | Klik **📄 PDF** pada yang terverifikasi | PDF tanda terima terbuka (nama Finance & GA tercetak) |
-| 6 | Klik **⬇ Export CSV** | File Excel terunduh dengan data rekap |
+| # | Langkah | Hasil yang Diharapkan |
+|---|---------|----------------------|
+| 1 | Login `finance_officer` / PIN `123456` | Langsung masuk Dashboard Finance |
+| 2 | Lihat Rekap Air Minum | Kartu statistik + ringkasan per OB terisi |
+| 3 | Buka antrean verifikasi | Pengajuan pending (WTR-DEMO-01) tampil |
+| 4 | Klik **✅ Verifikasi** → isi remark | Status jadi Terverifikasi |
+| 5 | Klik 📄 PDF pada yang terverifikasi | PDF tanda terima terbuka |
+| 6 | Klik ⬇ Export CSV | File Excel terunduh |
 | 7 | Lihat kasbon menunggu Finance | Kasbon GA_APPROVED tampil |
 
 ---
 
-## 📣 Marketing — Appointment
+## 5. Marketing — Appointment
 
-| # | Langkah | Hasil yang diharapkan |
-|---|---------|------------------------|
-| 1 | Login akun Marketing (`Yusie`) | Masuk **Marketing Hub** |
-| 2 | Buat appointment baru (tanggal, sesi, **jam kunjungan**, alamat) | Tersimpan, muncul di papan; jam tampil di board Chief Driver |
-| 3 | Lihat jadwal hari ini | Appointment demo (APPT-DEMO-01/02) tampil |
+| # | Langkah | Hasil yang Diharapkan |
+|---|---------|----------------------|
+| 1 | Login akun Marketing (`Yusie`) | Masuk Marketing Hub |
+| 2 | Buat appointment baru (tanggal, sesi, jam kunjungan, alamat) | Tersimpan, muncul di papan |
+| 3 | Lihat jadwal hari ini | Appointment demo tampil |
 | 4 | (Opsional) edit/batal | Status berubah, notifikasi keluar |
 
 ---
 
-## 🚛 Chief Driver — Pembagian Tugas
+## 6. Chief Driver — Pembagian Tugas
 
-| # | Langkah | Hasil yang diharapkan |
-|---|---------|------------------------|
-| 1 | Login akun Chief Driver | Masuk **board Chief Driver** |
-| 2 | Lihat "Belum Ditugaskan" | Appointment tanpa driver tampil di board |
-| 3 | Klik **⚡ Atur Rute Otomatis** | Modal saran rute per driver: urutan jam + area searah + estimasi km/BBM + **angka hemat %** |
-| 4 | Klik **✅ Terapkan Rute** | Driver otomatis ditugaskan + notifikasi 🗺️; panel "Tugas Per Driver" terisi |
+| # | Langkah | Hasil yang Diharapkan |
+|---|---------|----------------------|
+| 1 | Login akun Chief Driver | Masuk board Chief Driver |
+| 2 | Lihat "Belum Ditugaskan" | Appointment tanpa driver tampil |
+| 3 | Klik ⚡ Atur Rute Otomatis | Modal saran rute per driver |
+| 4 | Klik ✅ Terapkan Rute | Driver otomatis ditugaskan + notifikasi |
 | 5 | Tugaskan manual (opsional) | Muncul di panel "Tugas Per Driver" |
 | 6 | Unduh rekap harian | File Excel terunduh |
 
 ---
 
-## 🪪 Receptionist — Pelamar Kerja
+## 7. Receptionist — Pelamar Kerja
 
-| # | Langkah | Hasil yang diharapkan |
-|---|---------|------------------------|
-| 1 | Login akun Receptionist | Masuk **dashboard Pelamar Kerja** |
-| 2 | Buka `/app/apply` (tab baru, tanpa login) → isi form pelamar | Sukses + No. Registrasi `PLM-*` + jam interview otomatis |
-| 3 | Cari nama pelamar tadi di dashboard (kotak pencarian / filter tanggal) | Baris pelamar tampil |
-| 4 | Klik **✅ Verifikasi** lalu **🎯 Catat Kehadiran** → tandai Interview + Training H1 | Status naik otomatis; chip I & H1 menyala |
-| 5 | Klik **🚪 Mengundurkan Diri** tanpa alasan | Ditolak — **alasan wajib** |
-| 6 | Isi alasan → simpan | Status **Mengundurkan Diri** |
-| 7 | Pilih tahap laporan → **📄 Laporan PDF** | PDF resmi berlogo BPF + TTD Receptionist terunduh |
+| # | Langkah | Hasil yang Diharapkan |
+|---|---------|----------------------|
+| 1 | Login akun Receptionist | Masuk dashboard Pelamar Kerja |
+| 2 | Buka `/app/apply` (tab baru, tanpa login) → isi form | Sukses + No. Registrasi PLM-* + jam interview otomatis |
+| 3 | Cari nama pelamar di dashboard | Baris pelamar tampil |
+| 4 | Klik ✅ Verifikasi lalu 🎯 Catat Kehadiran → tandai Interview + H1 | Status naik otomatis |
+| 5 | Klik 🚪 Mengundurkan Diri tanpa alasan | Ditolak — alasan wajib |
+| 6 | Isi alasan → simpan | Status Mengundurkan Diri |
+| 7 | Pilih tahap laporan → 📄 Laporan PDF | PDF resmi berlogo BPF + TTD terunduh |
 | 8 | (Opsional) ✏️ Edit data yang salah | Data berubah, tercatat audit |
-| 9 | Buka **⚙️ Kelola User** → tambah opsi baru (cth: `TEAM BARU 6`) | Opsi muncul di dropdown form publik & edit |
-| 10 | Nonaktifkan/hapus salah satu opsi | Opsi hilang dari dropdown form, tercatat audit |
+| 9 | Buka ⚙️ Kelola User → tambah opsi baru | Opsi muncul di dropdown form |
+| 10 | Nonaktifkan/hapus salah satu opsi | Opsi hilang dari dropdown, tercatat audit |
 
 ---
 
-## 🎯 Traineer — Pantau Rekrutan
+## 8. Traineer — Pantau Rekrutan
 
-| # | Langkah | Hasil yang diharapkan |
-|---|---------|------------------------|
-| 1 | Login akun Traineer | Masuk **Rekrutan Saya** — langsung berisi pelamar yang mencantumkan UPLINE = kamu |
-| 2 | Gunakan filter tanggal / user / status + pencarian | Daftar terfilter sesuai |
-| 3 | Perhatikan chip kehadiran (I · H1–H4) | Chip menyala sesuai tahap yang sudah dihadiri |
+| # | Langkah | Hasil yang Diharapkan |
+|---|---------|----------------------|
+| 1 | Login akun Traineer | Masuk Rekrutan Saya |
+| 2 | Gunakan filter tanggal / user / status | Daftar terfilter sesuai |
+| 3 | Perhatikan chip kehadiran (I · H1–H4) | Chip menyala sesuai tahap |
 | 4 | (Coba) klik tombol edit/hapus | Tidak ada — Traineer hanya melihat (read-only) |
 
 ---
 
-## ⚙️ Admin — User & Pengaturan
+## 9. Admin — User & Pengaturan
 
-| # | Langkah | Hasil yang diharapkan |
-|---|---------|------------------------|
-| 1 | Login `admin` / PIN `123456` | Masuk **Dashboard Admin** |
-| 2 | Buka **Users** → cari user | Daftar user tampil; bisa nonaktifkan/aktifkan |
-| 3 | Buka **Settings** | Nama Finance & GA untuk tanda terima bisa diubah |
-| 4 | Buka **Audit Log** | Aksi-aksi tadi tercatat: siapa + kapan |
-| 5 | Coba tombol 🌙 dan 🔆 di pojok kanan atas | Mode gelap & kontras tinggi berganti |
+| # | Langkah | Hasil yang Diharapkan |
+|---|---------|----------------------|
+| 1 | Login `admin` / PIN `123456` | Masuk Dashboard Admin |
+| 2 | Buka Users → cari user | Daftar user tampil; bisa nonaktifkan/aktifkan |
+| 3 | Buka Settings | Nama Finance & GA untuk tanda terima bisa diubah |
+| 4 | Buka Audit Log | Aksi-aksi tadi tercatat |
+| 5 | Coba tombol 🌙 dan 🔆 | Mode gelap & kontras tinggi berganti |
 
 ---
 
-## 🧪 Daftar Periksa Sebelum Demo
+## 10. Daftar Periksa Sebelum Demo
 
 - [ ] Data demo masih ada (cek: antrean GA ada klaim, rekap finance ada air minum)
 - [ ] 2–3 tab browser siap (GA, Finance, OB) untuk demo realtime
 - [ ] Foto contoh siap di perangkat (air minum sebelum/sesudah, struk BBM)
-- [ ] Akun & PIN terverifikasi (`admin`, `ga_officer`, `finance_officer`, `ob1`, `ob2`, `ob3`, receptionist, traineer)
+- [ ] Akun & PIN terverifikasi (semua role)
 - [ ] PDF slide deck & PPTX siap dibagikan (`presentasi/`)
 - [ ] Bersihkan data demo setelah selesai: `docker exec -i bbm_mariadb mariadb -uroot -ppassword_db bpf_asset_system < scripts/demo_cleanup.sql`
 
-> 💡 Panduan lengkap & narasi demo ada di **`PRESENTASI.md`** — slide interaktif **`presentasi/index.html`**.
+> 💡 Panduan lengkap & narasi demo ada di **PRESENTASI.md** — slide interaktif **presentasi/index.html**.
+
+---
+
+## 📞 Kontak
+
+**PT. Bestprofit Futures — Surabaya**  
+Graha Bukopin Lantai 11, Jl. Panglima Sudirman No. 10-18, Surabaya 60271  
+Telp: 031-5349888
+
+---
+
+*BPF WorkHub v1.0 · Lembar Latihan per Peran*
