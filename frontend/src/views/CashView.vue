@@ -15,6 +15,9 @@ const busy = ref(false)
 
 const action = ref(null) // { kind, id }
 const form = ref({ amount: '', reason: '', notes: '' })
+const detailItem = ref(null) // cash detail modal
+const detailData = ref(null)
+const detailLoading = ref(false)
 
 const isGa = ['ga', 'admin'].includes(auth.role)
 const isFinance = ['finance', 'admin'].includes(auth.role)
@@ -95,6 +98,16 @@ async function setDailyCode() {
 function openAction(kind, item) {
   form.value = { amount: item?.base_amount ?? '', reason: '', notes: '' }
   action.value = { kind, id: item?.id }
+}
+
+async function openDetail(item) {
+  detailItem.value = item
+  detailLoading.value = true
+  detailData.value = null
+  try {
+    detailData.value = await api(`/api/cash/detail/${item.id}`)
+  } catch (e) { alert('❌ Gagal memuat detail: ' + e.message) }
+  finally { detailLoading.value = false }
 }
 
 async function submitAction() {
@@ -213,6 +226,7 @@ onMounted(load)
             </div>
           </div>
           <div class="row" style="margin-top:10px;flex-wrap:wrap;gap:6px;">
+            <button class="btn btn-sm" @click="openDetail(c)">👁 Detail</button>
             <template v-if="ACTIONS[c.status]">
               <button v-for="a in ACTIONS[c.status].filter(x => x.show())" :key="a.kind"
                       class="btn btn-sm" :class="a.cls" @click="openAction(a.kind, c)">{{ a.label }}</button>
@@ -240,6 +254,34 @@ onMounted(load)
         </div>
       </div>
     </template>
+
+    <!-- Cash Detail Modal -->
+    <Modal v-if="detailItem" :title="'📋 Detail ' + detailItem.display_id" @close="detailItem = null; detailData = null">
+      <div v-if="detailLoading" class="empty" style="padding:16px;">⏳ Memuat detail…</div>
+      <div v-else-if="detailData">
+        <div class="form-grid">
+          <div class="field"><label>Driver</label><input class="input" :value="detailData.driver_name" disabled /></div>
+          <div class="field"><label>Nopol</label><input class="input" :value="detailData.nopol" disabled /></div>
+          <div class="field"><label>Kendaraan / BBM</label><input class="input" :value="detailData.vehicle_type + ' · ' + detailData.bbm_type" disabled /></div>
+          <div class="field"><label>Total</label><input class="input" :value="fmtRp(detailData.total_amount) + ' (kode: ' + detailData.daily_code + ')" disabled /></div>
+          <div class="field"><label>Status</label><input class="input" :value="(detailData.status || '').replace(/_/g, ' ')" disabled /></div>
+          <div class="field"><label>Dibuat</label><input class="input" :value="detailData.created_at" disabled /></div>
+        </div>
+        <p v-if="detailData.notes" class="muted" style="font-size:12px;margin:8px 0;">📝 {{ detailData.notes }}</p>
+        <div v-if="detailData.lpj" style="margin-top:12px;">
+          <h4 style="margin:0 0 8px;">📋 LPJ Terkait</h4>
+          <div class="form-grid">
+            <div class="field"><label>Transaksi LPJ</label><input class="input" :value="detailData.lpj.display_id || detailData.lpj.id" disabled /></div>
+            <div class="field"><label>Nominal</label><input class="input" :value="fmtRp(detailData.lpj.nominal)" disabled /></div>
+            <div class="field"><label>ODO</label><input class="input" :value="detailData.lpj.odo_km + ' km'" disabled /></div>
+            <div class="field"><label>Status</label><input class="input" :value="detailData.lpj.status" disabled /></div>
+          </div>
+        </div>
+        <div style="margin-top:12px;text-align:right;">
+          <button class="btn btn-secondary" @click="detailItem = null; detailData = null">Tutup</button>
+        </div>
+      </div>
+    </Modal>
 
     <Modal v-if="action" :title="modalTitle" @close="action = null">
       <template v-if="action.kind === 'reject'">

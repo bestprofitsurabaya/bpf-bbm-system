@@ -29,6 +29,20 @@ const editMsg = ref('')
 
 const VISIT_LABELS = { ditemui: '😊 Ditemui', prospek: '🤝 Prospek', gagal: '❌ Gagal' }
 
+// Tab: today vs completed
+const activeTab = ref('today') // 'today' | 'completed'
+const completedList = ref([])
+const completedLoading = ref(false)
+
+async function loadCompleted() {
+  completedLoading.value = true
+  try {
+    const d = await api('/api/appointments/completed', { params: { limit: 50 } })
+    completedList.value = d.data || d.list || []
+  } catch { completedList.value = [] }
+  finally { completedLoading.value = false }
+}
+
 async function load() {
   try {
     const d = await api('/api/appointments', { params: { date: today } })
@@ -117,7 +131,7 @@ function visitBadge(a) { return a.visit_result ? (VISIT_LABELS[a.visit_result] |
 
 const STATUS = { scheduled: ['⏳ Menunggu Driver', 'badge-amber'], assigned: ['🚗 Ditugaskan', 'badge-blue'], completed: ['✅ Selesai', 'badge-green'], cancelled: ['✕ Batal', 'badge-gray'] }
 
-onMounted(() => { load(); loadMembers() })
+onMounted(() => { load(); loadMembers(); loadCompleted() })
 </script>
 
 <template>
@@ -168,7 +182,36 @@ onMounted(() => { load(); loadMembers() })
         <StatCard icon="✅" label="Selesai" :value="stats?.completed ?? 0" color="#059669" />
       </div>
 
-      <div class="card">
+      <!-- Tabs: Hari Ini / Selesai -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-pad row" style="border-bottom:1px solid var(--border);gap:8px;align-items:center;">
+          <button class="btn btn-sm" :class="activeTab === 'today' ? 'btn-primary' : ''" @click="activeTab = 'today'">📅 Hari Ini</button>
+          <button class="btn btn-sm" :class="activeTab === 'completed' ? 'btn-primary' : ''" @click="activeTab = 'completed'">✅ Selesai ({{ completedList.length }})</button>
+        </div>
+      </div>
+
+      <div v-if="activeTab === 'completed'" class="card">
+        <div v-if="completedLoading" class="empty skeleton">⏳ Memuat…</div>
+        <div v-else-if="!completedList.length" class="empty">Belum ada appointment selesai.</div>
+        <div v-else class="table-wrap">
+          <table class="tbl">
+            <thead><tr><th>Nasabah</th><th>Marketing</th><th>Tanggal</th><th>Sesi</th><th>Area</th><th>Driver</th><th>Hasil</th></tr></thead>
+            <tbody>
+              <tr v-for="a in completedList" :key="a.id">
+                <td><b>{{ a.nasabah_name }}</b><div class="muted" style="font-size:11px;">{{ a.display_id }}</div></td>
+                <td>{{ a.marketing_member }}</td>
+                <td>{{ a.appointment_date }}</td>
+                <td>{{ a.sesi === '2' ? '🌆' : '🌅' }}</td>
+                <td>{{ a.area }}</td>
+                <td>{{ a.driver_name || '—' }}</td>
+                <td><span v-if="visitBadge(a)" class="badge badge-green">{{ visitBadge(a) }}</span><span v-else class="muted">—</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div v-if="activeTab === 'today'" class="card">
         <div class="table-wrap">
           <table class="tbl">
             <thead><tr><th>Nasabah</th><th>Marketing</th><th>HP</th><th>Sesi</th><th>Area</th><th>Status</th><th>Hasil</th><th></th></tr></thead>

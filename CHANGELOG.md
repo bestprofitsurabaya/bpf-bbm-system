@@ -6,6 +6,20 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/ID/1.0.0/) dan
 
 ---
 
+## [2.22.2] - 2026-08-20
+
+### 🔗 Integrasi Backend → Frontend (Sync Lengkap)
+
+- **Finance Review** (`/api/finance-review/<id>`): panel detail di modal transaksi — prev ODO, transaksi bulan ini, nominal bulan ini, budget.
+- **Finance Remark** (`/api/finance-remark`): form input catatan remark untuk Finance langsung di modal detail transaksi.
+- **Transaction Flags** (`/api/transaction-flags`): flag anomali ODO (mundur, tidak berubah, top-up) ditampilkan di kolom Anomali antrean GA.
+- **Fleet Health** (`/api/vehicle-health`): tabel kesehatan kendaraan (health score, status, efisiensi, aktivitas) di halaman Analytics.
+- **Cash Detail** (`/api/cash/detail/<id>`): modal detail kasbon dengan tracking status & LPJ terkait di CashView.
+- **Completed Appointments** (`/api/appointments/completed`): tab "Selesai" di MarketingDashboard untuk melihat riwayat appointment yang sudah selesai.
+- **User List** (`USER_LIST.md`): dokumentasi lengkap 10 role + audit sync backend ↔ frontend (160/161 endpoint terpakai, 99.4%).
+
+---
+
 ## [2.22.1] - 2026-08-18
 
 ### 🚗 Migrasi penuh Overtime DRIVER (sheet private tanpa akses pemilik)

@@ -14,6 +14,7 @@ const loading = ref(true)
 const err = ref('')
 
 const fmt = (n) => 'Rp ' + Number(n || 0).toLocaleString('id-ID')
+const num = (n) => Number(n || 0).toLocaleString('id-ID')
 
 onMounted(async () => {
   try { s.value = await api('/api/stats') }
@@ -121,6 +122,9 @@ const sel = ref(null)
 const selData = ref(null)
 const selCross = ref(null)
 const selLoading = ref(false)
+const selFinanceReview = ref(null) // finance review detail
+const financeRemark = ref('') // remark form
+const financeRemarkSaving = ref(false)
 
 async function loadQueue() {
   queueLoading.value = true; queueMsg.value = ''
@@ -173,19 +177,38 @@ async function doReject(tx) {
 async function openDetail(tx, verify = false) {
   sel.value = tx
   selLoading.value = true
-  selData.value = null; selCross.value = null
+  selData.value = null; selCross.value = null; selFinanceReview.value = null
   verifyMode.value = false; editMode.value = false
+  financeRemark.value = ''
   try {
-    const [d, c] = await Promise.all([
+    const promises = [
       api(`/api/transactions/detail/${tx.id}`),
       api(`/api/cross-check/${tx.id}`).catch(() => null),
-    ])
+    ]
+    // Finance review: prev ODO, monthly stats, budget — untuk role finance
+    if (canFinance) promises.push(api(`/api/finance-review/${tx.id}`).catch(() => null))
+    const [d, c, fr] = await Promise.all(promises)
     selData.value = d
     selCross.value = c
+    selFinanceReview.value = fr || null
     // Tombol 🛡 di baris antrean membuka modal langsung ke form verifikasi anomali
     if (verify && d?.ml_anomaly_flag) openVerify(tx)
   } catch (e) { queueMsg.value = '❌ ' + e.message }
   finally { selLoading.value = false }
+}
+
+async function doFinanceRemark() {
+  if (!selData.value || !financeRemark.value.trim()) return
+  financeRemarkSaving.value = true
+  try {
+    await api('/api/finance-remark', { method: 'POST', body: { tx_id: selData.value.id, remark: financeRemark.value.trim(), username: auth.user?.full_name || auth.user?.user_name || 'Finance' } })
+    queueMsg.value = '✅ Remark tersimpan'
+    financeRemark.value = ''
+    // Reload detail
+    const d = await api(`/api/transactions/detail/${sel.value.id}`)
+    selData.value = d
+  } catch (e) { queueMsg.value = '❌ ' + e.message }
+  finally { financeRemarkSaving.value = false }
 }
 
 // ============================================================
@@ -250,7 +273,23 @@ async function doModify(tx) {
   finally { qBusy.value = false }
 }
 
-watch(queueTab, loadQueue)
+// ============================================================
+// Transaction Flags (anomali ODO) — load saat tab GA aktif
+// ============================================================
+const txFlags = ref({})
+
+async function loadTxFlags() {
+  try { txFlags.value = await api('/api/transaction-flags') } catch { txFlags.value = {} }
+}
+
+function getFlag(id) {
+  return txFlags.value[String(id)] || null
+}
+
+watch(queueTab, (tab) => {
+  loadQueue()
+  if (tab === 'ga') loadTxFlags()
+})
 </script>
 
 <template>
@@ -327,7 +366,13 @@ watch(queueTab, loadQueue)
                 <td>{{ fmt(t.nominal) }}</td>
                 <td>{{ Number(t.liter || 0).toFixed(2) }}</td>
                 <td>{{ t.odo_km ?? '—' }}</td>
-                <td><span v-if="t.ml_anomaly_flag" class="badge badge-red">⚠️ Anomali</span><span v-else class="muted">—</span></td>
+                <td>
+                  <span v-if="t.ml_anomaly_flag" class="badge badge-red">⚠️ Anomali</span>
+                  <template v-else-if="getFlag(t.id)?.flags?.length">
+                    <span v-for="(fl, fi) in getFlag(t.id).flags" :key="fi" class="badge" :class="fl.level === 'danger' ? 'badge-red' : 'badge-amber'" style="font-size:10px;">{{ fl.level === 'danger' ? '🔴' : '🟡' }} {{ fl.msg }}</span>
+                  </template>
+                  <span v-else class="muted">—</span>
+                </td>
                 <td class="muted">{{ t.created_at }}</td>
                 <td>
                   <button class="btn btn-sm" :disabled="qBusy" title="Detail & verifikasi" @click="openDetail(t)">👁 Detail</button>
@@ -447,6 +492,40 @@ watch(queueTab, loadQueue)
           <button class="btn btn-sm btn-primary" :disabled="qBusy" @click="doModify(selData)">💾 Simpan Perubahan</button>
           <button class="btn btn-sm" :disabled="qBusy" @click="editMode = false">Batal</button>
         </div>
+
+        <!-- Finance Review (prev ODO, monthly, budget) -->
+        <template v-if="selFinanceReview && canFinance">
+          <h4 style="margin:14px 0 8px;">💰 Finance Review</h4>
+          <div class="row" style="gap:10px;flex-wrap:wrap;">
+            <div class="stat-card" style="flex:1;min-width:120px;">
+              <div class="s-icon" style="background:#d977061a;">📍</div>
+              <div class="s-value" style="color:#d97706;font-size:16px;">{{ selFinanceReview.previous_odo?.odo_km ?? '—' }}</div>
+              <div class="s-label">ODO Sebelumnya</div>
+              <div class="s-bar" style="background:#d97706;"></div>
+            </div>
+            <div class="stat-card" style="flex:1;min-width:120px;">
+              <div class="s-icon" style="background:#2563eb1a;">📅</div>
+              <div class="s-value" style="color:#2563eb;">{{ num(selFinanceReview.monthly?.total_tx || 0) }}</div>
+              <div class="s-label">Transaksi Bulan Ini</div>
+              <div class="s-bar" style="background:#2563eb;"></div>
+            </div>
+            <div class="stat-card" style="flex:1;min-width:120px;">
+              <div class="s-icon" style="background:#0596691a;">💵</div>
+              <div class="s-value" style="color:#059669;">{{ fmt(selFinanceReview.monthly?.total_nominal || 0) }}</div>
+              <div class="s-label">Nominal Bulan Ini</div>
+              <div class="s-bar" style="background:#059669;"></div>
+            </div>
+          </div>
+          <!-- Finance Remark -->
+          <div style="margin-top:10px;">
+            <div class="field"><label>Catatan Finance</label>
+              <div class="row" style="gap:6px;">
+                <input class="input" v-model="financeRemark" placeholder="Tambahkan catatan..." style="flex:1;" @keyup.enter="doFinanceRemark" />
+                <button class="btn btn-sm btn-primary" :disabled="financeRemarkSaving || !financeRemark.trim()" @click="doFinanceRemark">💬 Simpan</button>
+              </div>
+            </div>
+          </div>
+        </template>
 
         <template v-if="selCross">
           <h4 style="margin:14px 0 8px;">🩺 Cross-Check</h4>

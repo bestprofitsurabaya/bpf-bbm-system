@@ -18,6 +18,16 @@ let ch1 = null
 let ch2 = null
 let ch3 = null
 
+// Fleet Health
+const vehicleHealth = ref(null)
+const vehicleHealthLoading = ref(false)
+
+async function loadVehicleHealth() {
+  vehicleHealthLoading.value = true
+  try { vehicleHealth.value = await api('/api/vehicle-health') } catch { vehicleHealth.value = null }
+  finally { vehicleHealthLoading.value = false }
+}
+
 const fmt = (n) => 'Rp ' + Number(n || 0).toLocaleString('id-ID')
 const num = (n) => Number(n || 0).toLocaleString('id-ID')
 const axis = () => (document.documentElement.classList.contains('dark') ? '#94a3b8' : '#64748b')
@@ -64,6 +74,7 @@ async function load() {
   finally {
     loading.value = false
     nextTick(draw)
+    loadVehicleHealth()
   }
 }
 
@@ -116,6 +127,35 @@ onBeforeUnmount(() => { [ch1, ch2, ch3].forEach((c) => c && c.destroy()) })
         <div class="card card-pad">
           <h3 style="margin:0 0 12px;">⛽ Efisiensi per Kendaraan</h3>
           <div style="height:220px;"><canvas ref="cEff"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Fleet Health -->
+      <div v-if="vehicleHealth" class="card card-pad" style="margin-bottom:16px;">
+        <div class="row" style="align-items:center;gap:12px;margin-bottom:12px;">
+          <h3 style="margin:0;">🚗 Fleet Health</h3>
+          <span class="muted" style="font-size:12px;">Skor kesehatan kendaraan berdasarkan efisiensi &amp; aktivitas</span>
+          <div class="spacer"></div>
+          <span class="badge badge-blue">{{ vehicleHealth.total_active_units }} unit</span>
+          <span class="badge" :class="vehicleHealth.avg_fleet_health >= 70 ? 'badge-green' : vehicleHealth.avg_fleet_health >= 40 ? 'badge-amber' : 'badge-red'">Avg: {{ vehicleHealth.avg_fleet_health }}/100</span>
+        </div>
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead><tr><th>Nopol</th><th>Kendaraan</th><th>Driver</th><th>Avg KM/L</th><th>Transaksi</th><th>Nominal</th><th>Health</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr v-for="u in (vehicleHealth.units || [])" :key="u.nopol">
+                <td><b>{{ u.nopol }}</b></td>
+                <td>{{ u.vehicle_type }}</td>
+                <td>{{ u.current_driver || '—' }}</td>
+                <td>{{ u.avg_kml || 0 }}</td>
+                <td>{{ num(u.total_tx) }}</td>
+                <td>{{ fmt(u.total_nominal) }}</td>
+                <td><b :style="{ color: u.health_score >= 70 ? '#059669' : u.health_score >= 40 ? '#d97706' : '#dc2626' }">{{ u.health_score }}</b>/100</td>
+                <td><span class="badge" :class="u.status === 'good' ? 'badge-green' : u.status === 'warning' ? 'badge-amber' : 'badge-red'">{{ u.status === 'good' ? '✅ Baik' : u.status === 'warning' ? '⚠️ Warning' : '🔴 Danger' }}</span></td>
+              </tr>
+              <tr v-if="!(vehicleHealth.units || []).length"><td colspan="8" class="empty">Tidak ada data kendaraan.</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
