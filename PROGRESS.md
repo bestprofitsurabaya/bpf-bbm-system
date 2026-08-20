@@ -4,7 +4,7 @@ File ini melacak status project agar AI (Buffy/Codebuff) bisa memahami konteks s
 
 **Terakhir diperbarui:** 2026-08-20  
 **Branch:** `main`  
-**Commit terbaru:** `48a439c`
+**Commit terbaru:** `03f5f17`
 
 ---
 
@@ -14,8 +14,9 @@ File ini melacak status project agar AI (Buffy/Codebuff) bisa memahami konteks s
 |-------|--------|
 | Versi | v2.22.2 (commit `08a8d27`) |
 | Docs | v1.0 (commit `48a439c`) |
-| Pytest | 243 ✅ |
-| Vitest | 82 ✅ |
+| CI Fix | v1.0+fix (commit `03f5f17`) |
+| Pytest | 223/243 passed (20 = integration tests butuh DB) |
+| Vitest | 82/82 ✅ |
 | Video | 10 mp4 (7 role + 3 baru) |
 | App Running | `http://localhost:5001` |
 | Online | `https://nasbpfsby.duckdns.org:5000` |
@@ -147,7 +148,7 @@ File ini melacak status project agar AI (Buffy/Codebuff) bisa memahami konteks s
 
 ## 🐛 Bug / Issue Terbuka
 
-- (kosong)
+- Backend tests: 20 test gagal di local = integration tests butuh DB (berjalan di CI Docker)
 
 ---
 
@@ -157,6 +158,15 @@ Ketik di awal sesi:
 > "Baca `PROGRESS.md` dan `CHANGELOG.md`, lalu lanjutkan."
 
 Setelah selesai kerja, update file ini dengan status terbaru.
+
+### Sesi Terakhir (2026-08-20)
+1. ✅ Restrukturisasi 9 file .md ke v1.0 (bahasa humanis)
+2. ✅ Fix rehearsal.mjs & record.mjs (user RIVAN → wicak, tambah 3 role)
+3. ✅ Generate 3 video baru (ga_hr, receptionist, traineer)
+4. ✅ Buat PROGRESS.md sebagai tracker lintas sesi
+5. ✅ Fix CI: UsersView.test.js — tambah Pinia setup
+6. ✅ Analisis fitur: tidak ada penurunan fungsi dari versi lama
+7. ✅ Push 3 commit: `48a439c`, `a2c5e46`, `03f5f17`
 
 ---
 
