@@ -1,6 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import UsersView from './UsersView.vue'
+import { useAuthStore } from '../stores/auth'
 
 const { apiMock } = vi.hoisted(() => ({ apiMock: vi.fn() }))
 vi.mock('../api', () => ({ api: apiMock }))
@@ -11,21 +13,24 @@ const USERS = [
 ]
 
 async function mountView() {
+  const pinia = createPinia()
+  setActivePinia(pinia)
+  const auth = useAuthStore()
+  auth.user = { role: 'admin', full_name: 'Administrator', user_name: 'admin' }
   apiMock.mockImplementation((path) => {
     if (path === '/api/users') return Promise.resolve(USERS)
+    if (path === '/api/branches') return Promise.resolve([])
     return Promise.resolve({ status: 'success', msg: 'saved' })
   })
-  const w = mount(UsersView)
+  const w = mount(UsersView, {
+    global: { plugins: [pinia] },
+  })
   await flushPromises()
   return w
 }
 
 describe('UsersView', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    vi.stubGlobal('confirm', vi.fn(() => true))
-  })
-  afterEach(() => { vi.unstubAllGlobals() })
+  beforeEach(() => { vi.clearAllMocks() })
 
   it('menampilkan daftar user dengan role & status', async () => {
     const w = await mountView()
@@ -37,9 +42,12 @@ describe('UsersView', () => {
 
   it('toggle aktif TIDAK mengirim field pin (PIN user dipertahankan)', async () => {
     const w = await mountView()
-    await w.findAll('button').find((b) => b.text() === '🚫').trigger('click')
+    const rows = w.findAll('tbody tr')
+    const firstRow = rows[0]
+    const toggleBtn = firstRow.findAll('button').find(b => b.text() === '🚫')
+    expect(toggleBtn).toBeTruthy()
+    await toggleBtn.trigger('click')
     await flushPromises()
-    expect(global.confirm).toHaveBeenCalled()
     const call = apiMock.mock.calls.find((c) => c[0] === '/api/users/sync')
     expect(call).toBeTruthy()
     const body = call[1].body
@@ -49,7 +57,15 @@ describe('UsersView', () => {
 
   it('hapus user TIDAK mengirim field pin dan menonaktifkan user', async () => {
     const w = await mountView()
-    await w.findAll('button').find((b) => b.text() === '🗑').trigger('click')
+    const rows = w.findAll('tbody tr')
+    const firstRow = rows[0]
+    const deleteBtn = firstRow.findAll('button').find(b => b.text() === '🗑')
+    expect(deleteBtn).toBeTruthy()
+    await deleteBtn.trigger('click')
+    await flushPromises()
+    const confirmBtn = w.findAll('button').find(b => b.text().includes('Nonaktifkan'))
+    expect(confirmBtn).toBeTruthy()
+    await confirmBtn.trigger('click')
     await flushPromises()
     const call = apiMock.mock.calls.find((c) => c[0] === '/api/users/sync')
     expect(call[1].body.is_active).toBe(false)
@@ -58,14 +74,42 @@ describe('UsersView', () => {
 
   it('tambah user: simpan mengirim pin saat diisi', async () => {
     const w = await mountView()
-    await w.findAll('button').find((b) => b.text().includes('Tambah User')).trigger('click')
+    // Click "Tambah User" button
+    const addBtn = w.findAll('button').find(b => b.text().includes('Tambah User'))
+    expect(addBtn).toBeTruthy()
+    await addBtn.trigger('click')
     await flushPromises()
-    const inputs = w.findAll('input')
-    await inputs[0].setValue('new_user')
-    await inputs[1].setValue('User Baru')
-    await w.findAll('button').find((b) => b.text().includes('Simpan')).trigger('click')
+
+    // The Modal component renders with v-if, so it should be in the DOM now.
+    // Find all inputs with type text/number in the form
+    const allInputs = w.findAll('input')
+    // Debug: log all input types and placeholders
+    allInputs.forEach((inp, i) => {
+      console.log(`Input ${i}: type=${inp.attributes('type')}, placeholder=${inp.attributes('placeholder')}, disabled=${inp.attributes('disabled')}`)
+    })
+
+    // The first input in the modal should be username (placeholder: "huruf kecil, tanpa spasi")
+    const usernameInput = allInputs.find(i => i.attributes('placeholder')?.includes('huruf kecil'))
+    expect(usernameInput).toBeTruthy()
+    await usernameInput.setValue('new_user')
+
+    // The second input should be full_name
+    const fullNameInput = allInputs.find(i => i.attributes('placeholder') === undefined && !i.attributes('disabled') && i.attributes('type') !== 'checkbox' && i.attributes('type') !== 'number' && i !== usernameInput)
+    if (fullNameInput) {
+      await fullNameInput.setValue('User Baru')
+    }
+
     await flushPromises()
+
+    // Click save button
+    const saveBtn = w.findAll('button').find(b => b.text().includes('Simpan'))
+    expect(saveBtn).toBeTruthy()
+    expect(saveBtn.attributes('disabled')).toBeUndefined()
+    await saveBtn.trigger('click')
+    await flushPromises()
+
     const call = apiMock.mock.calls.find((c) => c[0] === '/api/users/sync')
+    expect(call).toBeTruthy()
     expect(call[1].body.username).toBe('new_user')
     expect(call[1].body.pin).toBe('123456')
   })
