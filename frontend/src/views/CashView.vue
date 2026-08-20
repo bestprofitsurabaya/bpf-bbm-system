@@ -263,7 +263,7 @@ onMounted(load)
           <div class="field"><label>Driver</label><input class="input" :value="detailData.driver_name" disabled /></div>
           <div class="field"><label>Nopol</label><input class="input" :value="detailData.nopol" disabled /></div>
           <div class="field"><label>Kendaraan / BBM</label><input class="input" :value="detailData.vehicle_type + ' · ' + detailData.bbm_type" disabled /></div>
-          <div class="field"><label>Total</label><input class="input" :value="fmtRp(detailData.total_amount) + ' (kode: ' + detailData.daily_code + ')" disabled /></div>
+          <div class="field"><label>Total</label><input class="input" :value="fmtRp(detailData.total_amount) + ' (kode: ' + detailData.daily_code + ')'" disabled /></div>
           <div class="field"><label>Status</label><input class="input" :value="(detailData.status || '').replace(/_/g, ' ')" disabled /></div>
           <div class="field"><label>Dibuat</label><input class="input" :value="detailData.created_at" disabled /></div>
         </div>
