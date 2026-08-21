@@ -120,7 +120,7 @@ File ini melacak status project agar AI (Buffy/Codebuff) bisa memahami konteks s
 
 ## 🔄 Yang Sedang Dikerjakan
 
-- [ ] Install `beautifulsoup4` di server agar fitur scrape berfungsi penuh
+- (kosong)
 
 ---
 
@@ -200,7 +200,7 @@ Setelah selesai kerja, update file ini dengan status terbaru.
 | Finance | `finance_officer` | `123456` | `/app/finance` |
 | Driver | `wicak` | `123456` | `/app/driver` |
 | GA HR | `ga_hr_officer` | `123456` | `/app/ga-hr` |
-| IT Surabaya | `it_ef` | `123456` | `/app/it-ef` |
+| IT Surabaya | `it_ef` | `123456` | `/app/it-ef` | (branch SBY) |
 
 ---
 
