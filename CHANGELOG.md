@@ -17,6 +17,29 @@ Telp: 031-5349888
 
 ## Versi Terbaru
 
+### [2.23.0] - 2026-08-21
+
+**Role baru: IT Surabaya (`it_ef`)** — News Scraper & Content Management. ef = kode cabang internal Surabaya.
+
+**Fitur Baru:**
+- **News Scraper**: Scrape artikel dari newsmaker.id (market-news/commodity)
+- **WordPress Integration**: Multi-site management (CRUD, test connection)
+- **Auto-Upload**: Upload artikel ke WordPress dengan SEO optimization
+- **Financial Authority Backlinks**: 24+ situs otoritas (OJK, BI, BEI, Bloomberg, dll)
+- **Keyword → Backlink Mapping**: Ototomatis berdasarkan konten artikel
+- **SEO Analyzer**: Word count, heading, link density, image check → score 0-100
+- **Duplicate Checker**: Deteksi & hapus artikel duplikat di WordPress
+- **Schema Markup**: JSON-LD Article schema untuk SEO
+- **Guest Post Pitch**: Template otomatis untuk outreach
+- **Activity Log**: Lacak semua aktivitas scraper
+
+**Backend:**
+- `modules/routes_news_scraper.py` — 14 API endpoints
+- Role `it_ef` ditambahkan ke ROLE_HOME, auth store, sidebar menu
+
+**Frontend:**
+- `ItEfView.vue` — Dashboard scraper dengan 5 panel: Sites, Scrape, Upload, Duplicates, Backlinks
+
 ### [1.0.0] - 2026-08-20
 
 Versi stabil pertama dengan fitur lengkap: 10 role, 243 pytest, 82 Vitest, 10 video walkthrough.

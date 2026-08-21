@@ -37,6 +37,8 @@ const MENU = [
   { label: 'Rekrutan Saya', path: '/traineer', icon: '🎯', roles: ['traineer'] },
   { label: 'Aset & Pemeliharaan', path: '/assets', icon: '🔧', roles: ['ga', 'admin'] },
   { label: 'Overtime', path: '/ga-hr', icon: '⏰', roles: ['ga_hr', 'admin'] },
+  { label: 'News Scraper', path: '/it-ef', icon: '📰', roles: ['it_ef', 'admin'] },
+
 ]
 
 const items = computed(() => MENU.filter((m) => m.roles.includes(auth.role)))

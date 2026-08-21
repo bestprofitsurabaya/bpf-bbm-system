@@ -625,6 +625,7 @@ ROLE_HOME = {
     'receptionist': '/app/receptionist',  # v2.16: sistem pelamar kerja (verifikasi & kehadiran)
     'traineer': '/app/traineer',          # v2.16: pantau rekrutan (upline)
     'ga_hr': '/app/ga-hr',                # v2.22: data overtime (Driver + OB/Security)
+    'it_ef': '/app/it-ef',              # v2.23: News Scraper & Content Management
 }
 
 

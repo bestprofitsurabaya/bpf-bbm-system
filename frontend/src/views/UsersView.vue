@@ -46,6 +46,7 @@ const ROLES = [
   ['marketing', '📣 Marketing'], ['chief_driver', '🚛 Chief Driver'], ['ob', '🚰 OB'],
   ['receptionist', '🪪 Receptionist'], ['traineer', '🎯 Traineer'], ['ga_hr', '⏰ GA HR'],
   ['driver', '🚗 Driver'],
+  ['it_ef', '📰 IT Surabaya'],
 ]
 const roleLabel = (r) => (ROLES.find((x) => x[0] === r) || [r, r])[1]
 const roleIcon = (r) => (ROLES.find((x) => x[0] === r) || ['', ''])[1].split(' ')[0]

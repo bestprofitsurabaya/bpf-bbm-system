@@ -150,7 +150,7 @@ def register_master_api(app):
             u = data.get('username', '').strip(); f = data.get('full_name', '').strip()
             r = data.get('role', 'ga'); a = data.get('is_active', True)
             if r not in ('admin', 'ga', 'finance', 'marketing', 'chief_driver', 'driver', 'ob',
-                         'receptionist', 'traineer', 'ga_hr'):
+                         'receptionist', 'traineer', 'ga_hr', 'it_ef'):
                 return jsonify({'status': 'error', 'msg': 'Role tidak valid'}), 400
             if not u or not f: return jsonify({'status': 'error', 'msg': 'Username dan nama wajib'}), 400
 

@@ -2,9 +2,9 @@
 
 File ini melacak status project agar AI (Buffy/Codebuff) bisa memahami konteks saat sesi baru dimulai.
 
-**Terakhir diperbarui:** 2026-08-20  
+**Terakhir diperbarui:** 2026-08-21  
 **Branch:** `main`  
-**Commit terbaru:** `03f5f17`
+**Versi terbaru:** v2.23.0
 
 ---
 
@@ -12,7 +12,7 @@ File ini melacak status project agar AI (Buffy/Codebuff) bisa memahami konteks s
 
 | Aspek | Status |
 |-------|--------|
-| Versi | v2.22.2 (commit `08a8d27`) |
+| Versi | v2.23.0 (News Scraper + role it_ef / IT Surabaya) |
 | Docs | v1.0 (commit `48a439c`) |
 | CI Fix | v1.0+fix (commit `03f5f17`) |
 | Pytest | 223/243 passed (20 = integration tests butuh DB) |
@@ -120,7 +120,7 @@ File ini melacak status project agar AI (Buffy/Codebuff) bisa memahami konteks s
 
 ## 🔄 Yang Sedang Dikerjakan
 
-- (kosong)
+- [ ] Install `beautifulsoup4` di server agar fitur scrape berfungsi penuh
 
 ---
 
@@ -159,6 +159,15 @@ Ketik di awal sesi:
 
 Setelah selesai kerja, update file ini dengan status terbaru.
 
+### Sesi 2026-08-21
+1. ✅ Tambah role `it_ef` (IT Surabaya) — backend + frontend
+2. ✅ Buat `routes_news_scraper.py` — API WordPress site management, scrape, upload, SEO, backlinks, duplicates
+3. ✅ Buat `ItEfView.vue` — UI News Scraper & Content Management
+4. ✅ Register module di `app.py`
+5. ✅ Update router, sidebar menu, ROLES list
+6. ✅ 82/82 Vitest ✅ | Module import ✅
+7. ⚠️ Perlu install `beautifulsoup4` di server
+
 ### Sesi Terakhir (2026-08-20)
 1. ✅ Restrukturisasi 9 file .md ke v1.0 (bahasa humanis)
 2. ✅ Fix rehearsal.mjs & record.mjs (user RIVAN → wicak, tambah 3 role)
@@ -191,6 +200,7 @@ Setelah selesai kerja, update file ini dengan status terbaru.
 | Finance | `finance_officer` | `123456` | `/app/finance` |
 | Driver | `wicak` | `123456` | `/app/driver` |
 | GA HR | `ga_hr_officer` | `123456` | `/app/ga-hr` |
+| IT Surabaya | `it_ef` | `123456` | `/app/it-ef` |
 
 ---
 
