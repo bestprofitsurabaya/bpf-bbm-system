@@ -392,6 +392,26 @@ npm run build      # hasil di frontend/dist
 | POST | `/api/trips/reject/<id>` | Reject trip + alasan |
 | GET | `/app/*` | SPA (fallback index.html) |
 
+### Endpoint News Scraper (v2.23)
+
+| Method | Path | Fungsi |
+|--------|------|--------|
+| GET | `/api/scraper/sites` | List WordPress sites |
+| POST | `/api/scraper/sites` | Tambah/edit WordPress site |
+| DELETE | `/api/scraper/sites/<name>` | Hapus WordPress site |
+| POST | `/api/scraper/test-connection` | Test koneksi WP API |
+| POST | `/api/scraper/check` | Scrape artikel dari newsmaker.id |
+| POST | `/api/scraper/upload` | Upload artikel ke WordPress + SEO |
+| POST | `/api/scraper/duplicates` | Cek artikel duplikat |
+| POST | `/api/scraper/duplicates/delete` | Hapus artikel duplikat |
+| GET | `/api/scraper/backlinks` | Lihat config backlinks |
+| POST | `/api/scraper/backlinks` | Simpan config backlinks |
+| POST | `/api/scraper/backlinks/add-keyword` | Tambah keyword mapping |
+| GET | `/api/scraper/hyperlinks` | List hyperlinks |
+| POST | `/api/scraper/hyperlinks` | Simpan hyperlinks |
+| GET | `/api/scraper/log` | Activity log |
+| DELETE | `/api/scraper/log` | Clear log |
+
 ---
 
 ## 13. Checklist Sebelum Go-Live

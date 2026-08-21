@@ -19,13 +19,14 @@ Telp: 031-5349888
 7. [Demo Utama 4 — Realtime & Notifikasi](#7-demo-utama-4--realtime--notifikasi)
 8. [Demo Utama 5 — Driver PWA Offline](#8-demo-utama-5--driver-pwa-offline)
 9. [Demo Pendukung — Marketing & Chief Driver](#9-demo-pendukung--marketing--chief-driver)
-10. [Demo Pendukung — Pelamar Kerja](#10-demo-pendukung--pelamar-kerja)
-11. [Keamanan & Tata Kelola](#11-keamanan--tata-kelola)
-12. [Kualitas & Kepatuhan](#12-kualitas--kepatuhan)
-13. [Penutup — Nilai & Langkah Berikutnya](#13-penutup--nilai--langkah-berikutnya)
-14. [Persiapan Demo](#14-persiapan-demo)
-15. [Kemungkinan Pertanyaan Audiens](#15-kemungkinan-pertanyaan-audiens)
-16. [Kata Penutup](#16-kata-penutup)
+10. [Demo Pendukung — IT Surabaya & News Scraper](#10-demo-pendukung--it-surabaya--news-scraper-2-menit-)
+11. [Demo Pendukung — Pelamar Kerja](#11-demo-pendukung--pelamar-kerja)
+12. [Keamanan & Tata Kelola](#12-keamanan--tata-kelola)
+13. [Kualitas & Kepatuhan](#13-kualitas--kepatuhan)
+14. [Penutup — Nilai & Langkah Berikutnya](#14-penutup--nilai--langkah-berikutnya)
+15. [Persiapan Demo](#15-persiapan-demo)
+16. [Kemungkinan Pertanyaan Audiens](#16-kemungkinan-pertanyaan-audiens)
+17. [Kata Penutup](#17-kata-penutup)
 
 **Dokumen Pendukung:**
 - 🖥️ Slide deck interaktif: `presentasi/index.html`
@@ -51,9 +52,10 @@ Telp: 031-5349888
 | 6 | Demo: Driver PWA offline | 2 mnt | Relevan untuk pengguna lapangan |
 | 7 | Demo: Marketing & Chief Driver | 2 mnt | Fitur pendukung penjualan |
 | 8 | Demo: Pelamar Kerja | 2 mnt | Menggantikan Google Form |
-| 9 | Keamanan & tata kelola | 3 mnt | Menjawab kekhawatiran pengambil keputusan |
-| 10 | Kualitas & kepatuhan | 2 mnt | Bukti kredibilitas teknis |
-| 11 | Penutup: nilai & langkah berikutnya | 2 mnt | Ajakan bertindak |
+| 9 | Demo: IT Surabaya & News Scraper | 2 mnt | Content management + SEO |
+| 10 | Keamanan & tata kelola | 3 mnt | Menjawab kekhawatiran pengambil keputusan |
+| 11 | Kualitas & kepatuhan | 2 mnt | Bukti kredibilitas teknis |
+| 12 | Penutup: nilai & langkah berikutnya | 2 mnt | Ajakan bertindak |
 
 **Total durasi:** ±15 menit (demo inti) atau ±30 menit (versi lengkap)
 
@@ -195,7 +197,25 @@ Telp: 031-5349888
 
 ---
 
-## 10. Demo Pendukung — Pelamar Kerja (2 menit) 🪪
+## 10. Demo Pendukung — IT Surabaya & News Scraper (2 menit) 📰
+
+**Skenario:** login sebagai IT Surabaya, tunjukkan alur scrape → upload → SEO.
+
+| Langkah | Layar | Yang Dilakukan | Yang Dibicarakan |
+|---------|-------|---------------|------------------|
+| 1 | Login `it_ef` / `123456` | Masuk News Scraper dashboard | "Role khusus IT cabang — semua terpusat di satu halaman." |
+| 2 | WordPress Sites | Klik 🔌 Test Connection | "Multi-site management — bisa kelola beberapa WP sekaligus." |
+| 3 | Scrape | Pilih site → Check Articles → 2 halaman | "Artikel dari newsmaker.id langsung di-scrape dengan konten lengkap." |
+| 4 | Upload | Klik Upload to WordPress | "Upload otomatis + SEO score + 24 authority backlinks." |
+| 5 | Backlinks | Klik 🔗 Financial Backlinks | "24+ situs otoritas — OJK, BI, Bloomberg — backlink otomatis." |
+| 6 | Duplicates | Klik Check Duplicates | "Deteksi & bersihkan artikel duplikat." |
+
+**Satu kalimat kunci:**
+> *"Content management yang terintegrasi — dari scraping sampai publikasi, semua otomatis dan SEO-friendly."*
+
+---
+
+## 11. Demo Pendukung — Pelamar Kerja (2 menit) 🪪
 
 **Alur demo:**
 1. Buka `/app/apply` (tanpa login) → isi form → muncul No. Registrasi PLM-* + jam interview otomatis.

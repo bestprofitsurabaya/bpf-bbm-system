@@ -31,6 +31,7 @@ Sebelumnya, pencatatan BBM, kasbon, dan pembelian air minum dilakukan manual —
 | **GA — Aset** | Pemeliharaan 15 unit AC kantor (health score) + 8 kendaraan + 12 komponen |
 | **Traineer / Upline** | Pantau kehadiran orang yang direkrutnya |
 | **Admin** | Kelola akun & nama penanda tangan, lihat analytics |
+| **IT Surabaya** | Scrape artikel, upload ke WordPress dengan SEO & backlinks otomatis |
 
 **Setiap peran hanya melihat halaman sesuai wewenangnya** (prinsip *least privilege*).
 
@@ -47,6 +48,7 @@ Sebelumnya, pencatatan BBM, kasbon, dan pembelian air minum dilakukan manual —
 - **Notifikasi realtime** — driver langsung tahu klaimnya sudah diverifikasi atau ada jadwal baru.
 - **Bisa dipakai offline** — koneksi tersambung kembali, data otomatis tersinkron.
 - **Laporan PDF & Excel** — logsheet, rekap, dan dokumen tanda terima siap diunduh.
+- **News Scraper & SEO** — scrape artikel, upload ke WordPress, financial authority backlinks otomatis, duplicate checker.
 
 ---
 

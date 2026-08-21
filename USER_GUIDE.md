@@ -24,8 +24,9 @@
 11. [Untuk GA — Aset & Pemeliharaan 🔧](#11-untuk-ga--aset--pemeliharaan)
 12. [Untuk Admin — Pengaturan Sistem ⚙️](#12-untuk-admin--pengaturan-sistem)
 13. [Kasbon: Alur Lengkap dari A sampai Z](#13-kasbon-alur-lengkap-dari-a-sampai-z)
-14. [Mengatasi Masalah (Troubleshooting)](#14-mengatasi-masalah-troubleshooting)
-15. [Istilah-istilah Penting](#15-istilah-istilah-penting)
+14. [Untuk IT Surabaya — News Scraper](#14-untuk-it-surabaya--news-scraper--content-management-)
+15. [Mengatasi Masalah (Troubleshooting)](#15-mengatasi-masalah-troubleshooting)
+16. [Istilah-istilah Penting](#16-istilah-istilah-penting)
 
 ---
 
@@ -63,6 +64,7 @@ Setelah masuk, kamu otomatis diarahkan ke halaman utama sesuai peranmu:
 | Chief Driver | Dashboard Chief Driver |
 | Driver | Aplikasi Driver |
 | OB | Halaman Air Minum |
+| IT Surabaya | News Scraper |
 
 ### 2.2 Keluar dari Aplikasi
 
@@ -455,7 +457,7 @@ Semua perubahan papan berjalan realtime — saat driver menyelesaikan tugas, sta
 
 ### 11.1 Manajemen User (Halaman Users)
 
-- **Membuat akun baru** — pilih peran (Admin, GA, Finance, Marketing, Chief Driver, Driver, OB, **Receptionist**, **Traineer**, **GA HR**), isi nama & PIN.
+- **Membuat akun baru** — pilih peran (Admin, GA, Finance, Marketing, Chief Driver, Driver, OB, **Receptionist**, **Traineer**, **GA HR**, **IT Surabaya**), isi nama & PIN.
 - **Mengganti nama** — misalnya mengganti nama placeholder OB dengan nama asli. Nama ini yang tampil di dokumen (mis. PDF tanda terima air minum).
 - **Reset PIN** — kalau user lupa PIN.
 - **Nonaktifkan/Aktifkan** — akun yang dinonaktifkan **tidak bisa login** (tanpa harus dihapus, supaya jejak datanya tetap aman).
@@ -506,7 +508,55 @@ Angka "receh" yang ditambahkan ke nominal kasbon (mis. Rp 100.023, bukan Rp 100.
 
 ---
 
-## 14. Mengatasi Masalah (Troubleshooting)
+## 14. Untuk IT Surabaya — News Scraper & Content Management 📰
+
+> **Kamu adalah IT Surabaya.** Halaman **📰 News Scraper** (`/app/it-ef`) memungkinkanmu scrape artikel dari newsmaker.id, upload ke WordPress dengan SEO optimization, dan mengelola financial authority backlinks.
+
+### 14.1 Mengelola WordPress Sites
+
+1. Klik **➕ Add Site** untuk menambah WordPress site baru.
+2. Isi: **Site Name**, **API URL** (endpoint posts WP), **Username**, **App Password**.
+3. Klik **🔌 Test** untuk memverifikasi koneksi.
+4. Bisa menambah **multiple sites** dengan credentials berbeda.
+
+### 14.2 Scrape Artikel
+
+1. Pilih **Target Site** dari dropdown.
+2. Atur **jumlah halaman** (1-20).
+3. Klik **🔍 Check Articles** — artikel dari newsmaker.id akan di-scrape.
+4. Artikel muncul di tabel: judul, kategori (GOLD, OIL, SILVER, Forex), tanggal, konten.
+
+### 14.3 Upload ke WordPress
+
+1. Setelah artikel di-scrape, klik **📤 Upload to WordPress**.
+2. **SEO Optimization** otomatis: schema markup, meta description, word count analysis.
+3. **Financial Authority Backlinks** otomatis ditambahkan berdasarkan keyword.
+4. **Tag otomatis** dibuat berdasarkan judul artikel.
+5. Hasil upload: jumlah baru, update, dan error.
+
+### 14.4 Financial Authority Backlinks
+
+Klik **🔗 Backlinks** untuk melihat/mengelola:
+- **24+ authority sites**: OJK, BI, BEI, IMF, Bloomberg, Reuters, dll.
+- **Keyword mapping**: keyword dalam artikel otomatis di-link ke situs otoritas.
+- **Tambah keyword mapping** baru: pilih keyword + target authority site.
+
+### 14.5 Duplicate Checker
+
+1. Pilih site → klik **🔍 Check Duplicates**.
+2. Artikel duplikat terdeteksi: judul, jumlah duplikat, post IDs.
+3. Klik **🗑 Delete Duplicates** untuk menghapus (keep latest only).
+
+### 14.6 Settings SEO
+
+- **🔍 Auto-SEO**: aktifkan untuk optimasi otomatis.
+- **🔗 Authority Backlinks**: aktifkan untuk backlink otomatis.
+- **Max backlinks**: jumlah maksimal backlinks per artikel.
+- **Static Tags**: tag yang selalu ditambahkan (comma separated).
+
+---
+
+## 15. Mengatasi Masalah (Troubleshooting)
 
 | Masalah | Solusi |
 |---------|--------|
@@ -524,7 +574,7 @@ Angka "receh" yang ditambahkan ke nominal kasbon (mis. Rp 100.023, bukan Rp 100.
 
 ---
 
-## 15. Istilah-istilah Penting
+## 16. Istilah-istilah Penting
 
 | Istilah | Artinya (bahasa sehari-hari) |
 |---------|------------------------------|

@@ -5,7 +5,7 @@
 
 ---
 
-Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, dan pengarsipan klaim BBM, pengajuan kasbon dengan kode unik, log perjalanan harian, serta manajemen aset dan oxygen. Dilengkapi dengan sistem appointment, deteksi anomali Machine Learning, GPS tracking, watermark foto, PIN security, session-based login, role-based access, CSRF protection, notifikasi real-time, import Excel, audit trail, Chart.js visualization, PWA offline-first, dan WebSocket real-time.
+Sistem end-to-end untuk pencatatan, verifikasi, persetujuan, dan pengarsipan klaim BBM, pengajuan kasbon dengan kode unik, log perjalanan harian, serta manajemen aset, oxygen, dan content management (News Scraper). Dilengkapi dengan sistem appointment, deteksi anomali Machine Learning, GPS tracking, watermark foto, PIN security, session-based login, role-based access, CSRF protection, notifikasi real-time, import Excel, audit trail, Chart.js visualization, PWA offline-first, dan WebSocket real-time.
 
 ---
 
@@ -71,6 +71,14 @@ Semua tercatat, terverifikasi, dan bisa dipertanggungjawabkan — dengan satu ap
 - Form publik OB/Security tanpa login
 - Auto-refresh saat login/logout
 - Edit & hapus data overtime
+
+### 📰 IT Surabaya (News Scraper)
+- Scrape artikel dari newsmaker.id (market-news/commodity)
+- Multi-WordPress site management (CRUD, test connection)
+- Upload artikel ke WordPress dengan SEO optimization
+- Financial Authority Backlinks otomatis (24+ situs)
+- Duplicate article checker
+- Activity log
 
 ### ⚙️ Admin
 - Manajemen user: buat akun, reset PIN, aktifkan/nonaktifkan
@@ -154,6 +162,7 @@ Aplikasi tersedia di `http://localhost:5001`
 | Receptionist | `receptionis` | `123456` |
 | Traineer | `traineer_a` | `123456` |
 | GA HR | `ga_hr_officer` | `123456` |
+| IT Surabaya | `it_ef` | `123456` |
 
 ---
 
@@ -220,7 +229,7 @@ bpf-workhub/
 | Login PIN | Username + 6 digit PIN |
 | Session | HTTP-only cookie, SameSite=Lax |
 | CSRF | Token di semua POST/PUT/DELETE/PATCH |
-| Role-Based Access | 10 role, least privilege |
+| Role-Based Access | 11 role, least privilege |
 | Audit Trail | 30+ action types |
 | Rate Limit | Anti brute-force login |
 | Watermark | GPS + timestamp di foto |
@@ -228,7 +237,7 @@ bpf-workhub/
 
 ---
 
-## 👥 10 Role Pengguna
+## 👥 11 Role Pengguna
 
 | Role | Fungsi Utama |
 |------|-------------|
@@ -242,6 +251,7 @@ bpf-workhub/
 | Receptionist | Verifikasi pelamar kerja |
 | Traineer | Pantau kehadiran rekrutan |
 | GA HR | Kelola overtime Driver & OB/Security |
+| IT Surabaya | News Scraper & Content Management (WordPress + SEO) |
 
 ---
 

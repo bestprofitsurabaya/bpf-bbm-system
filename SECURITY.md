@@ -79,7 +79,7 @@ Enforcement berlapis: (1) server `role_required` pada setiap route/API, (2) guar
 | Login PIN | Username + 6 digit PIN per orang |
 | Session | HTTP-only cookie, SameSite=Lax, Secure (HTTPS) |
 | CSRF | Token di semua POST/PUT/DELETE/PATCH |
-| Role-Based Access | 10 role, least privilege, enforcement berlapis |
+| Role-Based Access | 11 role, least privilege, enforcement berlapis |
 | Audit Trail | 30+ action types, siapa + kapan + apa |
 | Rate Limit | Anti brute-force login (Redis) |
 | Watermark | GPS + timestamp di foto bukti |

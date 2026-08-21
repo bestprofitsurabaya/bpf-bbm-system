@@ -19,7 +19,8 @@ Telp: 031-5349888
 7. [Receptionist — Pelamar Kerja](#7-receptionist--pelamar-kerja)
 8. [Traineer — Pantau Rekrutan](#8-traineer--pantau-rekrutan)
 9. [Admin — User & Pengaturan](#9-admin--user--pengaturan)
-10. [Daftar Periksa Sebelum Demo](#10-daftar-periksa-sebelum-demo)
+10. [IT Surabaya — News Scraper](#10-it-surabaya--news-scraper)
+11. [Daftar Periksa Sebelum Demo](#11-daftar-periksa-sebelum-demo)
 
 ---
 
@@ -148,7 +149,22 @@ Telp: 031-5349888
 
 ---
 
-## 10. Daftar Periksa Sebelum Demo
+## 10. IT Surabaya — News Scraper
+
+| # | Langkah | Hasil yang Diharapkan |
+|---|---------|----------------------|
+| 1 | Login `it_ef` / PIN `123456` | Masuk News Scraper, sidebar 📰 News Scraper tampil |
+| 2 | Klik ➕ Add Site → isi nama, WP URL, username, app password | Site tersimpan di daftar |
+| 3 | Klik 🔌 Test pada site | Pesan "Koneksi berhasil" muncul |
+| 4 | Pilih site → atur jumlah halaman → klik 🔍 Check Articles | Artikel dari newsmaker.id muncul di tabel |
+| 5 | Klik 📤 Upload to WordPress | Artikel terupload + SEO score + backlinks otomatis |
+| 6 | Klik 🔍 Check Duplicates | Duplikat terdeteksi (jika ada) |
+| 7 | Klik 🔗 Backlinks → lihat authority sites | 24+ situs otoritas tampil |
+| 8 | Klik 📝 Log | Aktivitas scraper tercatat |
+
+---
+
+## 11. Daftar Periksa Sebelum Demo
 
 - [ ] Data demo masih ada (cek: antrean GA ada klaim, rekap finance ada air minum)
 - [ ] 2–3 tab browser siap (GA, Finance, OB) untuk demo realtime

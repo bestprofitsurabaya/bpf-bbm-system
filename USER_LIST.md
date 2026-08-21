@@ -33,9 +33,9 @@ Akun berikut dibuat otomatis saat inisialisasi database:
 
 ---
 
-## 2. 10 Role yang Didukung
+## 2. 11 Role yang Didukung
 
-Sistem mendukung 10 role pengguna:
+Sistem mendukung 11 role pengguna:
 
 | # | Role | Label | Halaman Utama | Keterangan |
 |---|------|-------|---------------|------------|
@@ -49,6 +49,7 @@ Sistem mendukung 10 role pengguna:
 | 8 | `receptionist` | 🪪 Receptionist | `/app/receptionist` | Verifikasi pelamar kerja & kehadiran |
 | 9 | `traineer` | 🎯 Traineer | `/app/traineer` | Pantau rekrutan (read-only) |
 | 10 | `ga_hr` | ⏰ GA HR | `/app/ga-hr` | Data overtime Driver & OB/Security |
+| 11 | `it_ef` | 📰 IT Surabaya | `/app/it-ef` | News Scraper & Content Management (WordPress + SEO) |
 
 ---
 
@@ -272,27 +273,62 @@ Sistem mendukung 10 role pengguna:
 
 ---
 
+### 📰 IT Surabaya (`it_ef`)
+
+**Akses:** News Scraper & Content Management
+
+**Fitur Khusus:
+- Scrape artikel dari newsmaker.id (market-news/commodity)
+- Multi-WordPress site management (CRUD, test connection)
+- Upload artikel ke WordPress dengan SEO optimization
+- Financial Authority Backlinks otomatis (24+ situs otoritas)
+- Keyword → Backlink mapping otomatis
+- SEO Analyzer (word count, heading, link density, image → score 0-100)
+- Duplicate article checker + delete
+- Activity log
+
+**Halaman:** News Scraper (`/app/it-ef`)
+
+**API Endpoint:**
+- `GET /api/scraper/sites` — list WordPress sites
+- `POST /api/scraper/sites` — tambah/edit site
+- `DELETE /api/scraper/sites/<name>` — hapus site
+- `POST /api/scraper/test-connection` — test koneksi WP
+- `POST /api/scraper/check` — scrape artikel
+- `POST /api/scraper/upload` — upload ke WordPress
+- `POST /api/scraper/duplicates` — cek duplikat
+- `POST /api/scraper/duplicates/delete` — hapus duplikat
+- `GET /api/scraper/backlinks` — config backlinks
+- `POST /api/scraper/backlinks` — simpan config
+- `POST /api/scraper/backlinks/add-keyword` — tambah keyword mapping
+- `GET /api/scraper/hyperlinks` — list hyperlinks
+- `POST /api/scraper/hyperlinks` — simpan hyperlinks
+- `GET /api/scraper/log` — activity log
+
+---
+
 ## 4. Ringkasan Akses
 
-| Menu | Admin | GA | Finance | Marketing | Chief Driver | Driver | OB |
-|------|:-----:|:--:|:-------:|:---------:|:------------:|:------:|:--:|
-| Dashboard Admin | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Dashboard GA | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Dashboard Finance | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Log Perjalanan | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Assignments | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Rekap | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Kasbon / BBM | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Analytics | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Marketing Hub | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Chief Driver | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
-| Manajemen User | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Pengaturan | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Audit Log | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Air Minum | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ | ✅ |
-| Pelamar Kerja | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Aset & Pemeliharaan | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| GA HR (Overtime) | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Menu | Admin | GA | Finance | Marketing | Chief Driver | Driver | OB | IT Surabaya |
+|------|:-----:|:--:|:-------:|:---------:|:------------:|:------:|:--:|:-----------:|
+| Dashboard Admin | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Dashboard GA | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Dashboard Finance | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Log Perjalanan | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Assignments | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Rekap | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Kasbon / BBM | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Analytics | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Marketing Hub | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Chief Driver | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Manajemen User | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Pengaturan | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Audit Log | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Air Minum | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| Pelamar Kerja | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Aset & Pemeliharaan | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| GA HR (Overtime) | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| News Scraper | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 
 ---
 
